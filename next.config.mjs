@@ -13,16 +13,7 @@ const nextConfig = {
       },
     ],
   },
-  // Configuración de redirecciones
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/login',
-        permanent: false,
-      },
-    ]
-  },
+
 }
 
 // Serwist temporalmente deshabilitado - causa conflictos con Turbopack
