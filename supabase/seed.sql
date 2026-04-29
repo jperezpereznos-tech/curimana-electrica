@@ -49,3 +49,13 @@ END $$;
 -- 7. Periodos de Facturación
 INSERT INTO billing_periods (name, year, month, start_date, end_date, is_closed)
 VALUES ('JUNIO 2025', 2025, 6, '2025-05-26', '2025-06-25', false);
+
+-- NOTA IMPORTANTE: Creación de usuarios de prueba
+-- Los usuarios deben crearse primero en Supabase Auth (dashboard o API)
+-- Luego ejecutar las siguientes inserciones con los UUIDs reales generados
+-- Descomentar y modificar con los UUIDs correctos:
+
+-- INSERT INTO profiles (id, role, full_name) VALUES
+-- ('UUID_DEL_USUARIO_ADMIN', 'admin', 'Administrador Principal'),
+-- ('UUID_DEL_USUARIO_CAJERO', 'cashier', 'Cajero de Prueba'),
+-- ('UUID_DEL_USUARIO_LECTOR', 'meter_reader', 'Lecturista de Prueba');
