@@ -54,14 +54,14 @@ export class DashboardService {
     // En producción se haría un group by por billing_period
     const { data: periods } = await this.supabase
       .from('billing_periods')
-      .select('name, receipts(sum(paid_amount))')
+      .select('name, receipts(paid_amount)')
       .order('year', { ascending: true })
       .order('month', { ascending: true })
       .limit(6)
 
     return periods?.map(p => ({
       name: p.name,
-      total: (p.receipts as any)?.reduce((sum: number, r: any) => sum + (r.paid_amount || 0), 0) || 0
+      total: (p.receipts as any[])?.reduce((sum: number, r: any) => sum + (r.paid_amount || 0), 0) || 0
     })) || []
   }
 
