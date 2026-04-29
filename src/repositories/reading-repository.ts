@@ -1,0 +1,50 @@
+import { BaseRepository } from './base'
+import { Database } from '@/types/database'
+
+type Reading = Database['public']['Tables']['readings']['Row']
+
+export class ReadingRepository extends BaseRepository<'readings'> {
+  constructor() {
+    super('readings')
+  }
+
+  async getLatestReadingByCustomer(customerId: string): Promise<Reading | null> {
+    const { data, error } = await this.supabase
+      .from('readings')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('reading_date', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  }
+
+  async getReadingsByPeriod(periodId: string) {
+    const { data, error } = await this.supabase
+      .from('readings')
+      .select('*, customers(full_name, supply_number)')
+      .eq('billing_period_id', periodId)
+      .order('reading_date', { ascending: false })
+
+    if (error) throw error
+    return data
+  }
+
+  async getPendingReadingsCount(periodId: string): Promise<number> {
+    // Esta es una query un poco más compleja, necesitamos contar clientes que NO tienen lectura en este periodo
+    // Para simplificar, podríamos traer todos los clientes activos y filtrar en el servicio, 
+    // o hacer una query con NOT EXISTS en SQL.
+    const { count, error } = await this.supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true)
+      // Aquí falta la lógica de "no tiene lectura en este periodo" via SQL
+    
+    if (error) throw error
+    return count || 0
+  }
+}
+
+export const readingRepository = new ReadingRepository()

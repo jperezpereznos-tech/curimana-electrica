@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistema Eléctrico Municipal - Curimana
 
-## Getting Started
+Sistema integral para la gestión de facturación, recaudación y lectura de medidores del distrito de Curimana.
 
-First, run the development server:
+## 🚀 Tecnologías
+- **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui.
+- **Backend:** Supabase (Auth, PostgreSQL, Storage).
+- **Offline:** Dexie.js (IndexedDB) para modo offline de lecturistas.
+- **Reportes:** jsPDF (Recibos), Recharts (Dashboard Admin), CSV (Exportaciones).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🛠️ Configuración Local
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone https://github.com/tu-usuario/curimana-electrica.git
+    cd curimana-electrica
+    ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3.  **Variables de Entorno:**
+    Crea un archivo `.env.local` basado en `.env.local.example`:
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=tu_url_supabase
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anon
+    ```
 
-## Learn More
+4.  **Base de Datos:**
+    - Ejecuta el contenido de `supabase/schema.sql` en el Editor SQL de Supabase.
+    - Ejecuta `supabase/seed.sql` para cargar los datos iniciales (tarifas, clientes, usuarios).
 
-To learn more about Next.js, take a look at the following resources:
+5.  **Correr proyecto:**
+    ```bash
+    npm run dev
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧪 Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Tests Unitarios:** `npm run test`
+- **Tests E2E:** `npx playwright test`
 
-## Deploy on Vercel
+## 🔐 Seguridad y Auditoría
+- El sistema utiliza **RLS (Row Level Security)** para asegurar que cada rol (Admin, Cajero, Lector) solo acceda a los datos permitidos.
+- Todas las transacciones financieras se registran en la **Bitácora de Auditoría** accesible desde el panel de administración.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📱 PWA
+La aplicación es instalable en dispositivos móviles y permite a los lecturistas trabajar sin conexión a internet. Los datos se sincronizarán automáticamente al recuperar la red.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+© 2026 Municipalidad Distrital de Curimana

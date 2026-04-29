@@ -1,0 +1,13 @@
+project_id = "curimana-electrica"
+
+[auth]
+enabled = true
+
+[db]
+port = 54322
+
+[api]
+port = 54321
+
+[storage]
+enabled = true
