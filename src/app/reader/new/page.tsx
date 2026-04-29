@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { Camera, Search, ArrowLeft, Save, AlertTriangle } from 'lucide-react'
+import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check } from 'lucide-react'
+import { CameraCapture } from '@/components/camera-capture'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 
@@ -17,6 +18,8 @@ export default function NewReadingPage() {
   const [customer, setCustomer] = useState<any>(null)
   const [currentReading, setCurrentReading] = useState('')
   const [notes, setNotes] = useState('')
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
 
   const handleSearch = async () => {
@@ -58,6 +61,7 @@ export default function NewReadingPage() {
         consumption: reading - previous,
         reading_date: new Date().toISOString().split('T')[0],
         notes,
+        photo_base64: capturedPhoto || undefined,
         status: 'pending',
         created_at: new Date().toISOString()
       })
@@ -130,10 +134,45 @@ export default function NewReadingPage() {
               )}
             </div>
 
-            {/* Botón Foto */}
-            <Button variant="outline" size="lg" className="w-full h-16 gap-3 border-dashed">
-              <Camera className="h-6 w-6" /> Tomar Foto del Medidor
+      {/* Botón Foto */}
+      {!capturedPhoto ? (
+        <Button 
+          variant="outline" 
+          size="lg" 
+          className="w-full h-16 gap-3 border-dashed"
+          onClick={() => setIsCameraOpen(true)}
+        >
+          <Camera className="h-6 w-6" /> Tomar Foto del Medidor
+        </Button>
+      ) : (
+        <div className="relative">
+          <div className="w-full h-32 rounded-lg overflow-hidden border-2 border-dashed border-green-500">
+            <img 
+              src={capturedPhoto} 
+              alt="Medidor capturado" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="absolute top-2 right-2 flex gap-2">
+            <Button 
+              size="sm" 
+              variant="destructive"
+              onClick={() => setCapturedPhoto(null)}
+            >
+              Eliminar
             </Button>
+          </div>
+          <div className="absolute bottom-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+            <Check className="h-3 w-3" /> Foto capturada
+          </div>
+        </div>
+      )}
+
+      <CameraCapture
+        open={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={(photo) => setCapturedPhoto(photo)}
+      />
 
             {/* Notas */}
             <div className="space-y-2">

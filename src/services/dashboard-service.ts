@@ -80,6 +80,49 @@ export class DashboardService {
 
     return Object.entries(sectors).map(([name, value]) => ({ name, value }))
   }
+
+  // Top 5 clientes con mayor deuda
+  async getTopDebtors(limit: number = 5) {
+    const { data, error } = await this.supabase
+      .from('customers')
+      .select('id, full_name, supply_number, address, sector, current_debt')
+      .eq('is_active', true)
+      .gt('current_debt', 0)
+      .order('current_debt', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching top debtors:', error)
+      return []
+    }
+
+    return data || []
+  }
+
+  // Últimas lecturas registradas
+  async getLatestReadings(limit: number = 5) {
+    const { data, error } = await this.supabase
+      .from('readings')
+      .select('id, previous_reading, current_reading, consumption, reading_date, photo_url, customers(full_name, supply_number)')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching latest readings:', error)
+      return []
+    }
+
+    return data?.map(r => ({
+      id: r.id,
+      previous_reading: r.previous_reading,
+      current_reading: r.current_reading,
+      consumption: r.consumption,
+      reading_date: r.reading_date,
+      has_photo: !!r.photo_url,
+      customer_name: (r.customers as any)?.full_name || 'Desconocido',
+      supply_number: (r.customers as any)?.supply_number || 'N/A'
+    })) || []
+  }
 }
 
 export function getDashboardService(supabaseClient: SupabaseClient<Database>) {

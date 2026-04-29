@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, ChevronRight, Eye } from 'lucide-react'
-import { customerService } from '@/services/customer-service'
+import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -20,6 +20,7 @@ interface Debtor {
 export function TopDebtors() {
   const [debtors, setDebtors] = useState<Debtor[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadDebtors()
@@ -27,21 +28,25 @@ export function TopDebtors() {
 
   const loadDebtors = async () => {
     try {
-      // En producción, esto vendría de un endpoint específico
-      // Por ahora simulamos datos
-      const mockDebtors: Debtor[] = [
-        { id: '1', full_name: 'Juan Pérez García', supply_number: '001234567', current_debt: 1250.50, sector: 'Centro' },
-        { id: '2', full_name: 'María López Torres', supply_number: '001234568', current_debt: 890.00, sector: 'Norte' },
-        { id: '3', full_name: 'Carlos Rodríguez Silva', supply_number: '001234569', current_debt: 756.75, sector: 'Sur' },
-        { id: '4', full_name: 'Ana Martínez Cruz', supply_number: '001234570', current_debt: 620.25, sector: 'Centro' },
-        { id: '5', full_name: 'Pedro Sánchez Vega', supply_number: '001234571', current_debt: 485.00, sector: 'Norte' },
-      ]
+      setError(null)
+      const supabase = createClient()
       
-      // Ordenar por deuda descendente
-      const sorted = mockDebtors.sort((a, b) => (b.current_debt || 0) - (a.current_debt || 0))
-      setDebtors(sorted)
+      const { data, error: supabaseError } = await supabase
+        .from('customers')
+        .select('id, full_name, supply_number, current_debt, sector')
+        .eq('is_active', true)
+        .gt('current_debt', 0)
+        .order('current_debt', { ascending: false })
+        .limit(5)
+
+      if (supabaseError) {
+        throw supabaseError
+      }
+
+      setDebtors(data || [])
     } catch (error) {
       console.error('Error cargando deudores:', error)
+      setError('Error al cargar datos')
     } finally {
       setLoading(false)
     }

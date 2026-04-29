@@ -18,13 +18,13 @@ import {
   Search, 
   Calendar, 
   Download, 
-  Receipt,
-  User,
-  Clock,
-  ChevronLeft,
+  Receipt, 
+  User, 
+  Clock, 
+  ChevronLeft, 
   ChevronRight
 } from 'lucide-react'
-import { paymentService } from '@/services/payment-service'
+import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -41,22 +41,52 @@ export default function CashierHistoryPage() {
     loadPayments()
   }, [dateFilter])
 
-  const loadPayments = async () => {
+const loadPayments = async () => {
     if (!user) return
-    
+
     setLoading(true)
     try {
-      // En producción, esto vendría del servicio real
-      // Simulamos datos para mostrar la estructura
-      const mockPayments = [
-        { id: '1', receipt_number: '0000000001', customer_name: 'Juan Pérez García', supply_number: '001234567', amount: 125.50, payment_date: new Date().toISOString(), status: 'completed', reference: 'PAY-1234567890' },
-        { id: '2', receipt_number: '0000000002', customer_name: 'María López Torres', supply_number: '001234568', amount: 89.00, payment_date: new Date(Date.now() - 3600000).toISOString(), status: 'completed', reference: 'PAY-1234567891' },
-        { id: '3', receipt_number: '0000000003', customer_name: 'Carlos Rodríguez Silva', supply_number: '001234569', amount: 156.75, payment_date: new Date(Date.now() - 7200000).toISOString(), status: 'completed', reference: 'PAY-1234567892' },
-        { id: '4', receipt_number: '0000000004', customer_name: 'Ana Martínez Cruz', supply_number: '001234570', amount: 203.00, payment_date: new Date(Date.now() - 86400000).toISOString(), status: 'completed', reference: 'PAY-1234567893' },
-        { id: '5', receipt_number: '0000000005', customer_name: 'Pedro Sánchez Vega', supply_number: '001234571', amount: 78.25, payment_date: new Date(Date.now() - 172800000).toISOString(), status: 'completed', reference: 'PAY-1234567894' },
-      ]
+      const supabase = createClient()
       
-      setPayments(mockPayments)
+      // Calcular fecha según filtro
+      const now = new Date()
+      let startDate = new Date()
+      
+      switch (dateFilter) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0)
+          break
+        case 'week':
+          startDate.setDate(now.getDate() - 7)
+          break
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1)
+          break
+      }
+
+      const { data, error } = await supabase
+        .from('payments')
+        .select('id, amount, payment_date, reference, receipts(receipt_number, customers(full_name, supply_number))')
+        .eq('cashier_id', user.id)
+        .gte('payment_date', startDate.toISOString())
+        .order('payment_date', { ascending: false })
+
+      if (error) {
+        throw error
+      }
+
+      const formattedPayments = data?.map((p: any) => ({
+        id: p.id,
+        receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
+        customer_name: p.receipts?.customers?.full_name || 'Desconocido',
+        supply_number: p.receipts?.customers?.supply_number || 'N/A',
+        amount: p.amount,
+        payment_date: p.payment_date,
+        status: 'completed',
+        reference: p.reference
+      })) || []
+
+      setPayments(formattedPayments)
     } catch (error) {
       console.error('Error cargando pagos:', error)
     } finally {

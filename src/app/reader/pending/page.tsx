@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, CheckCircle2, Circle } from 'lucide-react'
-import { readingService } from '@/services/reading-service'
+import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 
 export default function PendingReadingsPage() {
@@ -21,13 +21,19 @@ export default function PendingReadingsPage() {
 
   const loadPendingReadings = async () => {
     try {
-      // En producción, esto vendría de la base de datos
-      // Por ahora usamos datos simulados
-      setPendingReadings([
-        { id: '1', supply_number: '001234567', full_name: 'Juan Pérez García', address: 'Av. Principal 123', sector: 'Centro', has_photo: false },
-        { id: '2', supply_number: '001234568', full_name: 'María López Torres', address: 'Jr. Lima 456', sector: 'Norte', has_photo: true },
-        { id: '3', supply_number: '001234569', full_name: 'Carlos Rodríguez Silva', address: 'Calle Comercio 789', sector: 'Sur', has_photo: false },
-      ])
+      // Leer de IndexedDB (lecturas guardadas offline)
+      const readings = await db.pending_readings.toArray()
+      
+      const formattedReadings = readings.map(r => ({
+        id: r.id?.toString() || '0',
+        supply_number: r.supply_number,
+        full_name: r.full_name,
+        address: r.address || 'Sin dirección',
+        sector: r.supply_number || 'Sin sector',
+        has_photo: !!r.photo_base64
+      }))
+      
+      setPendingReadings(formattedReadings)
     } catch (error) {
       console.error('Error cargando lecturas pendientes:', error)
     } finally {

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MapPin, Users, ChevronRight } from 'lucide-react'
-import { customerService } from '@/services/customer-service'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function ReadingRoutePage() {
@@ -22,19 +22,34 @@ export default function ReadingRoutePage() {
 
   const loadCustomers = async () => {
     try {
-      // En producción, esto vendría de la base de datos
-      // Por ahora usamos datos simulados
-      const mockCustomers = [
-        { id: '1', supply_number: '001234567', full_name: 'Juan Pérez García', address: 'Av. Principal 123', sector: 'Centro', is_active: true, last_reading: null },
-        { id: '2', supply_number: '001234568', full_name: 'María López Torres', address: 'Jr. Lima 456', sector: 'Centro', is_active: true, last_reading: '2025-05-15' },
-        { id: '3', supply_number: '001234569', full_name: 'Carlos Rodríguez Silva', address: 'Calle Comercio 789', sector: 'Norte', is_active: true, last_reading: null },
-        { id: '4', supply_number: '001234570', full_name: 'Ana Martínez Cruz', address: 'Av. Universitaria 321', sector: 'Norte', is_active: true, last_reading: '2025-05-14' },
-        { id: '5', supply_number: '001234571', full_name: 'Pedro Sánchez Vega', address: 'Jr. Bolognesi 654', sector: 'Sur', is_active: true, last_reading: null },
-        { id: '6', supply_number: '001234572', full_name: 'Lucía Torres Ruiz', address: 'Calle Real 987', sector: 'Sur', is_active: true, last_reading: null },
-      ]
+      const supabase = createClient()
       
-      setCustomers(mockCustomers)
-      const uniqueSectors = [...new Set(mockCustomers.map(c => c.sector).filter(Boolean))]
+      // Obtener clientes activos con su última lectura del periodo actual
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, supply_number, full_name, address, sector, is_active, readings(id, reading_date)')
+        .eq('is_active', true)
+        .order('sector', { ascending: true })
+        .order('full_name', { ascending: true })
+
+      if (error) {
+        throw error
+      }
+
+      const formattedCustomers = data?.map((c: any) => ({
+        id: c.id,
+        supply_number: c.supply_number,
+        full_name: c.full_name,
+        address: c.address,
+        sector: c.sector || 'Sin Sector',
+        is_active: c.is_active,
+        last_reading: c.readings && c.readings.length > 0 
+          ? c.readings[c.readings.length - 1].reading_date 
+          : null
+      })) || []
+
+      setCustomers(formattedCustomers)
+      const uniqueSectors = [...new Set(formattedCustomers.map((c: any) => c.sector).filter(Boolean))]
       setSectors(uniqueSectors)
     } catch (error) {
       console.error('Error cargando clientes:', error)

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, ChevronRight, User, Calendar } from 'lucide-react'
-import { readingService } from '@/services/reading-service'
+import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -18,12 +18,12 @@ interface LatestReading {
   consumption: number
   reading_date: string
   has_photo: boolean
-  meter_reader_name?: string
 }
 
 export function LatestReadings() {
   const [readings, setReadings] = useState<LatestReading[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadReadings()
@@ -31,69 +31,34 @@ export function LatestReadings() {
 
   const loadReadings = async () => {
     try {
-      // En producción, esto vendría de un endpoint específico
-      // Por ahora simulamos datos
-      const mockReadings: LatestReading[] = [
-        { 
-          id: '1', 
-          customer_name: 'Juan Pérez García', 
-          supply_number: '001234567',
-          previous_reading: 1250,
-          current_reading: 1325,
-          consumption: 75,
-          reading_date: new Date().toISOString(),
-          has_photo: true,
-          meter_reader_name: 'Luis Torres'
-        },
-        { 
-          id: '2', 
-          customer_name: 'María López Torres', 
-          supply_number: '001234568',
-          previous_reading: 890,
-          current_reading: 950,
-          consumption: 60,
-          reading_date: new Date(Date.now() - 3600000).toISOString(),
-          has_photo: true,
-          meter_reader_name: 'Luis Torres'
-        },
-        { 
-          id: '3', 
-          customer_name: 'Carlos Rodríguez Silva', 
-          supply_number: '001234569',
-          previous_reading: 1500,
-          current_reading: 1580,
-          consumption: 80,
-          reading_date: new Date(Date.now() - 7200000).toISOString(),
-          has_photo: false,
-          meter_reader_name: 'Ana Ruiz'
-        },
-        { 
-          id: '4', 
-          customer_name: 'Ana Martínez Cruz', 
-          supply_number: '001234570',
-          previous_reading: 720,
-          current_reading: 765,
-          consumption: 45,
-          reading_date: new Date(Date.now() - 10800000).toISOString(),
-          has_photo: true,
-          meter_reader_name: 'Luis Torres'
-        },
-        { 
-          id: '5', 
-          customer_name: 'Pedro Sánchez Vega', 
-          supply_number: '001234571',
-          previous_reading: 2100,
-          current_reading: 2185,
-          consumption: 85,
-          reading_date: new Date(Date.now() - 14400000).toISOString(),
-          has_photo: true,
-          meter_reader_name: 'Ana Ruiz'
-        },
-      ]
-      
-      setReadings(mockReadings)
+      setError(null)
+      const supabase = createClient()
+
+      const { data, error: supabaseError } = await supabase
+        .from('readings')
+        .select('id, previous_reading, current_reading, consumption, reading_date, photo_url, customers(full_name, supply_number)')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (supabaseError) {
+        throw supabaseError
+      }
+
+      const formattedReadings: LatestReading[] = data?.map((r: any) => ({
+        id: r.id,
+        customer_name: r.customers?.full_name || 'Desconocido',
+        supply_number: r.customers?.supply_number || 'N/A',
+        previous_reading: r.previous_reading,
+        current_reading: r.current_reading,
+        consumption: r.consumption,
+        reading_date: r.reading_date,
+        has_photo: !!r.photo_url,
+      })) || []
+
+      setReadings(formattedReadings)
     } catch (error) {
       console.error('Error cargando lecturas:', error)
+      setError('Error al cargar datos')
     } finally {
       setLoading(false)
     }
@@ -103,7 +68,7 @@ export function LatestReadings() {
     const date = new Date(dateString)
     const now = new Date()
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-    
+
     if (diffInMinutes < 60) {
       return `Hace ${diffInMinutes} min`
     } else if (diffInMinutes < 1440) {
@@ -125,6 +90,24 @@ export function LatestReadings() {
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-muted-foreground">Cargando...</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Camera className="h-4 w-4 text-primary" />
+            Últimas Lecturas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            {error}
+          </div>
         </CardContent>
       </Card>
     )
@@ -173,8 +156,8 @@ export function LatestReadings() {
             </div>
           ))
         )}
-        
-        <Button variant="ghost" className="w-full text-sm" render={<Link href="/admin/readings">Ver todas <ChevronRight className="h-4 w-4 ml-1" /></Link>} />
+
+        <Button variant="ghost" className="w-full text-sm" render={<Link href="/admin/audit">Ver todas <ChevronRight className="h-4 w-4 ml-1" /></Link>} />
       </CardContent>
     </Card>
   )
