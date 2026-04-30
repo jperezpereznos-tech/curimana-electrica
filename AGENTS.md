@@ -1,191 +1,98 @@
-# Curimana Eléctrica - Agent Guide
+# Curimana Eléctrica — Agent Guide
 
-Sistema de facturación eléctrica municipal para el distrito de Curimana. Next.js 16 + Supabase + PWA con sincronización offline.
+Municipal electric billing system for Curimana district. Next.js 16 + Supabase + PWA with offline sync.
 
-## Critical Framework Notes
+## Critical Framework Quirks
 
-- **Next.js 16**: `middleware.ts` fue renombrado a `proxy.ts`. La función exportada se llama `proxy()`, NO `middleware()`. Consultar `node_modules/next/dist/docs/` antes de escribir código.
-- **React 19**: Usa el nuevo JSX transform (configurado en tsconfig).
-- **Tailwind v4**: Usa sintaxis `@import "tailwindcss"` en globals.css con `@theme inline`, NO el archivo de configuración tradicional `tailwind.config.ts`.
+- **Next.js 16**: The middleware file is `src/proxy.ts` (NOT `middleware.ts`). The exported function is `proxy()` (NOT `middleware()`). Consult `node_modules/next/dist/docs/` before writing proxy/middleware code.
+- **Tailwind v4**: Uses `@import "tailwindcss"` + `@theme inline` in `globals.css`. NO `tailwind.config.ts` — do not create one.
+- **PWA currently disabled**: `@serwist/next` is disabled in `next.config.mjs` due to Turbopack conflicts. Offline/Dexie logic still works, but service worker is not generated. See the TODO in `next.config.mjs`.
+- **React 19**: New JSX transform (`react-jsx` in tsconfig). No `import React from 'react'` needed.
+
+## Commands
+
+```bash
+npm run dev          # Dev server (Turbopack)
+npm run build        # Production build
+npm run lint         # ESLint 9 flat config (core-web-vitals + typescript)
+npx tsc --noEmit     # TypeScript strict check
+npm run test         # Vitest unit tests (jsdom, @ alias, globals: true)
+npx playwright test  # E2E (auto-starts `npm run start`, not dev)
+```
+
+### Verification order
+
+`lint` → `tsc --noEmit` → `test` → `build`
+
+### Test specifics
+
+- **Vitest**: `globals: true` (no need to import `describe`/`it`/`expect`). Env vars auto-set in `vitest.config.ts`. Excludes `tests/e2e/**`.
+- **Playwright**: `tests/e2e/`. Uses `npm run start` (production build), NOT `npm run dev`. 3 projects: chromium, mobile-chrome (Pixel 5), mobile-safari (iPhone 12). CI: 2 retries, 1 worker; local: 0 retries, auto workers.
 
 ## Architecture
 
-### Role-Based Routing
-- `/admin/*` — Admin: dashboard, tarifas, conceptos, clientes, periodos, recibos, auditoría, reportes
-- `/cashier/*` — Cajero: búsqueda de clientes, cobros, cierre de caja, historial
-- `/reader/*` — Lector: lecturas de medidores, búsqueda, sincronización offline
-- `/login` — Autenticación
+### Data flow
 
-### Data Flow
-1. **Online**: Next.js App Router → Service Layer → Repository → Supabase (PostgreSQL + RLS)
-2. **Offline (readers)**: Dexie.js (IndexedDB) → Background sync via `use-offline-sync.ts`
+- **Online**: App Router page/component → `src/services/` (business logic, 12 services) → `src/repositories/` (Supabase queries, 10 repos extending `base.ts`) → Supabase PostgreSQL + RLS
+- **Offline (reader role)**: Dexie.js (`src/lib/db/dexie.ts`) ↔ `use-offline-sync.ts` (background sync every 30s, exponential backoff on failure)
 
-### Key Directories
-```
-src/
-  app/                    # Next.js App Router (pages by role)
-    admin/                # Dashboard, customers, tariffs, concepts, periods, receipts, audit
-    cashier/              # Payment processing, closure, history
-    reader/               # New reading, search, pending, sync, list
-    login/                # Auth entry point
-  services/               # Business logic (12 services)
-    dashboard-service.ts  # KPIs, charts, aggregated queries
-    payment-service.ts    # Payment processing + debt management
-    receipt-service.ts    # Receipt generation + calculations
-    reading-service.ts    # Meter reading + sync
-    tariff-service.ts     # Tariff CRUD + tier validation
-    customer-service.ts   # Customer management
-    period-service.ts     # Billing period management
-    concept-service.ts    # Billing concepts CRUD
-    cash-closure-service.ts # Daily cash closure
-    audit-service.ts      # Audit log management
-    pdf-service.ts        # PDF receipt generation (jsPDF)
-    storage-service.ts    # File storage (photos)
-  repositories/           # Supabase data access layer (10 repos)
-    base.ts               # Generic CRUD operations
-  hooks/
-    use-auth.tsx          # Auth context + useAuth() hook
-    use-offline-sync.ts   # Background sync for readings
-  components/
-    ui/                   # shadcn/ui components (13 components)
-    layouts/              # AdminLayout, CashierLayout, ReaderLayout
-  lib/
-    supabase/
-      client.ts           # Browser client (createBrowserClient<Database>)
-      server.ts           # Server client (createServerClient with cookies)
-      middleware.ts        # updateSession() for proxy.ts
-    db/dexie.ts           # Offline IndexedDB schema
-    billing-utils.ts      # Tariff calculation helpers
-    utils.ts              # cn(), formatCurrency(), formatDate()
-  types/
-    database.ts           # Supabase-generated types
-  proxy.ts                # Next.js 16 proxy (auth + route protection)
-```
+### Role-based routing
 
-## Developer Commands
+| Role | Routes | Access |
+|------|--------|--------|
+| admin | `/admin/*` | Full access |
+| cashier | `/cashier/*` | Admin + cashier routes |
+| meter_reader | `/reader/*` | Admin + reader routes |
 
-```bash
-# Dev server
-npm run dev
+Route protection is in `src/proxy.ts` — it calls `get_user_role()` RPC, then redirects unauthorized access to `/`.
 
-# Build for production
-npm run build
+### Supabase client (use the right one!)
 
-# Unit tests (Vitest + jsdom)
-npm run test
+- **Browser components**: `import { createClient } from '@/lib/supabase/client'` — singleton browser client
+- **Server Components / Route Handlers**: `import { createClient } from '@/lib/supabase/server'` — creates per-request client with cookie handling (async)
+- **Proxy**: `import { updateSession } from '@/lib/supabase/middleware'` — session refresh for proxy.ts
 
-# E2E tests (Playwright, auto-starts dev server)
-npx playwright test
+## Key Conventions
 
-# Lint (ESLint 9 flat config)
-npm run lint
+- **Path alias**: `@/` → `./src/`
+- **shadcn/ui**: `base-nova` style. Add components via `npx shadcn add <name>`. Import from `@/components/ui/*`.
+- **Icons**: Lucide React only (`lucide-react`)
+- **Municipal brand colors**: `--muni-blue: #0066cc`, `--muni-silver: #c0c0c0` (use Tailwind classes `text-muni-blue`, `bg-muni-silver`)
+- **No comments** in code unless explicitly requested
+- **App Router only** — no Pages Router
+- **ESM only** — implicit via Next.js
 
-# TypeScript check
-npx tsc --noEmit
-```
+## Offline/IndexedDB Schema
 
-### Test Specifics
-- **Unit**: Vitest with `@` alias mapped to `./src`. Excludes `tests/e2e/**`.
-- **E2E**: Tests in `tests/e2e/`. Runs against `http://localhost:3000`.
-  - Projects: chromium, mobile-chrome (Pixel 5), mobile-safari (iPhone 12)
-  - CI: 2 retries, 1 worker. Local: 0 retries, auto workers.
+`src/lib/db/dexie.ts` — `CurimanaDB` with two tables:
 
-## Environment Setup
+- `pending_readings`: `++id, customer_id, supply_number, status` — statuses: `pending | syncing | failed`. Fields `needs_review`, `retry_count`, `last_attempt_time` track sync failures.
+- `customers_cache`: `id, supply_number, sector`
+
+**Critical**: Reader workflows must work without network. Always check online status before Supabase calls. Meter resets (decreasing readings) are handled with zero consumption + `needs_review: true`.
+
+## Environment
 
 Required in `.env.local` (see `.env.local.example`):
+
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://yxhzkbzmnvhesdefwgjc.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your_anon_key>
+NEXT_PUBLIC_SUPABASE_URL=<project_url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-## Database (Supabase)
+Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 
-- **Project ID**: `yxhzkbzmnvhesdefwgjc`
-- **Schema**: `supabase/schema.sql` — 13 tablas, 3 funciones, 1 trigger, RLS completo
-- **Seed**: `supabase/seed.sql` — roles, config municipal, tarifa BTSB, 3 tramos, 4 conceptos, 5 clientes, 1 periodo
-- **Security**: Row Level Security (RLS) en todas las tablas
-- **Functions**:
-  - `get_user_role()` — SECURITY DEFINER, obtiene rol del usuario autenticado
-  - `current_role()` — Alias para compatibilidad
-  - `calculate_energy_amount(consumption, tariff_id)` — Cálculo por tramos progresivos
-- **Trigger**: `on_auth_user_created` — Auto-crea perfil en `profiles` cuando se registra un usuario
+## Database
 
-### Tables
-| Table | Purpose |
-|-------|---------|
-| `roles` | admin, cashier, meter_reader |
-| `profiles` | User profiles linked to auth.users |
-| `municipality_config` | Municipal data (RUC, name, address) |
-| `tariffs` | Tariff definitions |
-| `tariff_tiers` | Progressive consumption tiers |
-| `billing_concepts` | Fixed charges (cargo fijo, alumbrado, etc.) |
-| `customers` | Customer/supply records |
-| `billing_periods` | Monthly billing periods |
-| `readings` | Meter readings (with computed consumption) |
-| `receipts` | Generated bills |
-| `payments` | Payment records |
-| `cash_closures` | Daily cash closure records |
-| `audit_logs` | Action audit trail |
-
-## Styling Conventions
-
-- **shadcn/ui**: `base-nova` style. Import from `@/components/ui/*`
-- **Icons**: Lucide React (`lucide-react`)
-- **Colors**: Municipal brand colors in CSS vars:
-  - `--muni-blue: #0066cc`
-  - `--muni-silver: #c0c0c0`
-- **CSS**: Tailwind v4 con `@theme inline` en `globals.css`
-
-## Offline/PWA Notes
-
-- **PWA**: Configured via `@serwist/next`. Service worker auto-generated.
-- **Offline DB**: Dexie.js in `src/lib/db/dexie.ts`
-  - `pending_readings`: id, customer_id, supply_number, full_name, previous_reading, current_reading, reading_date, photo_base64, notes, status, created_at, needs_review, retry_count, last_attempt_time
-  - `customers_cache`: id, supply_number, full_name, address, sector, tariff_id, previous_reading
-- **Sync Hook**: `use-offline-sync.ts` handles background sync every 30s with exponential backoff
-- **Critical**: Reader workflows must work without network; always check online status before Supabase calls
-
-## Code Patterns
-
-### Supabase Client (per context)
-- **Browser**: `src/lib/supabase/client.ts` — `createBrowserClient<Database>`
-- **Server**: `src/lib/supabase/server.ts` — `createServerClient` with cookie handling
-- **Proxy**: `src/lib/supabase/middleware.ts` — `updateSession()` for token refresh
-
-### Auth Flow
-1. User submits credentials on `/login`
-2. `proxy.ts` intercepts all requests, refreshes session via `updateSession()`
-3. Protected routes check role via profile query
-4. `useAuth()` hook provides `user`, `role`, `isLoading`, `signOut()`
-
-### Adding shadcn Components
-```bash
-npx shadcn add button
-# Uses components.json aliases: @/components, @/lib/utils, etc.
-```
+- **Schema**: `supabase/schema.sql` — 13 tables, 3 functions, 1 trigger, full RLS
+- **Seed**: `supabase/seed.sql` — roles, municipal config, BTSB tariff (3 tiers), 4 billing concepts, 5 test customers, 1 period
+- **Key SQL functions**:
+  - `get_user_role()` — SECURITY DEFINER, returns role for authenticated user (used by proxy.ts)
+  - `calculate_energy_amount(consumption, tariff_id)` — progressive tier calculation
+  - `handle_new_user()` — trigger: auto-creates profile on auth user creation
+- **Admin user setup**: After creating auth user, manually run `UPDATE profiles SET role = 'admin' WHERE email = '...'`
 
 ## Deployment
 
-- **Platform**: Vercel (auto-deploy from GitHub `master` branch)
-- **Repository**: `jperezpereznos-tech/curimana-electrica`
-- **Env vars**: Set in Vercel project settings (same as `.env.local`)
-
-## Constraints
-
-- **No** pages router — pure App Router
-- **No** `middleware.ts` — Next.js 16 uses `proxy.ts` instead
-- **TypeScript strict mode** enabled
-- **ESM only** — implicit via Next.js
-
-## Recent Improvements
-
-- Fixed hardcoded period ID in use-offline-sync.ts (now dynamically determined)
-- Improved error handling for photo uploads during sync
-- Added backoff strategy for failed sync attempts with retry_count and last_attempt_time fields
-- Improved data model consistency in IndexedDB with needs_review, retry_count, and last_attempt_time fields
-- Complete PWA implementation with proper service worker configuration
-- Reading service now properly handles decreasing meter readings (meter resets) with zero consumption and review flags
-- Photo upload functionality replaced mock implementation with real Supabase storage calls
-- Customer search in new reading page now properly searches IndexedDB cache
-- Unit tests added for critical functionality
+Vercel auto-deploys from `master` branch. Same env vars as `.env.local` configured in Vercel project settings.
