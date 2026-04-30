@@ -32,26 +32,26 @@ export default async function AdminDashboard() {
             title="Recaudación del Mes" 
             value={formatCurrency(kpis.totalCollected)} 
             subtext="Pagos registrados en este mes"
-            icon={TrendingUp}
+            icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
             trend={12}
           />
           <KPICard 
             title="Deuda Pendiente" 
             value={formatCurrency(kpis.totalDebt)} 
             subtext="Monto total por cobrar"
-            icon={AlertCircle}
+            icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
           />
           <KPICard 
             title="Clientes Activos" 
             value={kpis.activeCustomers} 
             subtext="Suministros registrados"
-            icon={Users}
+            icon={<Users className="h-4 w-4 text-muted-foreground" />}
           />
           <KPICard 
             title="Recibos Pendientes" 
             value={kpis.pendingReceipts} 
             subtext="Del periodo actual"
-            icon={CreditCard}
+            icon={<CreditCard className="h-4 w-4 text-muted-foreground" />}
           />
         </div>
 

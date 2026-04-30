@@ -58,6 +58,7 @@ export async function proxy(request: NextRequest) {
 
     // Si hubo error al consultar el perfil, dejar pasar a la página raíz para que el frontend maneje el error
     if (profileError || !role) {
+      console.error('PROXY PROFILE ERROR:', profileError, 'Role:', role);
       url.pathname = '/'
       return NextResponse.redirect(url)
     }

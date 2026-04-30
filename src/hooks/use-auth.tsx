@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (error) {
-        setProfileError('No se pudo cargar el perfil del usuario')
+        setProfileError(`Error DB: ${error.message}`)
         return null
       }
       setProfileError(null)

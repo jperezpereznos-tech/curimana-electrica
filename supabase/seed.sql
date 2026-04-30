@@ -12,13 +12,13 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 2. Configuración Municipal
 INSERT INTO municipality_config (ruc, name, address, billing_cut_day, payment_grace_days)
-VALUES ('20123456789', 'Municipalidad Distrital de Curimana', 'Plaza de Armas S/N, Curimana', 26, 20)
-ON CONFLICT DO NOTHING;
+SELECT '20123456789', 'Municipalidad Distrital de Curimana', 'Plaza de Armas S/N, Curimana', 26, 20
+WHERE NOT EXISTS (SELECT 1 FROM municipality_config);
 
 -- 3. Tarifas
 INSERT INTO tariffs (name, connection_type, is_active)
-VALUES ('BTSB - Monofásico', 'monofásico', true)
-ON CONFLICT DO NOTHING;
+SELECT 'BTSB - Monofásico', 'monofásico', true
+WHERE NOT EXISTS (SELECT 1 FROM tariffs WHERE name = 'BTSB - Monofásico');
 
 -- Insertar tramos tarifarios, conceptos y clientes de prueba
 DO $$
@@ -28,11 +28,12 @@ BEGIN
     SELECT id INTO v_tariff_id FROM tariffs WHERE name = 'BTSB - Monofásico' LIMIT 1;
 
     -- 4. Tramos de Tarifa (escalonado)
-    INSERT INTO tariff_tiers (tariff_id, min_kwh, max_kwh, price_per_kwh, order_index) VALUES
-    (v_tariff_id, 0, 30, 0.31, 1),
-    (v_tariff_id, 30, 100, 0.62, 2),
-    (v_tariff_id, 100, NULL, 0.64, 3)
-    ON CONFLICT DO NOTHING;
+    IF NOT EXISTS (SELECT 1 FROM tariff_tiers WHERE tariff_id = v_tariff_id) THEN
+        INSERT INTO tariff_tiers (tariff_id, min_kwh, max_kwh, price_per_kwh, order_index) VALUES
+        (v_tariff_id, 0, 30, 0.31, 1),
+        (v_tariff_id, 30, 100, 0.62, 2),
+        (v_tariff_id, 100, NULL, 0.64, 3);
+    END IF;
 
     -- 5. Conceptos de Cobro
     INSERT INTO billing_concepts (code, name, amount, type, applies_to_tariff_id) VALUES
@@ -55,8 +56,8 @@ END $$;
 
 -- 7. Periodo de Facturación actual
 INSERT INTO billing_periods (name, year, month, start_date, end_date, is_closed)
-VALUES ('ABRIL 2026', 2026, 4, '2026-03-26', '2026-04-25', false)
-ON CONFLICT (year, month) DO NOTHING;
+SELECT 'ABRIL 2026', 2026, 4, '2026-03-26', '2026-04-25', false
+WHERE NOT EXISTS (SELECT 1 FROM billing_periods WHERE year = 2026 AND month = 4);
 
 -- ============================================================================
 -- NOTA: Los usuarios se crean desde el dashboard de Supabase Auth

@@ -53,9 +53,10 @@ export default function LoginPage() {
       return
     }
 
-    // Forzamos una recarga completa para asegurar que las cookies se envíen
-    // correctamente al middleware en la nueva petición.
-    window.location.href = '/'
+    // Esperamos un momento para que @supabase/ssr pueda establecer la cookie
+    setTimeout(() => {
+      window.location.href = '/'
+    }, 500)
   }
 
   return (
@@ -101,7 +102,7 @@ export default function LoginPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <Button type="submit" className="w-full bg-muni-blue hover:bg-muni-blue/90" disabled={isLoading}>
+              <Button type="button" onClick={form.handleSubmit(onSubmit)} className="w-full bg-muni-blue hover:bg-muni-blue/90" disabled={isLoading}>
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>

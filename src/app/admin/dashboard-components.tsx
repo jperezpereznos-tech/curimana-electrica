@@ -20,12 +20,12 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, Users, CreditCard, AlertCircle } from 'lucide-react'
 
-export function KPICard({ title, value, subtext, icon: Icon, trend }: any) {
+export function KPICard({ title, value, subtext, icon, trend }: any) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        {icon}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>

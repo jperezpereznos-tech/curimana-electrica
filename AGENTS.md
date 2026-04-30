@@ -135,15 +135,15 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - **Colors**: Municipal brand colors in CSS vars:
   - `--muni-blue: #0066cc`
   - `--muni-silver: #c0c0c0`
-- **CSS**: Tailwind v4 with `@theme inline` in `globals.css`
+- **CSS**: Tailwind v4 con `@theme inline` en `globals.css`
 
 ## Offline/PWA Notes
 
 - **PWA**: Configured via `@serwist/next`. Service worker auto-generated.
 - **Offline DB**: Dexie.js in `src/lib/db/dexie.ts`
-  - `pending_readings`: id, customer_id, supply_number, readings, status
-  - `customers_cache`: id, supply_number, full_name, address, sector, previous_reading
-- **Sync Hook**: `use-offline-sync.ts` handles background sync every 30s
+  - `pending_readings`: id, customer_id, supply_number, full_name, previous_reading, current_reading, reading_date, photo_base64, notes, status, created_at, needs_review, retry_count, last_attempt_time
+  - `customers_cache`: id, supply_number, full_name, address, sector, tariff_id, previous_reading
+- **Sync Hook**: `use-offline-sync.ts` handles background sync every 30s with exponential backoff
 - **Critical**: Reader workflows must work without network; always check online status before Supabase calls
 
 ## Code Patterns
@@ -177,3 +177,15 @@ npx shadcn add button
 - **No** `middleware.ts` — Next.js 16 uses `proxy.ts` instead
 - **TypeScript strict mode** enabled
 - **ESM only** — implicit via Next.js
+
+## Recent Improvements
+
+- Fixed hardcoded period ID in use-offline-sync.ts (now dynamically determined)
+- Improved error handling for photo uploads during sync
+- Added backoff strategy for failed sync attempts with retry_count and last_attempt_time fields
+- Improved data model consistency in IndexedDB with needs_review, retry_count, and last_attempt_time fields
+- Complete PWA implementation with proper service worker configuration
+- Reading service now properly handles decreasing meter readings (meter resets) with zero consumption and review flags
+- Photo upload functionality replaced mock implementation with real Supabase storage calls
+- Customer search in new reading page now properly searches IndexedDB cache
+- Unit tests added for critical functionality

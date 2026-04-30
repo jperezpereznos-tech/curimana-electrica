@@ -4,17 +4,21 @@ test.describe('Flujo de Negocio Completo', () => {
   test('Flujo: Registro -> Lectura -> Facturación -> Pago', async ({ page }) => {
     // 1. Admin crea un nuevo cliente
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@curimana.gob.pe');
-    await page.fill('input[type="password"]', 'password');
-    await page.click('button[type="submit"]');
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
+    await page.fill('input[name="password"]', 'password');
+    await page.waitForTimeout(1000);
+    await page.click('button:has-text("Iniciar Sesión")');
 
     await page.goto('/admin/customers');
     // Simular creación de cliente... (simplificado para el test)
     
     // 2. Lector registra lectura
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'reader@curimana.gob.pe');
-    await page.fill('input[type="password"]', 'password');
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
+    await page.fill('input[name="password"]', 'password');
+    await page.waitForTimeout(1000);
     await page.click('button[type="submit"]');
 
     await page.goto('/reader/new');
@@ -25,8 +29,9 @@ test.describe('Flujo de Negocio Completo', () => {
 
     // 3. Admin cierra periodo y genera recibos
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@curimana.gob.pe');
-    await page.fill('input[type="password"]', 'password');
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
+    await page.fill('input[name="password"]', 'password');
     await page.click('button[type="submit"]');
 
     await page.goto('/admin/periods');
@@ -34,8 +39,9 @@ test.describe('Flujo de Negocio Completo', () => {
     
     // 4. Cajero realiza el cobro
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'cashier@curimana.gob.pe');
-    await page.fill('input[type="password"]', 'password');
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
+    await page.fill('input[name="password"]', 'password');
     await page.click('button[type="submit"]');
 
     await page.goto('/cashier');
