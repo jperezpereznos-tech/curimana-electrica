@@ -48,16 +48,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const currentUser = session?.user || null
+        // Usar getUser() en lugar de getSession() para validar el token del lado del servidor
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
         
         if (mounted) {
-          setUser(currentUser)
+          setUser(currentUser ?? null)
           if (currentUser) {
             const userRole = await fetchProfile(currentUser.id)
-            setRole(userRole)
+            if (mounted) setRole(userRole)
           }
-          setIsLoading(false)
+          if (mounted) setIsLoading(false)
         }
       } catch {
         if (mounted) {
