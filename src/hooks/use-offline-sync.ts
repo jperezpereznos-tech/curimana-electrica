@@ -17,7 +17,7 @@ export function useOfflineSync() {
     setPendingCount(count)
   }, [])
 
-  const syncNow = useCallback(async () => {
+const syncNow = useCallback(async () => {
     if (!isOnline) return
 
     setSyncStatus('syncing')
@@ -34,10 +34,29 @@ export function useOfflineSync() {
     }
 
     let hasError = false
-    for (const reading of pending) {
+    // Add exponential backoff for retry attempts
+    const now = Date.now();
+    const retryableReadings = pending.filter(reading => {
+      // If we don't have retry info, initialize it
+      if (reading.retry_count === undefined) {
+        return true;
+      }
+      
+      // Exponential backoff: wait 2^retry_count * 1000ms before retrying
+      const timeSinceLastAttempt = now - (reading.last_attempt_time || 0);
+      const minWaitTime = Math.pow(2, reading.retry_count || 0) * 1000; // 1 second * 2^retry_count
+      
+      return timeSinceLastAttempt > minWaitTime;
+    });
+
+    for (const reading of retryableReadings) {
       try {
         // Actualizar estado a syncing
-        await db.pending_readings.update(reading.id!, { status: 'syncing' })
+        await db.pending_readings.update(reading.id!, { 
+          status: 'syncing',
+          retry_count: reading.retry_count || 0,
+          last_attempt_time: now
+        })
 
         // Subir foto si existe
         let photoUrl: string | undefined = undefined
@@ -51,13 +70,13 @@ export function useOfflineSync() {
           }
         }
 
-// Add a check for decreasing meter readings
+        // Add a check for decreasing meter readings
         if (reading.current_reading < reading.previous_reading) {
           // This is a decreasing reading - flag it for review
           console.warn('Reading is decreasing - marking for review')
         }
 
-// Enviar al servidor
+        // Enviar al servidor
         await readingService.registerReading({
           customer_id: reading.customer_id,
           billing_period_id: periodId,
@@ -72,7 +91,13 @@ export function useOfflineSync() {
         await db.pending_readings.delete(reading.id!)
       } catch (error) {
         console.error('Error syncing reading:', error)
-        await db.pending_readings.update(reading.id!, { status: 'failed' })
+        // Update the reading with retry information
+        const retryCount = (reading.retry_count || 0) + 1;
+        await db.pending_readings.update(reading.id!, { 
+          status: 'failed',
+          retry_count: retryCount,
+          last_attempt_time: Date.now()
+        })
         hasError = true
       }
     }

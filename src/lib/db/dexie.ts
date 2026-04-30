@@ -13,6 +13,8 @@ export interface PendingReading {
   status: 'pending' | 'syncing' | 'failed'
   created_at: string
   needs_review?: boolean
+  retry_count?: number
+  last_attempt_time?: number
 }
 
 export interface CustomerCache {
