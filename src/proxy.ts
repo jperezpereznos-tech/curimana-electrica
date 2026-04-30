@@ -36,9 +36,34 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. Si hay usuario y está en /login, redirigir al home
-  if (user && url.pathname === '/login') {
-    url.pathname = '/'
+  // Helper: obtener rol del usuario usando SECURITY DEFINER function
+  const getUserRole = async (): Promise<string | null> => {
+    const { data, error } = await supabase.rpc('get_user_role')
+    if (error) {
+      console.error('PROXY get_user_role error:', error)
+      return null
+    }
+    return data as string | null
+  }
+
+  // 2. Si hay usuario y está en /login o en la raíz /, redirigir al dashboard según rol
+  if (user && (url.pathname === '/login' || url.pathname === '/')) {
+    const role = await getUserRole()
+
+    if (role === 'admin') {
+      url.pathname = '/admin'
+    } else if (role === 'cashier') {
+      url.pathname = '/cashier'
+    } else if (role === 'meter_reader') {
+      url.pathname = '/reader'
+    } else {
+      // Sin rol válido, dejar en / para que el frontend muestre el error
+      if (url.pathname === '/login') {
+        url.pathname = '/'
+      } else {
+        return supabaseResponse
+      }
+    }
     return NextResponse.redirect(url)
   }
 
@@ -48,17 +73,10 @@ export async function proxy(request: NextRequest) {
                            url.pathname.startsWith('/reader')
 
   if (user && isProtectedRoute) {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    const role = profile?.role
+    const role = await getUserRole()
 
     // Si hubo error al consultar el perfil, dejar pasar a la página raíz para que el frontend maneje el error
-    if (profileError || !role) {
-      console.error('PROXY PROFILE ERROR:', profileError, 'Role:', role);
+    if (!role) {
       url.pathname = '/'
       return NextResponse.redirect(url)
     }

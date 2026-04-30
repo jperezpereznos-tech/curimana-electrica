@@ -35,10 +35,6 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-muni-blue mb-4" />
         <p className="text-sm text-gray-500">Cargando sistema...</p>
-        <div className="text-xs text-gray-400 mt-2 text-center">
-          <p>User: {user ? 'Sí' : 'No'} | Role: {role || 'null'} | Loading: {isLoading ? 'Yes' : 'No'}</p>
-          {profileError && <p className="text-red-500 mt-2">Error de perfil: {profileError}</p>}
-        </div>
       </div>
     )
   }
@@ -67,6 +63,7 @@ export default function Home() {
             <p>User ID: {user?.id || 'N/A'}</p>
             <p>Email: {user?.email || 'N/A'}</p>
             <p>Rol: {role || 'No asignado'}</p>
+            {profileError && <p className="text-destructive mt-2">Detalle del error: {profileError}</p>}
           </div>
 
           <div className="flex flex-col gap-2">

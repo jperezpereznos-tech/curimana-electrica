@@ -102,7 +102,7 @@ export default function LoginPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <Button type="button" onClick={form.handleSubmit(onSubmit)} className="w-full bg-muni-blue hover:bg-muni-blue/90" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-muni-blue hover:bg-muni-blue/90" disabled={isLoading}>
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>

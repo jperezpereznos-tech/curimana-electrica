@@ -23,72 +23,102 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
   const router = useRouter()
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single()
+  const fetchRole = useCallback(async (retries = 3): Promise<string | null> => {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const { data, error } = await supabase.rpc('get_user_role')
 
-      if (error) {
-        setProfileError(`Error DB: ${error.message}`)
+        if (error) {
+          // If it's a lock error, retry after a delay
+          const isLockError = error.message?.includes('Lock') || error.details?.includes('Lock')
+          if (isLockError && attempt < retries - 1) {
+            console.warn(`[useAuth] Lock contention on attempt ${attempt + 1}, retrying...`)
+            await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+            continue
+          }
+          console.error('[useAuth] RPC get_user_role error:', error)
+          setProfileError(`Error DB: ${error.message}`)
+          return null
+        }
+
+        if (data) {
+          setProfileError(null)
+          return data as string
+        }
+
+        // RPC returned null - user may not have a profile yet
+        setProfileError('No se encontró un perfil con rol asignado')
+        return null
+      } catch (e: any) {
+        if (attempt < retries - 1) {
+          console.warn(`[useAuth] Catch error on attempt ${attempt + 1}, retrying...`)
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+          continue
+        }
+        console.error('[useAuth] Catch error:', e)
+        setProfileError(`Error: ${e.message}`)
         return null
       }
-      setProfileError(null)
-      return data?.role || null
-    } catch {
-      setProfileError('No se pudo cargar el perfil del usuario')
-      return null
     }
+    return null
   }, [supabase])
 
   useEffect(() => {
     let mounted = true
 
-    const initializeAuth = async () => {
-      try {
-        // Usar getUser() en lugar de getSession() para validar el token del lado del servidor
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
-        
-        if (mounted) {
-          setUser(currentUser ?? null)
-          if (currentUser) {
-            const userRole = await fetchProfile(currentUser.id)
-            if (mounted) setRole(userRole)
-          }
-          if (mounted) setIsLoading(false)
-        }
-      } catch {
-        if (mounted) {
-          setProfileError('No se pudo inicializar la sesion')
-          setIsLoading(false)
-        }
-      }
-    }
+    // IMPORTANT: Only use onAuthStateChange to handle auth state.
+    // DO NOT call getUser() separately - it causes a Web Locks deadlock
+    // with onAuthStateChange because both try to acquire the same
+    // "lock:sb-<project>-auth-token" lock simultaneously.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[useAuth] Auth event:', event, 'Session:', !!session)
 
-    initializeAuth()
+        if (!mounted) return
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user || null
-      if (mounted) {
+        const currentUser = session?.user ?? null
         setUser(currentUser)
+
         if (currentUser) {
-          const userRole = await fetchProfile(currentUser.id)
-          setRole(userRole)
+          const userRole = await fetchRole()
+          if (mounted) {
+            setRole(userRole)
+            setIsLoading(false)
+          }
         } else {
           setRole(null)
           setProfileError(null)
+          setIsLoading(false)
         }
-        setIsLoading(false)
       }
-    })
+    )
+
+    // Safety net: if onAuthStateChange doesn't fire within 3 seconds
+    // (e.g. no session exists), force loading to false
+    const timeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.log('[useAuth] Timeout reached, checking session with getSession()')
+        // getSession() reads from local storage and does NOT acquire a lock
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (mounted && isLoading) {
+            if (!session) {
+              setUser(null)
+              setRole(null)
+              setIsLoading(false)
+            }
+            // If there IS a session, onAuthStateChange should handle it
+          }
+        })
+      }
+    }, 3000)
 
     return () => {
       mounted = false
       subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-  }, [fetchProfile, supabase.auth])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchRole, supabase.auth])
 
   const signOut = async () => {
     await supabase.auth.signOut()
