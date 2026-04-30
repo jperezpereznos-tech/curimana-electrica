@@ -57,7 +57,10 @@ export function CreateTariffDialog() {
     name: 'tiers',
   })
 
+  const [formError, setFormError] = useState<string | null>(null)
+
   const onSubmit = async (values: any) => {
+    setFormError(null)
     try {
       await tariffService.createTariffWithValidation(
         { 
@@ -73,9 +76,16 @@ export function CreateTariffDialog() {
       )
       setOpen(false)
       form.reset()
+      setFormError(null)
       router.refresh()
     } catch (error: any) {
-      alert(error.message || 'Error al crear la tarifa')
+      const msg = error.message || 'Error al crear la tarifa'
+      // Filter out internal lock errors and show a user-friendly message
+      if (msg.includes('Lock') || msg.includes('lock')) {
+        setFormError('Error de conexión. Por favor intenta nuevamente.')
+      } else {
+        setFormError(msg)
+      }
     }
   }
 
@@ -177,6 +187,12 @@ export function CreateTariffDialog() {
               <p className="text-xs text-destructive">{form.formState.errors.tiers.message}</p>
             )}
           </div>
+
+          {formError && (
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-md">
+              {formError}
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

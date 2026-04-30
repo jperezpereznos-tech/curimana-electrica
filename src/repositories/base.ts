@@ -1,11 +1,8 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database'
 
 export class BaseRepository<T extends keyof Database['public']['Tables']> {
-  protected supabase = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  protected supabase = createClient()
 
   constructor(protected tableName: T) {}
 
