@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
-  // Actualizar sesión de Supabase (refresca tokens si es necesario)
-  const response = await updateSession(request)
-
   const url = request.nextUrl.clone()
 
-  // Para la protección por roles, necesitamos verificar la sesión
-  // Extraer el user de la sesión desde las cookies
-  const { createServerClient } = await import('@supabase/ssr')
+  let supabaseResponse = NextResponse.next({ request })
+
+  // Crear un solo cliente Supabase con manejo correcto de cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,13 +16,18 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll() {
-          // Las cookies ya fueron seteadas por updateSession
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
+  // Refrescar sesión y obtener usuario
   const { data: { user } } = await supabase.auth.getUser()
 
   // 1. Si no hay usuario y no está en /login, redirigir a /login
@@ -40,9 +42,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 3. Proteccion por roles
-  if (user) {
-    const { data: profile } = await supabase
+  // 3. Protección por roles - solo para rutas protegidas
+  const isProtectedRoute = url.pathname.startsWith('/admin') || 
+                           url.pathname.startsWith('/cashier') || 
+                           url.pathname.startsWith('/reader')
+
+  if (user && isProtectedRoute) {
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -50,7 +56,8 @@ export async function proxy(request: NextRequest) {
 
     const role = profile?.role
 
-    if (!role && (url.pathname.startsWith('/admin') || url.pathname.startsWith('/cashier') || url.pathname.startsWith('/reader'))) {
+    // Si hubo error al consultar el perfil, dejar pasar a la página raíz para que el frontend maneje el error
+    if (profileError || !role) {
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
@@ -60,18 +67,18 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (url.pathname.startsWith('/cashier') && !['admin', 'cashier'].includes(role || '')) {
+    if (url.pathname.startsWith('/cashier') && !['admin', 'cashier'].includes(role)) {
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
 
-    if (url.pathname.startsWith('/reader') && !['admin', 'meter_reader'].includes(role || '')) {
+    if (url.pathname.startsWith('/reader') && !['admin', 'meter_reader'].includes(role)) {
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {
