@@ -2,6 +2,17 @@
 
 Municipal electric billing system for Curimana district. Next.js 16 + Supabase + PWA with offline sync.
 
+## Role-Specific Agent Instructions
+
+For focused work, load the relevant agent file from `.cursor/rules/`:
+
+| File | When to use |
+|------|-------------|
+| `.cursor/rules/frontend.md` | Pages, components, UI, styling, forms |
+| `.cursor/rules/backend.md` | Services, repositories, business logic, DB schema |
+| `.cursor/rules/offline.md` | Dexie.js, offline sync, PWA, reader workflows |
+| `.cursor/rules/auth.md` | Authentication, proxy.ts, RLS policies, Supabase auth |
+
 ## Critical Framework Quirks
 
 - **Next.js 16**: The middleware file is `src/proxy.ts` (NOT `middleware.ts`). The exported function is `proxy()` (NOT `middleware()`). Consult `node_modules/next/dist/docs/` before writing proxy/middleware code.
