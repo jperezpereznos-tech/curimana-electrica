@@ -1,190 +1,228 @@
--- Schema para el Sistema Eléctrico Municipal de Curimana
+-- ============================================================================
+-- CURIMANA ELÉCTRICA - Schema Completo Actualizado
+-- Última actualización: 2026-04-30
+-- Base de datos: Supabase (PostgreSQL)
+-- ============================================================================
 
--- 1. municipality_config
-CREATE TABLE IF NOT EXISTS municipality_config (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ruc VARCHAR(11) UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    address TEXT NOT NULL,
-    logo_url TEXT,
-    billing_cut_day INTEGER DEFAULT 26,
-    payment_grace_days INTEGER DEFAULT 20,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
+-- ============================================================================
+-- 1. FUNCIONES AUXILIARES (deben existir antes de las políticas)
+-- ============================================================================
 
--- 2. roles
+-- Función para obtener el rol del usuario actual (usada en políticas RLS)
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN (SELECT role FROM profiles WHERE id = auth.uid());
+END;
+$$;
+
+-- Función alias (compatibilidad)
+CREATE OR REPLACE FUNCTION public."current_role"()
+RETURNS text
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = 'public'
+AS $$ SELECT role FROM public.profiles WHERE id = auth.uid() $$;
+
+-- Revocar acceso anónimo a funciones sensibles
+REVOKE EXECUTE ON FUNCTION public.get_user_role() FROM anon;
+REVOKE EXECUTE ON FUNCTION public."current_role"() FROM anon;
+
+-- ============================================================================
+-- 2. TABLAS
+-- ============================================================================
+
+-- Roles del sistema
 CREATE TABLE IF NOT EXISTS roles (
-  id TEXT PRIMARY KEY, -- 'admin', 'cashier', 'meter_reader'
+  id TEXT PRIMARY KEY,
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2b. profiles (extensión de auth.users)
+-- Perfiles de usuario (vinculados a auth.users)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT REFERENCES roles(id),
+  email TEXT NOT NULL,
   full_name TEXT,
+  role TEXT DEFAULT 'meter_reader' REFERENCES roles(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Configuración municipal
+CREATE TABLE IF NOT EXISTS municipality_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  ruc TEXT NOT NULL,
+  address TEXT NOT NULL,
+  logo_url TEXT,
+  billing_cut_day INT DEFAULT 25,
+  payment_grace_days INT DEFAULT 15,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. tariffs
+-- Tarifas eléctricas
 CREATE TABLE IF NOT EXISTS tariffs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    connection_type TEXT CHECK (connection_type IN ('monofásico', 'trifásico')),
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  connection_type TEXT DEFAULT 'monofasica',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. tariff_tiers
+-- Tramos tarifarios (escalonado por consumo)
 CREATE TABLE IF NOT EXISTS tariff_tiers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tariff_id UUID REFERENCES tariffs(id) ON DELETE CASCADE,
-    min_kwh NUMERIC NOT NULL,
-    max_kwh NUMERIC, -- NULL significa sin límite superior
-    price_per_kwh NUMERIC NOT NULL,
-    order_index INTEGER NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tariff_id UUID REFERENCES tariffs(id) ON DELETE CASCADE,
+  min_kwh NUMERIC NOT NULL,
+  max_kwh NUMERIC,
+  price_per_kwh NUMERIC NOT NULL,
+  order_index INT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. billing_concepts
+-- Conceptos de cobro adicionales
 CREATE TABLE IF NOT EXISTS billing_concepts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code VARCHAR(10) UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
-    amount NUMERIC NOT NULL,
-    type TEXT CHECK (type IN ('fixed', 'percentage', 'per_kwh')),
-    applies_to_tariff_id UUID REFERENCES tariffs(id) ON DELETE SET NULL,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT,
+  amount NUMERIC NOT NULL,
+  type TEXT DEFAULT 'fixed',
+  applies_to_tariff_id UUID REFERENCES tariffs(id),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. customers
+-- Clientes / suministros
 CREATE TABLE IF NOT EXISTS customers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    full_name TEXT NOT NULL,
-    supply_number VARCHAR(20) UNIQUE NOT NULL,
-    address TEXT NOT NULL,
-    sector TEXT,
-    tariff_id UUID REFERENCES tariffs(id) ON DELETE RESTRICT,
-    connection_type TEXT CHECK (connection_type IN ('monofásico', 'trifásico')),
-    phone TEXT,
-    document_number VARCHAR(15),
-    current_debt NUMERIC DEFAULT 0,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  supply_number TEXT NOT NULL UNIQUE,
+  full_name TEXT NOT NULL,
+  document_number TEXT,
+  address TEXT NOT NULL,
+  sector TEXT,
+  phone TEXT,
+  tariff_id UUID REFERENCES tariffs(id),
+  connection_type TEXT DEFAULT 'monofasica',
+  is_active BOOLEAN DEFAULT true,
+  current_debt NUMERIC DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. billing_periods
+-- Periodos de facturación
 CREATE TABLE IF NOT EXISTS billing_periods (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL, -- Ej: 'JUNIO 2025'
-    year INTEGER NOT NULL,
-    month INTEGER NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    is_closed BOOLEAN DEFAULT false,
-    closed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  year INT NOT NULL,
+  month INT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  is_closed BOOLEAN DEFAULT false,
+  closed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(year, month)
 );
 
--- 8. readings
+-- Lecturas de medidor
 CREATE TABLE IF NOT EXISTS readings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID REFERENCES customers(id) ON DELETE RESTRICT,
-    billing_period_id UUID REFERENCES billing_periods(id) ON DELETE RESTRICT,
-    meter_reader_id UUID, -- Referencia a auth.users.id (se implementará en Fase 2)
-    previous_reading NUMERIC NOT NULL,
-    current_reading NUMERIC NOT NULL,
-    consumption NUMERIC GENERATED ALWAYS AS (current_reading - previous_reading) STORED,
-    reading_date DATE DEFAULT CURRENT_DATE,
-    photo_url TEXT,
-    is_synced BOOLEAN DEFAULT false,
-    sync_id TEXT,
-    notes TEXT,
-    is_estimated BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES customers(id),
+  billing_period_id UUID REFERENCES billing_periods(id),
+  previous_reading NUMERIC NOT NULL,
+  current_reading NUMERIC NOT NULL,
+  consumption NUMERIC GENERATED ALWAYS AS (current_reading - previous_reading) STORED,
+  reading_date DATE DEFAULT CURRENT_DATE,
+  photo_url TEXT,
+  notes TEXT,
+  is_estimated BOOLEAN DEFAULT false,
+  meter_reader_id UUID,
+  sync_id TEXT,
+  is_synced BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. receipts
+-- Recibos de pago
 CREATE TABLE IF NOT EXISTS receipts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    receipt_number BIGINT UNIQUE NOT NULL,
-    customer_id UUID REFERENCES customers(id) ON DELETE RESTRICT,
-    reading_id UUID REFERENCES readings(id) ON DELETE SET NULL,
-    billing_period_id UUID REFERENCES billing_periods(id) ON DELETE RESTRICT,
-    previous_reading NUMERIC NOT NULL,
-    current_reading NUMERIC NOT NULL,
-    consumption_kwh NUMERIC NOT NULL,
-    energy_amount NUMERIC NOT NULL,
-    fixed_charges NUMERIC NOT NULL,
-    subtotal NUMERIC NOT NULL,
-    previous_debt NUMERIC DEFAULT 0,
-    total_amount NUMERIC NOT NULL,
-    issue_date DATE DEFAULT CURRENT_DATE,
-    due_date DATE NOT NULL,
-    period_start DATE NOT NULL,
-    period_end DATE NOT NULL,
-    status TEXT CHECK (status IN ('pending', 'paid', 'expired', 'cancelled')) DEFAULT 'pending',
-    paid_amount NUMERIC DEFAULT 0,
-    paid_at TIMESTAMPTZ,
-    payment_id UUID,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  receipt_number BIGINT NOT NULL UNIQUE,
+  customer_id UUID REFERENCES customers(id),
+  reading_id UUID REFERENCES readings(id),
+  billing_period_id UUID REFERENCES billing_periods(id),
+  previous_reading NUMERIC NOT NULL,
+  current_reading NUMERIC NOT NULL,
+  consumption_kwh NUMERIC NOT NULL,
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  energy_amount NUMERIC NOT NULL,
+  fixed_charges NUMERIC NOT NULL,
+  subtotal NUMERIC NOT NULL,
+  previous_debt NUMERIC DEFAULT 0,
+  total_amount NUMERIC NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),
+  issue_date DATE DEFAULT CURRENT_DATE,
+  due_date DATE NOT NULL,
+  paid_amount NUMERIC DEFAULT 0,
+  paid_at TIMESTAMPTZ,
+  payment_id UUID,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 10. payments
+-- Pagos registrados
 CREATE TABLE IF NOT EXISTS payments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    receipt_id UUID REFERENCES receipts(id) ON DELETE RESTRICT,
-    customer_id UUID REFERENCES customers(id) ON DELETE RESTRICT,
-    amount NUMERIC NOT NULL,
-    method TEXT CHECK (method IN ('cash')) DEFAULT 'cash',
-    reference TEXT,
-    cashier_id UUID, -- Referencia a auth.users.id
-    payment_date TIMESTAMPTZ DEFAULT now(),
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  receipt_id UUID REFERENCES receipts(id),
+  customer_id UUID REFERENCES customers(id),
+  amount NUMERIC NOT NULL,
+  method TEXT DEFAULT 'cash',
+  reference TEXT,
+  cashier_id UUID,
+  payment_date DATE DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 11. cash_closures
+-- Cierre de caja
 CREATE TABLE IF NOT EXISTS cash_closures (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    cashier_id UUID,
-    closure_date DATE DEFAULT CURRENT_DATE,
-    opening_amount NUMERIC NOT NULL,
-    total_collected NUMERIC DEFAULT 0,
-    total_receipts INTEGER DEFAULT 0,
-    status TEXT CHECK (status IN ('open', 'closed')) DEFAULT 'open',
-    closed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cashier_id UUID,
+  closure_date DATE DEFAULT CURRENT_DATE,
+  opening_amount NUMERIC NOT NULL,
+  total_collected NUMERIC DEFAULT 0,
+  total_receipts INT DEFAULT 0,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  closed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 12. audit_logs
+-- Registro de auditoría
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    table_name TEXT NOT NULL,
-    record_id UUID NOT NULL,
-    action TEXT NOT NULL,
-    old_data JSONB,
-    new_data JSONB,
-    user_id UUID,
-    user_role TEXT,
-    ip_address TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  user_role TEXT,
+  action TEXT NOT NULL,
+  table_name TEXT NOT NULL,
+  record_id TEXT NOT NULL,
+  old_data JSONB,
+  new_data JSONB,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- INDICES
-CREATE INDEX IF NOT EXISTS idx_customers_supply_number ON customers(supply_number);
-CREATE INDEX IF NOT EXISTS idx_receipts_customer_status ON receipts(customer_id, status);
-CREATE INDEX IF NOT EXISTS idx_readings_period ON readings(billing_period_id);
-CREATE INDEX IF NOT EXISTS idx_readings_date ON readings(reading_date);
-CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
+-- ============================================================================
+-- 3. FUNCIÓN DE CÁLCULO TARIFARIO
+-- ============================================================================
 
--- FUNCION: calculate_energy_amount
-CREATE OR REPLACE FUNCTION calculate_energy_amount(p_consumption NUMERIC, p_tariff_id UUID)
-RETURNS NUMERIC AS $$
+CREATE OR REPLACE FUNCTION public.calculate_energy_amount(p_consumption NUMERIC, p_tariff_id UUID)
+RETURNS NUMERIC
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 DECLARE
     v_total NUMERIC := 0;
     v_tier RECORD;
@@ -213,12 +251,63 @@ BEGIN
     
     RETURN ROUND(v_total, 2);
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Habilitar RLS
-ALTER TABLE municipality_config ENABLE ROW LEVEL SECURITY;
+-- ============================================================================
+-- 4. TRIGGER: Auto-crear perfil cuando se registra un usuario
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+    'meter_reader'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger en auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================================
+-- 5. ÍNDICES
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+CREATE INDEX IF NOT EXISTS idx_customers_supply_number ON customers(supply_number);
+CREATE INDEX IF NOT EXISTS idx_customers_tariff_id ON customers(tariff_id);
+CREATE INDEX IF NOT EXISTS idx_readings_customer_id ON readings(customer_id);
+CREATE INDEX IF NOT EXISTS idx_readings_period ON readings(billing_period_id);
+CREATE INDEX IF NOT EXISTS idx_readings_date ON readings(reading_date);
+CREATE INDEX IF NOT EXISTS idx_receipts_customer_status ON receipts(customer_id, status);
+CREATE INDEX IF NOT EXISTS idx_receipts_billing_period_id ON receipts(billing_period_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_reading_id ON receipts(reading_id);
+CREATE INDEX IF NOT EXISTS idx_payments_receipt_id ON payments(receipt_id);
+CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_billing_concepts_applies_to_tariff_id ON billing_concepts(applies_to_tariff_id);
+CREATE INDEX IF NOT EXISTS idx_tariff_tiers_tariff_id ON tariff_tiers(tariff_id);
+
+-- ============================================================================
+-- 6. RLS (Row Level Security) - Activar en todas las tablas
+-- ============================================================================
+
 ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE municipality_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tariffs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tariff_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_concepts ENABLE ROW LEVEL SECURITY;
@@ -230,104 +319,139 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cash_closures ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Politicas para profiles
-CREATE POLICY "Users can read own profile" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Admin can manage all profiles" ON profiles FOR ALL TO authenticated USING (
-  auth.uid() IN (SELECT id FROM profiles WHERE role = 'admin')
-);
+-- ============================================================================
+-- 7. POLÍTICAS RLS (conjunto limpio, sin duplicados)
+-- ============================================================================
 
--- Politicas de RLS por Rol - Basadas en la tabla profiles
--- Función auxiliar para verificar el rol del usuario actual
-CREATE OR REPLACE FUNCTION get_user_role()
-RETURNS TEXT AS $$
-BEGIN
-  RETURN (SELECT role FROM profiles WHERE id = auth.uid());
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- ── roles ──
+CREATE POLICY "roles_select_authenticated" ON roles
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
 
--- Clientes: Admin tiene acceso total, Cajero y Lector solo lectura
-CREATE POLICY "Admin CRUD customers" ON customers FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+-- ── profiles ──
+CREATE POLICY "Users can read own profile" ON profiles
+  FOR SELECT TO authenticated
+  USING ((SELECT auth.uid()) = id);
 
-CREATE POLICY "Users read customers" ON customers FOR SELECT TO authenticated 
-  USING (get_user_role() IN ('admin', 'cashier', 'meter_reader'));
+CREATE POLICY "Users can update own profile" ON profiles
+  FOR UPDATE TO authenticated
+  USING ((SELECT auth.uid()) = id);
 
--- Recibos: Admin tiene acceso total, Cajero actualiza para pagos
-CREATE POLICY "Admin CRUD receipts" ON receipts FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+CREATE POLICY "Admin can manage all profiles" ON profiles
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Users read receipts" ON receipts FOR SELECT TO authenticated 
-  USING (get_user_role() IN ('admin', 'cashier', 'meter_reader'));
+-- ── municipality_config ──
+CREATE POLICY "Admin CRUD municipality_config" ON municipality_config
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Cashier update receipts" ON receipts FOR UPDATE TO authenticated 
-  USING (get_user_role() IN ('admin', 'cashier'));
-
--- Pagos: Admin y Cajero pueden crear y leer
-CREATE POLICY "Admin CRUD payments" ON payments FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "Users read payments" ON payments FOR SELECT TO authenticated 
-  USING (get_user_role() IN ('admin', 'cashier'));
-
-CREATE POLICY "Cashier insert payments" ON payments FOR INSERT TO authenticated 
-  WITH CHECK (get_user_role() IN ('admin', 'cashier'));
-
--- Auditoría: Solo Admin lee, sistema inserta
-CREATE POLICY "Admin read logs" ON audit_logs FOR SELECT TO authenticated 
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "System insert logs" ON audit_logs FOR INSERT TO authenticated 
-  WITH CHECK (true);
-
--- Lecturas: Admin CRUD, Lector inserta, todos leen
-CREATE POLICY "Admin CRUD readings" ON readings FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "Users read readings" ON readings FOR SELECT TO authenticated 
-  USING (get_user_role() IN ('admin', 'cashier', 'meter_reader'));
-
-CREATE POLICY "Reader insert readings" ON readings FOR INSERT TO authenticated 
-  WITH CHECK (get_user_role() IN ('admin', 'meter_reader'));
-
--- Tarifas: Admin CRUD, todos leen
-CREATE POLICY "Admin CRUD tariffs" ON tariffs FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
-
-CREATE POLICY "Users read tariffs" ON tariffs FOR SELECT TO authenticated 
+CREATE POLICY "Users read municipality_config" ON municipality_config
+  FOR SELECT TO authenticated
   USING (true);
 
--- Tramos de tarifa: Admin CRUD, todos leen
-CREATE POLICY "Admin CRUD tariff_tiers" ON tariff_tiers FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+-- ── tariffs ──
+CREATE POLICY "Admin CRUD tariffs" ON tariffs
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Users read tariff_tiers" ON tariff_tiers FOR SELECT TO authenticated 
+CREATE POLICY "Users read tariffs" ON tariffs
+  FOR SELECT TO authenticated
   USING (true);
 
--- Conceptos de cobro: Admin CRUD, todos leen
-CREATE POLICY "Admin CRUD billing_concepts" ON billing_concepts FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+-- ── tariff_tiers ──
+CREATE POLICY "Admin CRUD tariff_tiers" ON tariff_tiers
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Users read billing_concepts" ON billing_concepts FOR SELECT TO authenticated 
+CREATE POLICY "Users read tariff_tiers" ON tariff_tiers
+  FOR SELECT TO authenticated
   USING (true);
 
--- Periodos de facturación: Admin CRUD, todos leen
-CREATE POLICY "Admin CRUD billing_periods" ON billing_periods FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+-- ── billing_concepts ──
+CREATE POLICY "Admin CRUD billing_concepts" ON billing_concepts
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Users read billing_periods" ON billing_periods FOR SELECT TO authenticated 
+CREATE POLICY "Users read billing_concepts" ON billing_concepts
+  FOR SELECT TO authenticated
   USING (true);
 
--- Cierres de caja: Admin ve todo, Cajero solo los suyos
-CREATE POLICY "Admin CRUD cash_closures" ON cash_closures FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+-- ── customers ──
+CREATE POLICY "Admin CRUD customers" ON customers
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Cashier read own closures" ON cash_closures FOR SELECT TO authenticated 
-  USING (cashier_id = auth.uid() OR get_user_role() = 'admin');
+CREATE POLICY "Users read customers" ON customers
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
 
-CREATE POLICY "Cashier insert closures" ON cash_closures FOR INSERT TO authenticated 
-  WITH CHECK (cashier_id = auth.uid() AND get_user_role() IN ('admin', 'cashier'));
+-- ── billing_periods ──
+CREATE POLICY "Admin CRUD billing_periods" ON billing_periods
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
--- Configuración municipal: Solo Admin
-CREATE POLICY "Admin CRUD municipality_config" ON municipality_config FOR ALL TO authenticated 
-  USING (get_user_role() = 'admin');
+CREATE POLICY "Users read billing_periods" ON billing_periods
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- ── readings ──
+CREATE POLICY "Admin CRUD readings" ON readings
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Reader insert readings" ON readings
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
+
+CREATE POLICY "Users read readings" ON readings
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+
+-- ── receipts ──
+CREATE POLICY "Admin CRUD receipts" ON receipts
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Cashier update receipts" ON receipts
+  FOR UPDATE TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+
+CREATE POLICY "Users read receipts" ON receipts
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+
+-- ── payments ──
+CREATE POLICY "Admin CRUD payments" ON payments
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Cashier insert payments" ON payments
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+
+CREATE POLICY "Users read payments" ON payments
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+
+-- ── cash_closures ──
+CREATE POLICY "Admin CRUD cash_closures" ON cash_closures
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Cashier insert closures" ON cash_closures
+  FOR INSERT TO authenticated
+  WITH CHECK (cashier_id = (SELECT auth.uid()) AND (SELECT public.get_user_role()) IN ('admin', 'cashier'));
+
+CREATE POLICY "Cashier read own closures" ON cash_closures
+  FOR SELECT TO authenticated
+  USING (cashier_id = (SELECT auth.uid()) OR (SELECT public.get_user_role()) = 'admin');
+
+-- ── audit_logs ──
+CREATE POLICY "Admin read logs" ON audit_logs
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "System insert logs" ON audit_logs
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
