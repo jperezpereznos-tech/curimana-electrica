@@ -593,6 +593,14 @@ export type Database = {
         Args: { p_consumption: number; p_tariff_id: string }
         Returns: number
       }
+      get_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      current_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
