@@ -76,19 +76,17 @@ export default function NewReadingPage() {
       // Calculate consumption properly (0 for decreasing readings)
       const consumption = reading < previous ? 0 : reading - previous
 
-      await db.pending_readings.add({
+await db.pending_readings.add({
         customer_id: customer.id,
         supply_number: supplyNumber,
         full_name: customer.full_name,
         previous_reading: previous,
         current_reading: reading,
-        consumption: consumption,
         reading_date: new Date().toISOString().split('T')[0],
         notes,
         photo_base64: capturedPhoto || undefined,
         status: 'pending',
         created_at: new Date().toISOString(),
-        // Add a flag to mark readings that need review due to meter reset
         needs_review: reading < previous
       })
 

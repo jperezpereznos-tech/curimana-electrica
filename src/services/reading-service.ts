@@ -23,7 +23,6 @@ export class ReadingService {
     return await readingRepository.create({
       ...data,
       consumption,
-      needs_review: current < previous
     })
   }
 
