@@ -7,12 +7,12 @@ export interface PendingReading {
   full_name: string
   previous_reading: number
   current_reading: number
-  consumption: number
   reading_date: string
   photo_base64?: string
   notes?: string
   status: 'pending' | 'syncing' | 'failed'
   created_at: string
+  needs_review?: boolean
 }
 
 export interface CustomerCache {

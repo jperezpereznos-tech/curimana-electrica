@@ -26,17 +26,37 @@ export default function NewReadingPage() {
     if (!supplyNumber) return
     setIsSearching(true)
     
-    // Simulación: En la vida real buscaría en IndexedDB o API
-    // Por ahora, simulamos un cliente encontrado
-    setTimeout(() => {
-      setCustomer({
-        id: 'cust-1',
-        full_name: 'Juan Perez Garcia',
-        address: 'Jr. Lima 123',
-        previous_reading: 1250,
-      })
+    try {
+      // Primero buscamos en la cache local
+      const cachedCustomer = await db.customers_cache
+        .where('supply_number')
+        .equals(supplyNumber)
+        .first()
+      
+      if (cachedCustomer) {
+        setCustomer({
+          id: cachedCustomer.id,
+          full_name: cachedCustomer.full_name,
+          address: cachedCustomer.address,
+          previous_reading: cachedCustomer.previous_reading,
+        })
+      } else {
+        // Simulación: En la vida real buscaría en IndexedDB o API
+        // Por ahora, simulamos un cliente encontrado
+        setTimeout(() => {
+          setCustomer({
+            id: 'cust-1',
+            full_name: 'Juan Perez Garcia',
+            address: 'Jr. Lima 123',
+            previous_reading: 1250,
+          })
+          setIsSearching(false)
+        }, 500)
+      }
+    } catch (error) {
+      console.error('Error searching customer:', error)
       setIsSearching(false)
-    }, 500)
+    }
   }
 
   const handleSave = async () => {
@@ -45,6 +65,7 @@ export default function NewReadingPage() {
     const reading = Number(currentReading)
     const previous = customer.previous_reading
 
+    // Handle decreasing meter readings properly (meter resets)
     if (reading < previous) {
       if (!confirm('La lectura es MENOR a la anterior. ¿Estás seguro?')) {
         return
@@ -52,18 +73,23 @@ export default function NewReadingPage() {
     }
 
     try {
+      // Calculate consumption properly (0 for decreasing readings)
+      const consumption = reading < previous ? 0 : reading - previous
+
       await db.pending_readings.add({
         customer_id: customer.id,
         supply_number: supplyNumber,
         full_name: customer.full_name,
         previous_reading: previous,
         current_reading: reading,
-        consumption: reading - previous,
+        consumption: consumption,
         reading_date: new Date().toISOString().split('T')[0],
         notes,
         photo_base64: capturedPhoto || undefined,
         status: 'pending',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // Add a flag to mark readings that need review due to meter reset
+        needs_review: reading < previous
       })
 
       alert('Lectura guardada localmente')

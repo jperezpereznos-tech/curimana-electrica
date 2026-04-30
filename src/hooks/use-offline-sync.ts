@@ -40,19 +40,23 @@ export function useOfflineSync() {
           }
         }
 
-        // Enviar al servidor
+        // Add a check for decreasing meter readings
+        if (reading.current_reading < reading.previous_reading) {
+          // This is a decreasing reading - flag it for review
+          console.warn('Reading is decreasing - marking for review')
+        }
+
+// Enviar al servidor
         await readingService.registerReading({
           customer_id: reading.customer_id,
-          billing_period_id: 'CURRENT_PERIOD_ID', // Debería pasarse dinámicamente
+          billing_period_id: periodId,
           previous_reading: reading.previous_reading,
           current_reading: reading.current_reading,
           reading_date: reading.reading_date,
           notes: reading.notes,
-          photo_url: photoUrl
+          photo_url: photoUrl,
+          needs_review: reading.needs_review
         })
-
-        // Eliminar de local si tuvo éxito
-        await db.pending_readings.delete(reading.id!)
       } catch (error) {
         console.error('Error syncing reading:', error)
         await db.pending_readings.update(reading.id!, { status: 'failed' })

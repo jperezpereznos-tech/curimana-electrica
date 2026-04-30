@@ -26,7 +26,7 @@ describe('ReadingService - registerReading', () => {
     expect(readingRepository.create).toHaveBeenCalled()
   })
 
-  it('debería fallar si la lectura actual es menor a la anterior', async () => {
+  it('debería manejar correctamente las lecturas decrecientes', async () => {
     const data = {
       customer_id: 'cust-1',
       billing_period_id: 'period-1',
@@ -35,8 +35,12 @@ describe('ReadingService - registerReading', () => {
       reading_date: '2025-06-10'
     }
 
-    await expect(service.registerReading(data as any)).rejects.toThrow(
-      'La lectura actual no puede ser menor a la lectura anterior'
-    )
+    const result = await service.registerReading(data as any)
+    
+    // Para lecturas decrecientes, el consumo debe ser 0
+    expect(result.consumption).toBe(0)
+    // Y debe estar marcada para revisión
+    expect(result.needs_review).toBe(true)
+    expect(readingRepository.create).toHaveBeenCalled()
   })
 })
