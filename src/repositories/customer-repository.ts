@@ -78,7 +78,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getTopDebtors(limit: number = 5) {
     const { data, error } = await this.supabase
       .from('customers')
-      .select('id, full_name, supply_number, current_debt, sector')
+      .select('id, full_name, supply_number, current_debt, sector, address')
       .eq('is_active', true)
       .gt('current_debt', 0)
       .order('current_debt', { ascending: false })
@@ -100,5 +100,3 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     return data
   }
 }
-
-export const customerRepository = new CustomerRepository()

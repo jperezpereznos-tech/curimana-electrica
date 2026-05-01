@@ -25,7 +25,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const navItems = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Panel', href: '/admin', icon: LayoutDashboard },
     { name: 'Clientes', href: '/admin/customers', icon: Users },
     { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
     { name: 'Recibos', href: '/admin/receipts', icon: Receipt },
@@ -73,9 +73,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 border-b flex items-center justify-between px-8 bg-white">
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle menú">
             <Menu size={24} />
           </Button>
           <div className="flex items-center space-x-4">

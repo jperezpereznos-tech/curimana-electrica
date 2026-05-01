@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { db } from '@/lib/db/dexie'
 import { readingService } from '@/services/reading-service'
-import { periodRepository } from '@/repositories/period-repository'
+import { periodService } from '@/services/period-service'
 import { storageService } from '@/services/storage-service'
 import { customerService } from '@/services/customer-service'
 
@@ -53,7 +53,7 @@ export function useOfflineSync() {
     // Get current period ID
     let periodId: string | null = null
     try {
-      const currentPeriod = await periodRepository.getCurrentPeriod();
+      const currentPeriod = await periodService.getCurrentPeriod();
       if (currentPeriod) {
         periodId = currentPeriod.id
       }

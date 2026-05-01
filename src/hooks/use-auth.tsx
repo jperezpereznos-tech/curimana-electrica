@@ -72,8 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // "lock:sb-<project>-auth-token" lock simultaneously.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[useAuth] Auth event:', event, 'Session:', !!session)
-
         if (!mounted) return
 
         const currentUser = session?.user ?? null
@@ -97,8 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // (e.g. no session exists), force loading to false
     const timeout = setTimeout(() => {
       if (mounted && isLoading) {
-        console.log('[useAuth] Timeout reached, checking session with getSession()')
-        // getSession() reads from local storage and does NOT acquire a lock
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (mounted && isLoading) {
             if (!session) {

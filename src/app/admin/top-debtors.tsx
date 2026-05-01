@@ -45,7 +45,7 @@ export function TopDebtors() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-destructive" />
-            Top Deudores
+Mayores Deudores
           </CardTitle>
         </CardHeader>
         <CardContent>

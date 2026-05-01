@@ -31,9 +31,7 @@ export default function PendingReadingsPage() {
         }))
         setPendingReadings(formattedReadings)
       })
-      .catch((error) => {
-        console.error('Error cargando lecturas pendientes:', error)
-      })
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoading(false)
       })

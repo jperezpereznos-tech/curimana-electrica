@@ -12,9 +12,6 @@ export class CustomerService {
   }
 
   async searchCustomers(query: string) {
-    if (!query || query.trim().length < 2) {
-      return []
-    }
     return await this.customerRepo.searchCustomers(query.trim())
   }
 
@@ -37,6 +34,10 @@ export class CustomerService {
 
   async getTopDebtors(limit: number = 5) {
     return await this.customerRepo.getTopDebtors(limit)
+  }
+
+  async getCustomersWithDebt() {
+    return await this.customerRepo.getTopDebtors(1000)
   }
 
   async getActiveCustomersWithReadings() {

@@ -38,5 +38,3 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
     return closure
   }
 }
-
-export const cashClosureRepository = new CashClosureRepository()

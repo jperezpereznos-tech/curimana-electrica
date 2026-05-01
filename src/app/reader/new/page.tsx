@@ -33,6 +33,8 @@ function NewReadingContent() {
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const handleSearch = useCallback(async (supply: string) => {
     if (!supply) return
@@ -79,9 +81,8 @@ function NewReadingContent() {
       } else {
         setNotFound(true)
       }
-    } catch (error) {
-      console.error('Error searching customer:', error)
-      setNotFound(true)
+  } catch {
+    setNotFound(true)
     } finally {
       setIsSearching(false)
     }
@@ -98,8 +99,15 @@ function NewReadingContent() {
 
   const handleSave = async () => {
     if (!customer || !currentReading) return
+    setSaveError(null)
+    setSaveSuccess(false)
 
     const reading = Number(currentReading)
+    if (isNaN(reading) || reading < 0) {
+      setSaveError('La lectura debe ser un número válido mayor o igual a cero')
+      return
+    }
+
     const previous = customer.previous_reading
 
     // Handle decreasing meter readings properly (meter resets)
@@ -121,14 +129,13 @@ function NewReadingContent() {
         photo_base64: capturedPhoto || undefined,
         status: 'pending',
         created_at: new Date().toISOString(),
-        needs_review: reading < previous
-      })
+      needs_review: reading < previous
+    })
 
-      alert('Lectura guardada localmente')
-      router.push('/reader')
-    } catch (error) {
-      console.error('Error saving reading:', error)
-      alert('Error al guardar la lectura')
+    setSaveSuccess(true)
+    router.push('/reader')
+  } catch {
+    setSaveError('Error al guardar la lectura')
     }
   }
 
@@ -250,8 +257,18 @@ function NewReadingContent() {
               />
             </div>
 
-            {/* Botón Guardar */}
-            <Button 
+    {/* Botón Guardar */}
+    {saveError && (
+      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+        {saveError}
+      </div>
+    )}
+    {saveSuccess && (
+      <div className="bg-green-500/10 text-green-700 text-sm p-3 rounded-lg">
+        Lectura guardada localmente
+      </div>
+    )}
+    <Button
               className="w-full h-20 text-xl gap-3 shadow-lg" 
               onClick={handleSave}
               disabled={!currentReading}

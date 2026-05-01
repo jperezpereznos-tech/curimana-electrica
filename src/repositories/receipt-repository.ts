@@ -39,5 +39,3 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
     return data
   }
 }
-
-export const receiptRepository = new ReceiptRepository()

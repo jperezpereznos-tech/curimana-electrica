@@ -76,5 +76,3 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     return count || 0
   }
 }
-
-export const readingRepository = new ReadingRepository()

@@ -66,6 +66,10 @@ export class PeriodService {
     return await this.periodRepo.getAllPeriods()
   }
 
+  async getCurrentPeriod() {
+    return await this.periodRepo.getCurrentPeriod()
+  }
+
   async closePeriod(id: string, userId?: string) {
     const period = await this.periodRepo.getById(id)
     if (!period) throw new Error('Periodo no encontrado')

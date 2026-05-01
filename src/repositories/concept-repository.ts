@@ -18,5 +18,3 @@ export class ConceptRepository extends BaseRepository<'billing_concepts'> {
     return data
   }
 }
-
-export const conceptRepository = new ConceptRepository()

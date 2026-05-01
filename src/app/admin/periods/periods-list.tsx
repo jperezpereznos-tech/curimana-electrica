@@ -18,12 +18,14 @@ import { formatDate } from '@/lib/utils'
 export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleClosePeriod = async (id: string) => {
     if (!confirm('¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas.')) {
       return
     }
 
+    setError(null)
     setLoading(id)
     try {
       const result = await periodService.closePeriod(id) as any
@@ -32,9 +34,8 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
       )
       alert(`Periodo cerrado exitosamente. Se generaron ${generated} recibos.`)
-    } catch (error) {
-      console.error('Error al cerrar periodo:', error)
-      alert('Error al cerrar el periodo.')
+    } catch {
+      setError('Error al cerrar el periodo.')
     } finally {
       setLoading(null)
     }
@@ -42,6 +43,11 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
 
   return (
     <div className="rounded-md border bg-card">
+      {error && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-t-lg border-b">
+          {error}
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>

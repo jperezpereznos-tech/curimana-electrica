@@ -39,12 +39,12 @@ export function CashierLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-sm">{user?.email}</span>
-          <Button variant="ghost" size="icon" onClick={() => signOut()} className="text-white hover:bg-white/10">
+          <Button variant="ghost" size="icon" onClick={() => signOut()} className="text-white hover:bg-white/10" aria-label="Cerrar sesión">
             <LogOut size={20} />
           </Button>
         </div>
       </header>
-      <main className="flex-1 p-8">
+      <main id="main-content" className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
           {children}
         </div>

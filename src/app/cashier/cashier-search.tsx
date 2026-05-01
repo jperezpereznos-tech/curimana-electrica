@@ -23,26 +23,26 @@ export function CashierSearch({ closureId }: { closureId: string }) {
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [receipts, setReceipts] = useState<ReceiptItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [notFound, setNotFound] = useState(false)
 
   const handleSearch = async () => {
     if (!q) return
     setLoading(true)
+    setNotFound(false)
     try {
-      // Buscar cliente por suministro
       const results = await customerService.searchCustomers(q)
       if (results.length > 0) {
         const cust = results[0]
         setCustomer(cust)
-        // Buscar recibos pendientes
         const res = await receiptService.getAllReceipts({ supplyNumber: cust.supply_number, status: 'pending' })
         setReceipts((res as ReceiptItem[]) || [])
       } else {
         setCustomer(null)
         setReceipts([])
-        alert('Suministro no encontrado')
+        setNotFound(true)
       }
-    } catch (error) {
-      console.error(error)
+    } catch {
+      setNotFound(true)
     } finally {
       setLoading(false)
     }
@@ -63,10 +63,16 @@ export function CashierSearch({ closureId }: { closureId: string }) {
         </div>
         <Button size="lg" className="h-12 px-8" onClick={handleSearch} disabled={loading}>
           {loading ? 'Buscando...' : 'Buscar'}
-        </Button>
-      </div>
+    </Button>
+    </div>
 
-      {customer && (
+    {notFound && (
+      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg max-w-xl">
+        Suministro no encontrado
+      </div>
+    )}
+
+    {customer && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
           {/* Info Cliente */}
           <Card className="md:col-span-1">

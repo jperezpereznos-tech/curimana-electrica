@@ -62,5 +62,3 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
     return newTariff
   }
 }
-
-export const tariffRepository = new TariffRepository()

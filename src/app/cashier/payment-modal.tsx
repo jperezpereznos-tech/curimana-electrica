@@ -36,13 +36,19 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
   const [amountToPay, setAmountToPay] = useState(receipt.total_amount - (receipt.paid_amount || 0))
   const [received, setReceived] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const remaining = receipt.total_amount - (receipt.paid_amount || 0)
   const change = Number(received) > amountToPay ? Number(received) - amountToPay : 0
 
   const handlePayment = async () => {
-    if (amountToPay <= 0 || amountToPay > remaining) {
-      alert('Monto de pago inválido')
+    setError(null)
+    if (!amountToPay || amountToPay <= 0) {
+      setError('El monto debe ser mayor a cero')
+      return
+    }
+    if (amountToPay > remaining) {
+      setError('El monto excede el saldo pendiente')
       return
     }
 
@@ -60,9 +66,8 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
       
       setOpen(false)
       onSuccess()
-    } catch (error) {
-      console.error(error)
-      alert('Error al procesar el pago')
+    } catch {
+      setError('Error al procesar el pago')
     } finally {
       setLoading(false)
     }
@@ -84,6 +89,11 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {error && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+              {error}
+            </div>
+          )}
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between text-sm">
               <span>Total Recibo:</span>

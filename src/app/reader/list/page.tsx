@@ -38,9 +38,7 @@ export default function ReadingRoutePage() {
         const uniqueSectors = [...new Set(formattedCustomers.map((c: any) => c.sector).filter(Boolean))]
         setSectors(uniqueSectors)
       })
-      .catch((error) => {
-        console.error('Error cargando clientes:', error)
-      })
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoading(false)
       })

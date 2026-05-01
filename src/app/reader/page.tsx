@@ -10,7 +10,7 @@ import { Wifi, WifiOff, RefreshCcw, Camera, Search, List } from 'lucide-react'
 import Link from 'next/link'
 import { db } from '@/lib/db/dexie'
 import { readingService } from '@/services/reading-service'
-import { periodRepository } from '@/repositories/period-repository'
+import { periodService } from '@/services/period-service'
 
 export default function ReaderDashboard() {
   const { isOnline, pendingSyncCount, syncNow } = useOfflineSync()
@@ -30,10 +30,6 @@ export default function ReaderDashboard() {
       .count()
       .then(count => { if (!cancelled) setTodayCount(count) })
 
-    db.pending_readings
-      .count()
-      .then(() => { if (!cancelled) setSyncedCount(0) })
-
     if (navigator.onLine) {
       readingService.getTodayReadingsCount()
         .then(count => { if (!cancelled) setSyncedCount(count) })
@@ -43,7 +39,7 @@ export default function ReaderDashboard() {
         .then(count => { if (!cancelled) setActiveCustomers(count) })
         .catch(() => {})
 
-      periodRepository.getCurrentPeriod()
+      periodService.getCurrentPeriod()
         .then(period => {
           if (!cancelled && period) {
             setPeriodInfo({

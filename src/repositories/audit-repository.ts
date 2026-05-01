@@ -18,5 +18,3 @@ export class AuditRepository extends BaseRepository<'audit_logs'> {
     return data
   }
 }
-
-export const auditRepository = new AuditRepository()

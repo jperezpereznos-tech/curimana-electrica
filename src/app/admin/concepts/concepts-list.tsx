@@ -25,31 +25,38 @@ import { formatCurrency } from '@/lib/utils'
 
 export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
   const [concepts, setConcepts] = useState(initialConcepts)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    setActionError(null)
     try {
       await conceptService.toggleConceptStatus(id, !currentStatus)
       setConcepts(prev =>
         prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c)
       )
-    } catch (error) {
-      console.error('Error al cambiar estado:', error)
+    } catch {
+      setActionError('Error al cambiar estado del concepto.')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este concepto?')) return
+    setActionError(null)
     try {
       await conceptService.deleteConcept(id)
       setConcepts(prev => prev.filter(c => c.id !== id))
-    } catch (error) {
-      console.error('Error al eliminar concepto:', error)
-      alert('Error al eliminar el concepto.')
+    } catch {
+      setActionError('Error al eliminar el concepto.')
     }
   }
 
   return (
     <div className="rounded-md border bg-card">
+      {actionError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-t-lg border-b">
+          {actionError}
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>

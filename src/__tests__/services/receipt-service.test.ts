@@ -1,9 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ReceiptService } from '@/services/receipt-service'
+import { ReceiptRepository } from '@/repositories/receipt-repository'
+import { CustomerRepository } from '@/repositories/customer-repository'
+import { AuditService } from '@/services/audit-service'
+
+vi.mock('@/repositories/receipt-repository')
+vi.mock('@/repositories/customer-repository')
+vi.mock('@/services/audit-service')
 
 describe('ReceiptService - calculateBreakdown', () => {
   const service = new ReceiptService()
-  
+
   const mockTiers = [
     { min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
     { min_kwh: 30, max_kwh: 100, price_per_kwh: 0.62 },
@@ -17,11 +24,8 @@ describe('ReceiptService - calculateBreakdown', () => {
   ]
 
   it('debería calcular correctamente para 50 kWh con cargos fijos', () => {
-    // Energía: 30*0.31 + 20*0.62 = 9.30 + 12.40 = 21.70
-    // Fijos: 3.50 + 4.20 + 1.50 = 9.20
-    // Total: 21.70 + 9.20 = 30.90
     const result = service.calculateBreakdown(50, mockTiers, mockFixedConcepts)
-    
+
     expect(result.energyAmount).toBe(21.70)
     expect(result.fixedCharges).toBe(9.20)
     expect(result.totalAmount).toBe(30.90)
@@ -29,7 +33,7 @@ describe('ReceiptService - calculateBreakdown', () => {
 
   it('debería calcular correctamente para 0 kWh (solo cargos fijos)', () => {
     const result = service.calculateBreakdown(0, mockTiers, mockFixedConcepts)
-    
+
     expect(result.energyAmount).toBe(0)
     expect(result.totalAmount).toBe(9.20)
   })
@@ -37,8 +41,7 @@ describe('ReceiptService - calculateBreakdown', () => {
   it('debería incluir la deuda anterior en el total', () => {
     const previousDebt = 15.50
     const result = service.calculateBreakdown(50, mockTiers, mockFixedConcepts, previousDebt)
-    
-    // 30.90 (actual) + 15.50 (deuda) = 46.40
+
     expect(result.totalAmount).toBe(46.40)
   })
 
@@ -47,14 +50,68 @@ describe('ReceiptService - calculateBreakdown', () => {
       ...mockFixedConcepts,
       { name: 'IGV', amount: 18, type: 'percentage' }
     ]
-    // Energía 50kWh = 21.70
-    // IGV = 18% de 21.70 = 3.906 -> 3.91
-    // Total Fijos = 9.20 + 3.91 = 13.11
-    // Subtotal = 21.70 + 13.11 = 34.81
     const result = service.calculateBreakdown(50, mockTiers, conceptsWithIGV)
-    
+
     const igv = result.conceptsBreakdown.find(c => c.name === 'IGV')
     expect(igv?.amount).toBe(3.91)
     expect(result.subtotal).toBe(34.81)
+  })
+})
+
+describe('ReceiptService - cancelReceipt', () => {
+  const service = new ReceiptService()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('debería anular el recibo y revertir la deuda del cliente', async () => {
+    const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 30, customer_id: 'c1' }
+    const mockCustomer = { id: 'c1', current_debt: 70 }
+
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
+    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
+    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
+    vi.spyOn(CustomerRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
+
+    await service.cancelReceipt('r1', 'Anulación', 'user1')
+
+    expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', { status: 'cancelled' })
+    expect(CustomerRepository.prototype.update).toHaveBeenCalledWith('c1', { current_debt: 0 })
+    expect(AuditService.prototype.log).toHaveBeenCalled()
+  })
+
+  it('debería lanzar error si el recibo no existe', async () => {
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(null as any)
+
+    await expect(service.cancelReceipt('missing', 'razón')).rejects.toThrow('Recibo no encontrado')
+  })
+
+  it('debería lanzar error si el recibo ya está anulado', async () => {
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
+
+    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('El recibo ya está anulado')
+  })
+
+  it('debería lanzar error si el recibo no tiene cliente asociado', async () => {
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: null } as any)
+
+    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('Recibo sin cliente asociado')
+  })
+
+  it('no debería registrar auditoría si no se pasa userId', async () => {
+    const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
+    const mockCustomer = { id: 'c1', current_debt: 100 }
+
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
+    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
+    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(CustomerRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
+
+    await service.cancelReceipt('r1', 'razón')
+
+    expect(AuditService.prototype.log).not.toHaveBeenCalled()
   })
 })

@@ -39,6 +39,7 @@ type ConceptFormValues = z.infer<typeof conceptSchema>
 
 export function CreateConceptDialog() {
   const [open, setOpen] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
   
   const form = useForm<ConceptFormValues>({
@@ -53,6 +54,7 @@ export function CreateConceptDialog() {
   })
 
   const onSubmit = async (values: ConceptFormValues) => {
+    setServerError(null)
     try {
       await conceptService.createConcept({
         ...values,
@@ -62,7 +64,7 @@ export function CreateConceptDialog() {
       form.reset()
       router.refresh()
     } catch (error: any) {
-      alert(error.message || 'Error al crear el concepto')
+      setServerError(error.message || 'Error al crear el concepto')
     }
   }
 
@@ -81,8 +83,13 @@ export function CreateConceptDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      {serverError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {serverError}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>
               <Input id="code" placeholder="Ej: ALUM" {...form.register('code')} />

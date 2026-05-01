@@ -41,6 +41,7 @@ type CustomerFormValues = z.infer<typeof customerSchema>
 
 export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
   const [open, setOpen] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
   
   const form = useForm<CustomerFormValues>({
@@ -57,6 +58,7 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
   })
 
   const onSubmit = async (values: CustomerFormValues) => {
+    setServerError(null)
     try {
       await customerService.registerCustomer({
         ...values,
@@ -67,7 +69,7 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
       form.reset()
       router.refresh()
     } catch (error: any) {
-      alert(error.message || 'Error al registrar cliente')
+      setServerError(error.message || 'Error al registrar cliente')
     }
   }
 
@@ -86,8 +88,13 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      {serverError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {serverError}
+        </div>
+      )}
+      <div className="space-y-2">
             <Label htmlFor="full_name">Nombre Completo</Label>
             <Input id="full_name" {...form.register('full_name')} />
           </div>

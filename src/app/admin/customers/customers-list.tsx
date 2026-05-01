@@ -28,16 +28,17 @@ import { customerService } from '@/services/customer-service'
 export function CustomersList({ initialCustomers, query }: { initialCustomers: any[], query: string }) {
   const [searchTerm, setSearchTerm] = useState(query)
   const [customers, setCustomers] = useState(initialCustomers)
+  const [actionError, setActionError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleDeactivate = async (id: string) => {
     if (!confirm('¿Estás seguro de dar de baja este cliente?')) return
+    setActionError(null)
     try {
       await customerService.updateCustomer(id, { is_active: false } as any)
       setCustomers(prev => prev.map(c => c.id === id ? { ...c, is_active: false } : c))
-    } catch (error) {
-      console.error('Error al dar de baja:', error)
-      alert('Error al dar de baja el cliente.')
+    } catch {
+      setActionError('Error al dar de baja el cliente.')
     }
   }
 
@@ -52,6 +53,11 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
 
   return (
     <div className="space-y-4">
+      {actionError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {actionError}
+        </div>
+      )}
       <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

@@ -51,5 +51,3 @@ export class PaymentRepository extends BaseRepository<'payments'> {
     return data
   }
 }
-
-export const paymentRepository = new PaymentRepository()

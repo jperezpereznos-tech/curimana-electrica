@@ -25,8 +25,7 @@ export default function SearchPage() {
     try {
       const customers = await customerService.searchCustomers(searchTerm)
       setResults(customers)
-    } catch (error) {
-      console.error('Error buscando:', error)
+    } catch {
     } finally {
       setLoading(false)
     }

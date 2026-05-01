@@ -30,31 +30,38 @@ interface TariffsListProps {
 
 export function TariffsList({ initialTariffs }: TariffsListProps) {
   const [tariffs, setTariffs] = useState(initialTariffs)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    setActionError(null)
     try {
       await tariffService.toggleTariffStatus(id, !currentStatus)
       setTariffs(prev =>
         prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t)
       )
-    } catch (error) {
-      console.error('Error al cambiar estado:', error)
+    } catch {
+      setActionError('Error al cambiar estado de la tarifa.')
     }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar esta tarifa? Esta acción es irreversible.')) return
+    setActionError(null)
     try {
       await tariffService.deleteTariff(id)
       setTariffs(prev => prev.filter(t => t.id !== id))
-    } catch (error) {
-      console.error('Error al eliminar tarifa:', error)
-      alert('Error al eliminar la tarifa. Puede tener clientes asociados.')
+    } catch {
+      setActionError('Error al eliminar la tarifa. Puede tener clientes asociados.')
     }
   }
 
   return (
     <div className="rounded-md border bg-card">
+      {actionError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-t-lg border-b">
+          {actionError}
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>

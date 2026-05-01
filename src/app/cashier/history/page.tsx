@@ -75,9 +75,7 @@ export default function CashierHistoryPage() {
         })) || []
         setPayments(formattedPayments)
       })
-      .catch((error) => {
-        console.error('Error cargando pagos:', error)
-      })
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoading(false)
       })

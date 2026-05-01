@@ -15,12 +15,13 @@ import { receiptService } from '@/services/receipt-service'
 
 export function DownloadReports() {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const downloadMorosos = async () => {
     setLoading(true)
+    setError(null)
     try {
-      // Simplificado: En producción filtraríamos por deuda > 0
-      const customers = await customerService.searchCustomers('')
+      const customers = await customerService.getCustomersWithDebt()
       const filtered = customers
         .filter(c => (c.current_debt ?? 0) > 0)
         .map(c => ({
@@ -31,8 +32,8 @@ export function DownloadReports() {
           Deuda: c.current_debt
         }))
       downloadCSV(filtered, `morosos_${new Date().toISOString().split('T')[0]}`)
-    } catch (error) {
-      alert('Error al generar reporte')
+    } catch {
+      setError('Error al generar reporte de morosos')
     } finally {
       setLoading(false)
     }
@@ -40,6 +41,7 @@ export function DownloadReports() {
 
   const downloadRecaudacion = async () => {
     setLoading(true)
+    setError(null)
     try {
       const receipts = await receiptService.getAllReceipts({ status: 'paid' })
       const data = (receipts || []).map((r: any) => ({
@@ -50,15 +52,21 @@ export function DownloadReports() {
         Fecha_Pago: r.updated_at
       }))
       downloadCSV(data, `recaudacion_${new Date().toISOString().split('T')[0]}`)
-    } catch (error) {
-      alert('Error al generar reporte')
+    } catch {
+      setError('Error al generar reporte de recaudación')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <DropdownMenu>
+    <div className="space-y-2">
+      {error && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {error}
+        </div>
+      )}
+      <DropdownMenu>
       <DropdownMenuTrigger render={
         <Button variant="outline" className="gap-2" disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
@@ -73,6 +81,7 @@ export function DownloadReports() {
           Recaudación por Periodo (CSV)
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </div>
   )
 }

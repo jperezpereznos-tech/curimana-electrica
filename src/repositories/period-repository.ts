@@ -34,5 +34,3 @@ export class PeriodRepository extends BaseRepository<'billing_periods'> {
     return data || []
   }
 }
-
-export const periodRepository = new PeriodRepository()
