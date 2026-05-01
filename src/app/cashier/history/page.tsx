@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { CashierLayout } from '@/components/layouts/cashier-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -37,35 +37,34 @@ export default function CashierHistoryPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  const loadPayments = useCallback(async () => {
-    if (!user) return
-
-    setLoading(true)
-    try {
-      const data = await paymentService.getPaymentsByCashier(user.id)
-
-      const formattedPayments = data?.map((p: any) => ({
-        id: p.id,
-        receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
-        customer_name: p.receipts?.customers?.full_name || 'Desconocido',
-        supply_number: p.receipts?.customers?.supply_number || 'N/A',
-        amount: p.amount,
-        payment_date: p.payment_date,
-        status: 'completed',
-        reference: p.reference
-      })) || []
-
-      setPayments(formattedPayments)
-    } catch (error) {
-      console.error('Error cargando pagos:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [user])
-
   useEffect(() => {
-    loadPayments()
-  }, [loadPayments, dateFilter])
+    if (!user) return
+    let cancelled = false
+
+    paymentService.getPaymentsByCashier(user.id)
+      .then((data) => {
+        if (cancelled) return
+        const formattedPayments = data?.map((p: any) => ({
+          id: p.id,
+          receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
+          customer_name: p.receipts?.customers?.full_name || 'Desconocido',
+          supply_number: p.receipts?.customers?.supply_number || 'N/A',
+          amount: p.amount,
+          payment_date: p.payment_date,
+          status: 'completed',
+          reference: p.reference
+        })) || []
+        setPayments(formattedPayments)
+      })
+      .catch((error) => {
+        console.error('Error cargando pagos:', error)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [user, dateFilter])
 
   const filteredPayments = payments.filter(p =>
     p.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

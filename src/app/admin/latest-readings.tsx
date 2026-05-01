@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,33 +25,33 @@ export function LatestReadings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadReadings = useCallback(async () => {
-    try {
-      setError(null)
-      const data = await readingService.getLatestReadings()
-
-      const formattedReadings: LatestReading[] = data?.map((r: any) => ({
-        id: r.id,
-        customer_name: r.customers?.full_name || 'Desconocido',
-        supply_number: r.customers?.supply_number || 'N/A',
-        previous_reading: r.previous_reading,
-        current_reading: r.current_reading,
-        consumption: r.consumption,
-        reading_date: r.reading_date,
-        has_photo: !!(r as any).photo_url,
-      })) || []
-
-      setReadings(formattedReadings)
-    } catch {
-      setError('Error al cargar datos')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
-    loadReadings()
-  }, [loadReadings])
+    let cancelled = false
+
+    readingService.getLatestReadings()
+      .then((data) => {
+        if (cancelled) return
+        const formattedReadings: LatestReading[] = data?.map((r: any) => ({
+          id: r.id,
+          customer_name: (r as any).customers?.full_name || 'Desconocido',
+          supply_number: (r as any).customers?.supply_number || 'N/A',
+          previous_reading: r.previous_reading,
+          current_reading: r.current_reading,
+          consumption: r.consumption,
+          reading_date: r.reading_date,
+          has_photo: !!(r as any).photo_url,
+        })) || []
+        setReadings(formattedReadings)
+      })
+      .catch(() => {
+        if (!cancelled) setError('Error al cargar datos')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [])
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)

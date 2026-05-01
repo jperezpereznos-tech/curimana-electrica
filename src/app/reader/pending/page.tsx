@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,30 +15,31 @@ export default function PendingReadingsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const loadPendingReadings = useCallback(async () => {
-    try {
-      const readings = await db.pending_readings.toArray()
-
-      const formattedReadings = readings.map(r => ({
-        id: r.id?.toString() || '0',
-        supply_number: r.supply_number,
-        full_name: r.full_name,
-        address: r.notes || 'Sin dirección',
-        sector: r.supply_number || 'Sin sector',
-        has_photo: !!r.photo_base64
-      }))
-
-      setPendingReadings(formattedReadings)
-    } catch (error) {
-      console.error('Error cargando lecturas pendientes:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
-    loadPendingReadings()
-  }, [loadPendingReadings])
+    let cancelled = false
+
+    db.pending_readings.toArray()
+      .then((readings) => {
+        if (cancelled) return
+        const formattedReadings = readings.map(r => ({
+          id: r.id?.toString() || '0',
+          supply_number: r.supply_number,
+          full_name: r.full_name,
+          address: r.notes || 'Sin dirección',
+          sector: r.supply_number || 'Sin sector',
+          has_photo: !!r.photo_base64
+        }))
+        setPendingReadings(formattedReadings)
+      })
+      .catch((error) => {
+        console.error('Error cargando lecturas pendientes:', error)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [])
 
   const filteredReadings = pendingReadings.filter(r =>
     r.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

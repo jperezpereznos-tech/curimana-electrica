@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -16,35 +16,37 @@ export default function ReadingRoutePage() {
   const [loading, setLoading] = useState(true)
   const [sectors, setSectors] = useState<string[]>([])
 
-  const loadCustomers = useCallback(async () => {
-    try {
-      const data = await customerService.getActiveCustomersWithReadings()
-
-      const formattedCustomers = data?.map((c: any) => ({
-        id: c.id,
-        supply_number: c.supply_number,
-        full_name: c.full_name,
-        address: c.address,
-        sector: c.sector || 'Sin Sector',
-        is_active: c.is_active,
-        last_reading: c.readings && c.readings.length > 0
-          ? c.readings[c.readings.length - 1].reading_date
-          : null
-      })) || []
-
-      setCustomers(formattedCustomers)
-      const uniqueSectors = [...new Set(formattedCustomers.map((c: any) => c.sector).filter(Boolean))]
-      setSectors(uniqueSectors)
-    } catch (error) {
-      console.error('Error cargando clientes:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
-    loadCustomers()
-  }, [loadCustomers])
+    let cancelled = false
+
+    customerService.getActiveCustomersWithReadings()
+      .then((data) => {
+        if (cancelled) return
+        const formattedCustomers = data?.map((c: any) => ({
+          id: c.id,
+          supply_number: c.supply_number,
+          full_name: c.full_name,
+          address: c.address,
+          sector: c.sector || 'Sin Sector',
+          is_active: c.is_active,
+          last_reading: c.readings && c.readings.length > 0
+            ? c.readings[c.readings.length - 1].reading_date
+            : null
+        })) || []
+
+        setCustomers(formattedCustomers)
+        const uniqueSectors = [...new Set(formattedCustomers.map((c: any) => c.sector).filter(Boolean))]
+        setSectors(uniqueSectors)
+      })
+      .catch((error) => {
+        console.error('Error cargando clientes:', error)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [])
 
   const filteredCustomers = selectedSector === 'all'
     ? customers

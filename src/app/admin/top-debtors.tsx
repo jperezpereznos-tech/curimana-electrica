@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,21 +22,22 @@ export function TopDebtors() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadDebtors = useCallback(async () => {
-    try {
-      setError(null)
-      const data = await customerService.getTopDebtors(5)
-      setDebtors(data || [])
-    } catch {
-      setError('Error al cargar datos')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
-    loadDebtors()
-  }, [loadDebtors])
+    let cancelled = false
+
+    customerService.getTopDebtors(5)
+      .then((data) => {
+        if (!cancelled) setDebtors(data || [])
+      })
+      .catch(() => {
+        if (!cancelled) setError('Error al cargar datos')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [])
 
   if (loading) {
     return (

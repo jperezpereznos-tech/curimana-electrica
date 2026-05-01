@@ -1,5 +1,5 @@
 import { CashierLayout } from '@/components/layouts/cashier-layout'
-import { cashClosureService, getCashClosureService } from '@/services/cash-closure-service'
+import { getCashClosureService } from '@/services/cash-closure-service'
 import { createClient } from '@/lib/supabase/server'
 import { CashierSearch } from './cashier-search'
 import Link from 'next/link'
