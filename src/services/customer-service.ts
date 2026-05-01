@@ -34,6 +34,14 @@ export class CustomerService {
   async updateCustomer(id: string, customerData: Partial<CustomerInsert>) {
     return await this.customerRepo.update(id, customerData)
   }
+
+  async getTopDebtors(limit: number = 5) {
+    return await this.customerRepo.getTopDebtors(limit)
+  }
+
+  async getActiveCustomersWithReadings() {
+    return await this.customerRepo.getActiveCustomersWithReadings()
+  }
 }
 
 export const customerService = new CustomerService()

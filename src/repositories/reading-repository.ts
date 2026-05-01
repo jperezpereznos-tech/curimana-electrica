@@ -42,6 +42,17 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     if (error) throw error
     return count || 0
   }
+
+  async getLatestReadings() {
+    const { data, error } = await this.supabase
+      .from('readings')
+      .select('id, previous_reading, current_reading, consumption, reading_date, photo_url, customers(full_name, supply_number)')
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    if (error) throw error
+    return data
+  }
 }
 
 export const readingRepository = new ReadingRepository()

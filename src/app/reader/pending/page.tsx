@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,15 +15,10 @@ export default function PendingReadingsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadPendingReadings()
-  }, [])
-
-  const loadPendingReadings = async () => {
+  const loadPendingReadings = useCallback(async () => {
     try {
-      // Leer de IndexedDB (lecturas guardadas offline)
       const readings = await db.pending_readings.toArray()
-      
+
       const formattedReadings = readings.map(r => ({
         id: r.id?.toString() || '0',
         supply_number: r.supply_number,
@@ -32,14 +27,18 @@ export default function PendingReadingsPage() {
         sector: r.supply_number || 'Sin sector',
         has_photo: !!r.photo_base64
       }))
-      
+
       setPendingReadings(formattedReadings)
     } catch (error) {
       console.error('Error cargando lecturas pendientes:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadPendingReadings()
+  }, [loadPendingReadings])
 
   const filteredReadings = pendingReadings.filter(r =>
     r.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

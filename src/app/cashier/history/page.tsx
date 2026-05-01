@@ -1,30 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CashierLayout } from '@/components/layouts/cashier-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
-import { 
-  Search, 
-  Calendar, 
-  Download, 
-  Receipt, 
-  User, 
-  Clock, 
-  ChevronLeft, 
+import {
+  Search,
+  Calendar,
+  Download,
+  Receipt,
+  User,
+  Clock,
+  ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { paymentService } from '@/services/payment-service'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -37,43 +37,12 @@ export default function CashierHistoryPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    loadPayments()
-  }, [dateFilter])
-
-const loadPayments = async () => {
+  const loadPayments = useCallback(async () => {
     if (!user) return
 
     setLoading(true)
     try {
-      const supabase = createClient()
-      
-      // Calcular fecha según filtro
-      const now = new Date()
-      let startDate = new Date()
-      
-      switch (dateFilter) {
-        case 'today':
-          startDate.setHours(0, 0, 0, 0)
-          break
-        case 'week':
-          startDate.setDate(now.getDate() - 7)
-          break
-        case 'month':
-          startDate.setMonth(now.getMonth() - 1)
-          break
-      }
-
-      const { data, error } = await supabase
-        .from('payments')
-        .select('id, amount, payment_date, reference, receipts(receipt_number, customers(full_name, supply_number))')
-        .eq('cashier_id', user.id)
-        .gte('payment_date', startDate.toISOString())
-        .order('payment_date', { ascending: false })
-
-      if (error) {
-        throw error
-      }
+      const data = await paymentService.getPaymentsByCashier(user.id)
 
       const formattedPayments = data?.map((p: any) => ({
         id: p.id,
@@ -92,7 +61,11 @@ const loadPayments = async () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    loadPayments()
+  }, [loadPayments, dateFilter])
 
   const filteredPayments = payments.filter(p =>
     p.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

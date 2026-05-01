@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, ChevronRight, User, Calendar } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { readingService } from '@/services/reading-service'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -25,24 +25,10 @@ export function LatestReadings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadReadings()
-  }, [])
-
-  const loadReadings = async () => {
+  const loadReadings = useCallback(async () => {
     try {
       setError(null)
-      const supabase = createClient()
-
-      const { data, error: supabaseError } = await supabase
-        .from('readings')
-        .select('id, previous_reading, current_reading, consumption, reading_date, photo_url, customers(full_name, supply_number)')
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      if (supabaseError) {
-        throw supabaseError
-      }
+      const data = await readingService.getLatestReadings()
 
       const formattedReadings: LatestReading[] = data?.map((r: any) => ({
         id: r.id,
@@ -52,17 +38,20 @@ export function LatestReadings() {
         current_reading: r.current_reading,
         consumption: r.consumption,
         reading_date: r.reading_date,
-        has_photo: !!r.photo_url,
+        has_photo: !!(r as any).photo_url,
       })) || []
 
       setReadings(formattedReadings)
-    } catch (error) {
-      console.error('Error cargando lecturas:', error)
+    } catch {
       setError('Error al cargar datos')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadReadings()
+  }, [loadReadings])
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)

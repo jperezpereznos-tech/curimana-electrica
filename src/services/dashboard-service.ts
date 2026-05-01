@@ -65,17 +65,27 @@ export class DashboardService {
     })) || []
   }
 
-  async getConsumptionBySector() {
-    const { data } = await this.supabase
-      .from('customers')
-      .select('sector, readings(consumption)')
-      .eq('is_active', true)
+  async getConsumptionBySector(periodId?: string) {
+    let query = this.supabase
+      .from('readings')
+      .select('consumption, customers(sector)')
+      .order('created_at', { ascending: false })
+
+    if (periodId) {
+      query = query.eq('billing_period_id', periodId)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching consumption by sector:', error)
+      return []
+    }
 
     const sectors: Record<string, number> = {}
-    data?.forEach(c => {
-      const consumption = (c.readings as any)?.reduce((sum: number, r: any) => sum + (r.consumption || 0), 0) || 0
-      const sectorKey = c.sector || 'Sin Sector'
-      sectors[sectorKey] = (sectors[sectorKey] || 0) + consumption
+    data?.forEach(r => {
+      const sectorKey = (r.customers as any)?.sector || 'Sin Sector'
+      sectors[sectorKey] = (sectors[sectorKey] || 0) + (r.consumption || 0)
     })
 
     return Object.entries(sectors).map(([name, value]) => ({ name, value }))

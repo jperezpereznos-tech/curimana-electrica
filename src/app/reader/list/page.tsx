@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MapPin, Users, ChevronRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { customerService } from '@/services/customer-service'
 import Link from 'next/link'
 
 export default function ReadingRoutePage() {
@@ -16,25 +16,9 @@ export default function ReadingRoutePage() {
   const [loading, setLoading] = useState(true)
   const [sectors, setSectors] = useState<string[]>([])
 
-  useEffect(() => {
-    loadCustomers()
-  }, [])
-
-  const loadCustomers = async () => {
+  const loadCustomers = useCallback(async () => {
     try {
-      const supabase = createClient()
-      
-      // Obtener clientes activos con su última lectura del periodo actual
-      const { data, error } = await supabase
-        .from('customers')
-        .select('id, supply_number, full_name, address, sector, is_active, readings(id, reading_date)')
-        .eq('is_active', true)
-        .order('sector', { ascending: true })
-        .order('full_name', { ascending: true })
-
-      if (error) {
-        throw error
-      }
+      const data = await customerService.getActiveCustomersWithReadings()
 
       const formattedCustomers = data?.map((c: any) => ({
         id: c.id,
@@ -43,8 +27,8 @@ export default function ReadingRoutePage() {
         address: c.address,
         sector: c.sector || 'Sin Sector',
         is_active: c.is_active,
-        last_reading: c.readings && c.readings.length > 0 
-          ? c.readings[c.readings.length - 1].reading_date 
+        last_reading: c.readings && c.readings.length > 0
+          ? c.readings[c.readings.length - 1].reading_date
           : null
       })) || []
 
@@ -56,7 +40,11 @@ export default function ReadingRoutePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
 
   const filteredCustomers = selectedSector === 'all'
     ? customers

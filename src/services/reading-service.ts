@@ -38,6 +38,10 @@ export class ReadingService {
     return await this.readingRepo.getReadingsByPeriod(periodId)
   }
 
+  async getLatestReadings() {
+    return await this.readingRepo.getLatestReadings()
+  }
+
   async uploadReadingPhoto(file: File, supplyNumber: string): Promise<string> {
     const base64Image = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()

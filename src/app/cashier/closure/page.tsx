@@ -1,6 +1,6 @@
 import { CashierLayout } from '@/components/layouts/cashier-layout'
-import { cashClosureService } from '@/services/cash-closure-service'
-import { paymentService } from '@/services/payment-service'
+import { getCashClosureService } from '@/services/cash-closure-service'
+import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,11 +32,13 @@ export default async function CashClosurePage() {
   if (!user) redirect('/login')
 
   const userId = user.id
-  const activeClosure = await cashClosureService.getActiveClosure(userId)
+  const cashClosureSvc = getCashClosureService(supabase)
+  const paymentSvc = getPaymentService(supabase)
+  const activeClosure = await cashClosureSvc.getActiveClosure(userId)
 
   let payments: SessionPayment[] = []
   if (activeClosure) {
-    payments = await paymentService.getPaymentsByCashier(userId)
+    payments = await paymentSvc.getPaymentsByCashier(userId)
   }
 
   const totalCollected = payments.reduce((sum: number, p) => sum + p.amount, 0)

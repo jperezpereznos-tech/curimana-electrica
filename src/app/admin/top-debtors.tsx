@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, ChevronRight, Eye } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { customerService } from '@/services/customer-service'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -22,35 +22,21 @@ export function TopDebtors() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadDebtors()
-  }, [])
-
-  const loadDebtors = async () => {
+  const loadDebtors = useCallback(async () => {
     try {
       setError(null)
-      const supabase = createClient()
-      
-      const { data, error: supabaseError } = await supabase
-        .from('customers')
-        .select('id, full_name, supply_number, current_debt, sector')
-        .eq('is_active', true)
-        .gt('current_debt', 0)
-        .order('current_debt', { ascending: false })
-        .limit(5)
-
-      if (supabaseError) {
-        throw supabaseError
-      }
-
+      const data = await customerService.getTopDebtors(5)
       setDebtors(data || [])
-    } catch (error) {
-      console.error('Error cargando deudores:', error)
+    } catch {
       setError('Error al cargar datos')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadDebtors()
+  }, [loadDebtors])
 
   if (loading) {
     return (

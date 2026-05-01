@@ -1,5 +1,5 @@
 import { CashierLayout } from '@/components/layouts/cashier-layout'
-import { cashClosureService } from '@/services/cash-closure-service'
+import { cashClosureService, getCashClosureService } from '@/services/cash-closure-service'
 import { createClient } from '@/lib/supabase/server'
 import { CashierSearch } from './cashier-search'
 import Link from 'next/link'
@@ -12,7 +12,8 @@ export default async function CashierDashboard() {
   if (!user) redirect('/login')
 
   const userId = user.id
-  const activeClosure = await cashClosureService.getActiveClosure(userId)
+  const svc = getCashClosureService(supabase)
+  const activeClosure = await svc.getActiveClosure(userId)
 
   return (
     <CashierLayout>

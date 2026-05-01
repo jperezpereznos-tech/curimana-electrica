@@ -2,14 +2,14 @@
 
 import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 export default function Home() {
   const { user, role, isLoading, profileError, signOut } = useAuth()
   const router = useRouter()
-  const [showError, setShowError] = useState(false)
+  const showError = !isLoading && !!user && !role
 
   useEffect(() => {
     if (!isLoading) {
@@ -21,10 +21,6 @@ export default function Home() {
         router.push('/cashier')
       } else if (role === 'meter_reader') {
         router.push('/reader')
-      } else {
-        // Si hay usuario pero no hay rol válido
-        console.error('Usuario sin rol válido detectado')
-        setShowError(true)
       }
     }
   }, [user, role, isLoading, router])

@@ -14,13 +14,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  Search, 
-  FileText, 
-  Filter, 
-  Download, 
-  Eye, 
-  XCircle 
+import {
+  Search,
+  Download,
+  Eye
 } from 'lucide-react'
 import {
   Select,
@@ -29,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { pdfService } from '@/services/pdf-service'
 
 export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) {

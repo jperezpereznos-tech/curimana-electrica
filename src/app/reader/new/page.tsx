@@ -72,11 +72,8 @@ export default function NewReadingPage() {
       }
     }
 
-    try {
-      // Calculate consumption properly (0 for decreasing readings)
-      const consumption = reading < previous ? 0 : reading - previous
-
-await db.pending_readings.add({
+  try {
+    await db.pending_readings.add({
         customer_id: customer.id,
         supply_number: supplyNumber,
         full_name: customer.full_name,
@@ -171,11 +168,12 @@ await db.pending_readings.add({
       ) : (
         <div className="relative">
           <div className="w-full h-32 rounded-lg overflow-hidden border-2 border-dashed border-green-500">
-            <img 
-              src={capturedPhoto} 
-              alt="Medidor capturado" 
-              className="w-full h-full object-cover"
-            />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={capturedPhoto}
+                  alt="Medidor capturado"
+                  className="w-full h-full object-cover"
+                />
           </div>
           <div className="absolute top-2 right-2 flex gap-2">
             <Button 
