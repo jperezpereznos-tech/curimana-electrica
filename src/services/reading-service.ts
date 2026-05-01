@@ -42,6 +42,14 @@ export class ReadingService {
     return await this.readingRepo.getLatestReadings()
   }
 
+  async getTodayReadingsCount() {
+    return await this.readingRepo.getTodayReadingsCount()
+  }
+
+  async getActiveCustomersCount() {
+    return await this.readingRepo.getActiveCustomersCount()
+  }
+
   async uploadReadingPhoto(file: File, supplyNumber: string): Promise<string> {
     const base64Image = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()

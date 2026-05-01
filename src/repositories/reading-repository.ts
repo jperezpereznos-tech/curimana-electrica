@@ -53,6 +53,28 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     if (error) throw error
     return data
   }
+
+  async getTodayReadingsCount(): Promise<number> {
+    const today = new Date().toISOString().split('T')[0]
+    const { count, error } = await this.supabase
+      .from('readings')
+      .select('id', { count: 'exact', head: true })
+      .gte('reading_date', today)
+      .lt('reading_date', today + 'T23:59:59')
+
+    if (error) throw error
+    return count || 0
+  }
+
+  async getActiveCustomersCount(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true)
+
+    if (error) throw error
+    return count || 0
+  }
 }
 
 export const readingRepository = new ReadingRepository()

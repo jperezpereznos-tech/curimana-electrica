@@ -92,11 +92,12 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pending">Pendiente</SelectItem>
-              <SelectItem value="paid">Pagado</SelectItem>
-              <SelectItem value="expired">Vencido</SelectItem>
-              <SelectItem value="cancelled">Anulado</SelectItem>
+          <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="pending">Pendiente</SelectItem>
+            <SelectItem value="paid">Pagado</SelectItem>
+            <SelectItem value="partial">Parcial</SelectItem>
+            <SelectItem value="overdue">Vencido</SelectItem>
+            <SelectItem value="cancelled">Anulado</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -134,12 +135,18 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
                   <TableCell>{receipt.billing_periods?.name}</TableCell>
                   <TableCell className="font-bold">{formatCurrency(receipt.total_amount)}</TableCell>
                   <TableCell>
-                    <Badge variant={
-                      receipt.status === 'paid' ? 'default' : 
-                      receipt.status === 'pending' ? 'outline' : 
-                      'destructive'
-                    }>
-                      {receipt.status}
+                <Badge variant={
+                  receipt.status === 'paid' ? 'default' :
+                  receipt.status === 'pending' ? 'outline' :
+                  receipt.status === 'partial' ? 'secondary' :
+                  'destructive'
+                }>
+                  {receipt.status === 'paid' ? 'Pagado' :
+                   receipt.status === 'pending' ? 'Pendiente' :
+                   receipt.status === 'partial' ? 'Parcial' :
+                   receipt.status === 'overdue' ? 'Vencido' :
+                   receipt.status === 'cancelled' ? 'Anulado' :
+                   receipt.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right flex justify-end gap-2">

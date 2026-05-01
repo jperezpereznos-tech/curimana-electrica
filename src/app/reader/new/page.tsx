@@ -1,38 +1,52 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check } from 'lucide-react'
+import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check, Loader2 } from 'lucide-react'
 import { CameraCapture } from '@/components/camera-capture'
 import { db } from '@/lib/db/dexie'
+import { customerService } from '@/services/customer-service'
 import Link from 'next/link'
 
 export default function NewReadingPage() {
+  return (
+    <Suspense fallback={<ReaderLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></ReaderLayout>}>
+      <NewReadingContent />
+    </Suspense>
+  )
+}
+
+function NewReadingContent() {
   const router = useRouter()
-  const [supplyNumber, setSupplyNumber] = useState('')
+  const searchParams = useSearchParams()
+  const initialSupply = searchParams.get('supply') || ''
+  const [supplyNumber, setSupplyNumber] = useState(initialSupply)
   const [customer, setCustomer] = useState<any>(null)
   const [currentReading, setCurrentReading] = useState('')
   const [notes, setNotes] = useState('')
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
+  const [notFound, setNotFound] = useState(false)
 
-  const handleSearch = async () => {
-    if (!supplyNumber) return
+  const handleSearch = useCallback(async (supply: string) => {
+    if (!supply) return
+
     setIsSearching(true)
-    
+    setNotFound(false)
+    setCustomer(null)
+
     try {
-      // Primero buscamos en la cache local
       const cachedCustomer = await db.customers_cache
         .where('supply_number')
-        .equals(supplyNumber)
+        .equals(supply)
         .first()
-      
+
       if (cachedCustomer) {
         setCustomer({
           id: cachedCustomer.id,
@@ -40,24 +54,47 @@ export default function NewReadingPage() {
           address: cachedCustomer.address,
           previous_reading: cachedCustomer.previous_reading,
         })
-      } else {
-        // Simulación: En la vida real buscaría en IndexedDB o API
-        // Por ahora, simulamos un cliente encontrado
-        setTimeout(() => {
-          setCustomer({
-            id: 'cust-1',
-            full_name: 'Juan Perez Garcia',
-            address: 'Jr. Lima 123',
-            previous_reading: 1250,
+      } else if (navigator.onLine) {
+        const results = await customerService.searchCustomers(supply)
+        const found = results?.find((c: any) => c.supply_number === supply)
+        if (found) {
+          await db.customers_cache.put({
+            id: found.id,
+            supply_number: found.supply_number,
+            full_name: found.full_name,
+            address: found.address || '',
+            sector: found.sector || '',
+            tariff_id: found.tariff_id || '',
+            previous_reading: 0,
           })
-          setIsSearching(false)
-        }, 500)
+          setCustomer({
+            id: found.id,
+            full_name: found.full_name,
+            address: found.address,
+            previous_reading: 0,
+          })
+        } else {
+          setNotFound(true)
+        }
+      } else {
+        setNotFound(true)
       }
     } catch (error) {
       console.error('Error searching customer:', error)
+      setNotFound(true)
+    } finally {
       setIsSearching(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (supplyNumber.length >= 2) {
+      const timer = setTimeout(() => {
+        handleSearch(supplyNumber)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [supplyNumber, handleSearch])
 
   const handleSave = async () => {
     if (!customer || !currentReading) return
@@ -117,15 +154,21 @@ export default function NewReadingPage() {
                 type="number"
               />
             </div>
-            <Button onClick={handleSearch} disabled={isSearching} size="icon" className="h-12 w-12">
+                <Button onClick={() => handleSearch(supplyNumber)} disabled={isSearching} size="icon" className="h-12 w-12">
               <Search className="h-5 w-5" />
             </Button>
           </CardContent>
         </Card>
 
-        {customer && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-            {/* Datos del Cliente */}
+    {notFound && !customer && (
+      <div className="bg-destructive/10 text-destructive p-4 rounded-lg text-sm text-center">
+        No se encontró el suministro <strong className="font-mono">{supplyNumber}</strong>.
+        {!navigator.onLine && ' Verifica tu conexión e intenta de nuevo.'}
+      </div>
+    )}
+
+    {customer && (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-sm font-semibold text-primary">{customer.full_name}</p>
               <p className="text-xs text-muted-foreground">{customer.address}</p>

@@ -2,14 +2,17 @@
 
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { 
-  LayoutDashboard, 
-  Users, 
-  Zap, 
-  Receipt, 
-  Wallet, 
+import {
+  LayoutDashboard,
+  Users,
+  Zap,
+  Receipt,
+  Wallet,
   LogOut,
-  Menu
+  Menu,
+  Calendar,
+  Tag,
+  ClipboardList
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -27,6 +30,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
     { name: 'Recibos', href: '/admin/receipts', icon: Receipt },
     { name: 'Pagos', href: '/admin/payments', icon: Wallet },
+    { name: 'Periodos', href: '/admin/periods', icon: Calendar },
+    { name: 'Conceptos', href: '/admin/concepts', icon: Tag },
+    { name: 'Auditoria', href: '/admin/audit', icon: ClipboardList },
   ]
 
   return (

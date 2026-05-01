@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   Table,
   TableBody,
@@ -14,7 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MoreHorizontal, User, MapPin, CreditCard } from 'lucide-react'
+import { Search, MoreHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +23,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
+import { customerService } from '@/services/customer-service'
 
 export function CustomersList({ initialCustomers, query }: { initialCustomers: any[], query: string }) {
   const [searchTerm, setSearchTerm] = useState(query)
+  const [customers, setCustomers] = useState(initialCustomers)
   const router = useRouter()
+
+  const handleDeactivate = async (id: string) => {
+    if (!confirm('¿Estás seguro de dar de baja este cliente?')) return
+    try {
+      await customerService.updateCustomer(id, { is_active: false } as any)
+      setCustomers(prev => prev.map(c => c.id === id ? { ...c, is_active: false } : c))
+    } catch (error) {
+      console.error('Error al dar de baja:', error)
+      alert('Error al dar de baja el cliente.')
+    }
+  }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,7 +86,7 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
                 </TableCell>
               </TableRow>
             ) : (
-              initialCustomers.map((customer) => (
+              customers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-mono font-bold text-primary">
                     {customer.supply_number}
@@ -108,12 +120,16 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
               } />
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Opciones</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${customer.id}`}>
-                Ver Detalle
-              </DropdownMenuItem>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Dar de Baja</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${customer.id}`}>
+              Ver Detalle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push(`/admin/customers/${customer.id}?edit=true`)}>
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive" onClick={() => handleDeactivate(customer.id)}>
+              Dar de Baja
+            </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

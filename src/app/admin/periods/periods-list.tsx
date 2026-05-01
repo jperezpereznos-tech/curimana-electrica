@@ -26,10 +26,12 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
 
     setLoading(id)
     try {
-      await periodService.closePeriod(id)
-      setPeriods(prev => 
+      const result = await periodService.closePeriod(id) as any
+      const generated = result?.receiptsGenerated ?? 0
+      setPeriods(prev =>
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
       )
+      alert(`Periodo cerrado exitosamente. Se generaron ${generated} recibos.`)
     } catch (error) {
       console.error('Error al cerrar periodo:', error)
       alert('Error al cerrar el periodo.')

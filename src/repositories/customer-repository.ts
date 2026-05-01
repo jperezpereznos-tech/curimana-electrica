@@ -10,14 +10,15 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   }
 
   async searchCustomers(query: string): Promise<Customer[]> {
-    if (!query || query.length < 2) {
-      return []
+    let queryBuilder = this.supabase
+      .from('customers')
+      .select('*, tariffs(name, tariff_tiers(*))')
+
+    if (query && query.length >= 2) {
+      queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,supply_number.ilike.%${query}%,document_number.ilike.%${query}%`)
     }
 
-    const { data, error } = await this.supabase
-      .from('customers')
-      .select('*, tariffs(name)')
-      .or(`full_name.ilike.%${query}%,supply_number.ilike.%${query}%,document_number.ilike.%${query}%`)
+    const { data, error } = await queryBuilder
       .order('full_name', { ascending: true })
       .limit(50)
 

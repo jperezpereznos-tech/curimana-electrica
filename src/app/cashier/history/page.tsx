@@ -37,11 +37,30 @@ export default function CashierHistoryPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  function getDateFilterParams(filter: string): { from?: string; to?: string } {
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    if (filter === 'today') return { from: today, to: today + 'T23:59:59' }
+    if (filter === 'week') {
+      const weekAgo = new Date(now)
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      return { from: weekAgo.toISOString().split('T')[0], to: today + 'T23:59:59' }
+    }
+    if (filter === 'month') {
+      const monthAgo = new Date(now)
+      monthAgo.setMonth(monthAgo.getMonth() - 1)
+      return { from: monthAgo.toISOString().split('T')[0], to: today + 'T23:59:59' }
+    }
+    return {}
+  }
+
   useEffect(() => {
     if (!user) return
     let cancelled = false
 
-    paymentService.getPaymentsByCashier(user.id)
+    const dateFilterParams = getDateFilterParams(dateFilter)
+
+    paymentService.getPaymentsByCashier(user.id, dateFilterParams)
       .then((data) => {
         if (cancelled) return
         const formattedPayments = data?.map((p: any) => ({
@@ -80,6 +99,26 @@ export default function CashierHistoryPage() {
 
   const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0)
 
+  const handleExport = () => {
+    const headers = ['Recibo', 'Cliente', 'Suministro', 'Monto', 'Fecha', 'Referencia']
+    const rows = filteredPayments.map(p => [
+      p.receipt_number,
+      p.customer_name,
+      p.supply_number,
+      p.amount.toString(),
+      formatDate(p.payment_date),
+      p.reference || '',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cobros_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <CashierLayout>
       <div className="flex flex-col gap-6">
@@ -91,10 +130,10 @@ export default function CashierHistoryPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Exportar
-            </Button>
+        <Button variant="outline" className="gap-2" onClick={handleExport}>
+          <Download className="h-4 w-4" />
+          Exportar
+        </Button>
           </div>
         </div>
 

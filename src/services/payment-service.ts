@@ -80,8 +80,12 @@ export class PaymentService {
     return payment
   }
 
-  async getPaymentsByCashier(cashierId: string) {
-    return await this.paymentRepo.getPaymentsByCashier(cashierId)
+  async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {
+    return await this.paymentRepo.getPaymentsByCashier(cashierId, dateFilter)
+  }
+
+  async getAllPayments(filters?: { cashierId?: string; from?: string; to?: string }) {
+    return await this.paymentRepo.getAllPayments(filters)
   }
 }
 

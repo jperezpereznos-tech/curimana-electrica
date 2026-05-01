@@ -29,11 +29,22 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       await conceptService.toggleConceptStatus(id, !currentStatus)
-      setConcepts(prev => 
+      setConcepts(prev =>
         prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c)
       )
     } catch (error) {
       console.error('Error al cambiar estado:', error)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este concepto?')) return
+    try {
+      await conceptService.deleteConcept(id)
+      setConcepts(prev => prev.filter(c => c.id !== id))
+    } catch (error) {
+      console.error('Error al eliminar concepto:', error)
+      alert('Error al eliminar el concepto.')
     }
   }
 
@@ -84,7 +95,7 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
                         {concept.is_active ? 'Desactivar' : 'Activar'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(concept.id)}>Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +34,22 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       await tariffService.toggleTariffStatus(id, !currentStatus)
-      setTariffs(prev => 
+      setTariffs(prev =>
         prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t)
       )
     } catch (error) {
       console.error('Error al cambiar estado:', error)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta tarifa? Esta acción es irreversible.')) return
+    try {
+      await tariffService.deleteTariff(id)
+      setTariffs(prev => prev.filter(t => t.id !== id))
+    } catch (error) {
+      console.error('Error al eliminar tarifa:', error)
+      alert('Error al eliminar la tarifa. Puede tener clientes asociados.')
     }
   }
 
@@ -95,7 +106,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
               {tariff.is_active ? 'Desactivar' : 'Activar'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tariff.id)}>Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

@@ -3,6 +3,7 @@ import { db } from '@/lib/db/dexie'
 import { readingService } from '@/services/reading-service'
 import { periodRepository } from '@/repositories/period-repository'
 import { storageService } from '@/services/storage-service'
+import { customerService } from '@/services/customer-service'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
@@ -17,20 +18,55 @@ export function useOfflineSync() {
     setPendingCount(count)
   }, [])
 
-const syncNow = useCallback(async () => {
+  const syncCustomerCache = useCallback(async () => {
+    if (!navigator.onLine) return
+    try {
+      const customers = await customerService.searchCustomers('')
+      if (customers && customers.length > 0) {
+        await db.customers_cache.clear()
+        await db.customers_cache.bulkPut(
+          customers.map((c: any) => ({
+            id: c.id,
+            supply_number: c.supply_number,
+            full_name: c.full_name,
+            address: c.address || '',
+            sector: c.sector || '',
+            tariff_id: c.tariff_id || '',
+            previous_reading: 0,
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Error syncing customer cache:', error)
+    }
+  }, [])
+
+  const syncNow = useCallback(async () => {
     if (!isOnline) return
 
     setSyncStatus('syncing')
+
+    await syncCustomerCache()
+
     const pending = await db.pending_readings.where('status').equals('pending').toArray()
 
     // Get current period ID
-    let periodId: string;
+    let periodId: string | null = null
     try {
       const currentPeriod = await periodRepository.getCurrentPeriod();
-      periodId = currentPeriod?.id || 'CURRENT_PERIOD_ID';
+      if (currentPeriod) {
+        periodId = currentPeriod.id
+      }
     } catch (error) {
       console.error('Error getting current period:', error)
-      periodId = 'CURRENT_PERIOD_ID';
+    }
+
+    if (!periodId) {
+      setSyncStatus('error')
+      setLastSyncTime(new Date().toISOString())
+      await updateCounter()
+      setTimeout(() => setSyncStatus('idle'), 3000)
+      return
     }
 
     let hasError = false
@@ -108,7 +144,7 @@ const syncNow = useCallback(async () => {
 
     // Reset status after 3 seconds
     setTimeout(() => setSyncStatus('idle'), 3000)
-  }, [isOnline, updateCounter])
+  }, [isOnline, updateCounter, syncCustomerCache])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)

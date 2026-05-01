@@ -59,6 +59,10 @@ export class TariffService {
   async toggleTariffStatus(id: string, isActive: boolean) {
     return await this.tariffRepo.update(id, { is_active: isActive })
   }
+
+  async deleteTariff(id: string) {
+    return await this.tariffRepo.delete(id)
+  }
 }
 
 export const tariffService = new TariffService()
