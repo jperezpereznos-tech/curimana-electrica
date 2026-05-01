@@ -1,11 +1,12 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 
 export class PaymentRepository extends BaseRepository<'payments'> {
-  constructor() {
-    super('payments')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('payments', supabaseClient)
   }
 
   async createWithAudit(data: PaymentInsert) {

@@ -1,9 +1,12 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { tariffService } from '@/services/tariff-service'
+import { getTariffService } from '@/services/tariff-service'
+import { createClient } from '@/lib/supabase/server'
 import { TariffsList } from './tariffs-list'
 import { CreateTariffDialog } from './create-tariff-dialog'
 
 export default async function TariffsPage() {
+  const supabase = await createClient()
+  const tariffService = getTariffService(supabase)
   const tariffs = await tariffService.getAllTariffs()
 
   return (

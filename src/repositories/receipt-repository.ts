@@ -1,11 +1,10 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
-type Receipt = Database['public']['Tables']['receipts']['Row']
-
 export class ReceiptRepository extends BaseRepository<'receipts'> {
-  constructor() {
-    super('receipts')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('receipts', supabaseClient)
   }
 
   async getAllWithDetails(filters?: {
@@ -21,9 +20,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
     if (filters?.periodId) query = query.eq('billing_period_id', filters.periodId)
     if (filters?.status) query = query.eq('status', filters.status)
     if (filters?.supplyNumber) {
-        // Para filtrar por supply_number (que está en la tabla customers), 
-        // necesitamos un join o un filtro referenciado.
-        query = query.filter('customers.supply_number', 'ilike', `%${filters.supplyNumber}%`)
+      query = query.filter('customers.supply_number', 'ilike', `%${filters.supplyNumber}%`)
     }
 
     const { data, error } = await query

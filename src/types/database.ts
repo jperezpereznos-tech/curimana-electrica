@@ -309,55 +309,58 @@ export type Database = {
           },
         ]
       }
-      readings: {
-        Row: {
-          billing_period_id: string | null
-          consumption: number | null
-          created_at: string | null
-          current_reading: number
-          customer_id: string | null
-          id: string
-          is_estimated: boolean | null
-          is_synced: boolean | null
-          meter_reader_id: string | null
-          notes: string | null
-          photo_url: string | null
-          previous_reading: number
-          reading_date: string | null
-          sync_id: string | null
-        }
-        Insert: {
-          billing_period_id?: string | null
-          consumption?: number | null
-          created_at?: string | null
-          current_reading: number
-          customer_id?: string | null
-          id?: string
-          is_estimated?: boolean | null
-          is_synced?: boolean | null
-          meter_reader_id?: string | null
-          notes?: string | null
-          photo_url?: string | null
-          previous_reading: number
-          reading_date?: string | null
-          sync_id?: string | null
-        }
-        Update: {
-          billing_period_id?: string | null
-          consumption?: number | null
-          created_at?: string | null
-          current_reading?: number
-          customer_id?: string | null
-          id?: string
-          is_estimated?: boolean | null
-          is_synced?: boolean | null
-          meter_reader_id?: string | null
-          notes?: string | null
-          photo_url?: string | null
-          previous_reading?: number
-          reading_date?: string | null
-          sync_id?: string | null
-        }
+   readings: {
+    Row: {
+      billing_period_id: string | null
+      consumption: number
+      created_at: string | null
+      current_reading: number
+      customer_id: string | null
+      id: string
+      is_estimated: boolean | null
+      is_synced: boolean | null
+      meter_reader_id: string | null
+      needs_review: boolean | null
+      notes: string | null
+      photo_url: string | null
+      previous_reading: number
+      reading_date: string | null
+      sync_id: string | null
+    }
+    Insert: {
+      billing_period_id?: string | null
+      consumption?: number
+      created_at?: string | null
+      current_reading: number
+      customer_id?: string | null
+      id?: string
+      is_estimated?: boolean | null
+      is_synced?: boolean | null
+      meter_reader_id?: string | null
+      needs_review?: boolean | null
+      notes?: string | null
+      photo_url?: string | null
+      previous_reading: number
+      reading_date?: string | null
+      sync_id?: string | null
+    }
+    Update: {
+      billing_period_id?: string | null
+      consumption?: number
+      created_at?: string | null
+      current_reading?: number
+      customer_id?: string | null
+      id?: string
+      is_estimated?: boolean | null
+      is_synced?: boolean | null
+      meter_reader_id?: string | null
+      needs_review?: boolean | null
+      notes?: string | null
+      photo_url?: string | null
+      previous_reading?: number
+      reading_date?: string | null
+      sync_id?: string | null
+    }
         Relationships: [
           {
             foreignKeyName: "readings_billing_period_id_fkey"
@@ -475,25 +478,31 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          id: string
-          role: string | null
-          full_name: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id: string
-          role?: string | null
-          full_name?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          role?: string | null
-          full_name?: string | null
-          created_at?: string | null
-        }
+   profiles: {
+    Row: {
+      id: string
+      email: string
+      role: string | null
+      full_name: string | null
+      created_at: string | null
+      updated_at: string | null
+    }
+    Insert: {
+      id: string
+      email: string
+      role?: string | null
+      full_name?: string | null
+      created_at?: string | null
+      updated_at?: string | null
+    }
+    Update: {
+      id?: string
+      email?: string
+      role?: string | null
+      full_name?: string | null
+      created_at?: string | null
+      updated_at?: string | null
+    }
         Relationships: [
           {
             foreignKeyName: "profiles_role_fkey"

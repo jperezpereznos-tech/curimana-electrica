@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { receiptService } from '@/services/receipt-service'
-import { periodService } from '@/services/period-service'
+import { getReceiptService } from '@/services/receipt-service'
+import { getPeriodService } from '@/services/period-service'
+import { createClient } from '@/lib/supabase/server'
 import { ReceiptsList } from './receipts-list'
 
 export default async function ReceiptsPage({
@@ -9,6 +10,9 @@ export default async function ReceiptsPage({
   searchParams: Promise<{ period?: string; status?: string; q?: string }>
 }) {
   const params = await searchParams
+  const supabase = await createClient()
+  const receiptService = getReceiptService(supabase)
+  const periodService = getPeriodService(supabase)
   const receipts = await receiptService.getAllReceipts({
     periodId: params.period,
     status: params.status,

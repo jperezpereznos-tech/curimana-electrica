@@ -31,6 +31,7 @@ AS $$ SELECT role FROM public.profiles WHERE id = auth.uid() $$;
 -- Revocar acceso anónimo a funciones sensibles
 REVOKE EXECUTE ON FUNCTION public.get_user_role() FROM anon;
 REVOKE EXECUTE ON FUNCTION public."current_role"() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.calculate_energy_amount(NUMERIC, UUID) FROM anon;
 
 -- ============================================================================
 -- 2. TABLAS
@@ -136,7 +137,8 @@ CREATE TABLE IF NOT EXISTS readings (
   billing_period_id UUID REFERENCES billing_periods(id),
   previous_reading NUMERIC NOT NULL,
   current_reading NUMERIC NOT NULL,
-  consumption NUMERIC GENERATED ALWAYS AS (current_reading - previous_reading) STORED,
+  consumption NUMERIC NOT NULL DEFAULT 0,
+  needs_review BOOLEAN DEFAULT false,
   reading_date DATE DEFAULT CURRENT_DATE,
   photo_url TEXT,
   notes TEXT,
@@ -147,10 +149,13 @@ CREATE TABLE IF NOT EXISTS readings (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Secuencia para números de recibo
+CREATE SEQUENCE IF NOT EXISTS receipt_number_seq START 1;
+
 -- Recibos de pago
 CREATE TABLE IF NOT EXISTS receipts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  receipt_number BIGINT NOT NULL UNIQUE,
+  receipt_number BIGINT NOT NULL UNIQUE DEFAULT nextval('receipt_number_seq'),
   customer_id UUID REFERENCES customers(id),
   reading_id UUID REFERENCES readings(id),
   billing_period_id UUID REFERENCES billing_periods(id),
@@ -286,6 +291,26 @@ CREATE TRIGGER on_auth_user_created
 -- 5. ÍNDICES
 -- ============================================================================
 
+-- Trigger function to auto-update updated_at
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON profiles
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER customers_updated_at BEFORE UPDATE ON customers
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER receipts_updated_at BEFORE UPDATE ON receipts
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 CREATE INDEX IF NOT EXISTS idx_customers_supply_number ON customers(supply_number);
 CREATE INDEX IF NOT EXISTS idx_customers_tariff_id ON customers(tariff_id);
@@ -300,6 +325,12 @@ CREATE INDEX IF NOT EXISTS idx_payments_customer_id ON payments(customer_id);
 CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date);
 CREATE INDEX IF NOT EXISTS idx_billing_concepts_applies_to_tariff_id ON billing_concepts(applies_to_tariff_id);
 CREATE INDEX IF NOT EXISTS idx_tariff_tiers_tariff_id ON tariff_tiers(tariff_id);
+CREATE INDEX IF NOT EXISTS idx_cash_closures_cashier_status ON cash_closures(cashier_id, status);
+CREATE INDEX IF NOT EXISTS idx_payments_cashier_id ON payments(cashier_id);
+CREATE INDEX IF NOT EXISTS idx_customers_sector ON customers(sector);
+CREATE INDEX IF NOT EXISTS idx_customers_is_active ON customers(is_active);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_readings_customer_date ON readings(customer_id, reading_date DESC);
 
 -- ============================================================================
 -- 6. RLS (Row Level Security) - Activar en todas las tablas
@@ -334,8 +365,9 @@ CREATE POLICY "Users can read own profile" ON profiles
   USING ((SELECT auth.uid()) = id);
 
 CREATE POLICY "Users can update own profile" ON profiles
-  FOR UPDATE TO authenticated
-  USING ((SELECT auth.uid()) = id);
+FOR UPDATE TO authenticated
+USING ((SELECT auth.uid()) = id)
+WITH CHECK ((SELECT auth.uid()) = id AND role = (SELECT role FROM profiles WHERE id = auth.uid()));
 
 CREATE POLICY "Admin can manage all profiles" ON profiles
   FOR ALL TO authenticated
@@ -414,8 +446,12 @@ CREATE POLICY "Admin CRUD receipts" ON receipts
   USING ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Cashier update receipts" ON receipts
-  FOR UPDATE TO authenticated
-  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+FOR UPDATE TO authenticated
+USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+
+CREATE POLICY "Cashier insert receipts" ON receipts
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
 
 CREATE POLICY "Users read receipts" ON receipts
   FOR SELECT TO authenticated

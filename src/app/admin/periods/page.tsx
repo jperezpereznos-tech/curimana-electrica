@@ -1,9 +1,12 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { periodService } from '@/services/period-service'
+import { getPeriodService } from '@/services/period-service'
+import { createClient } from '@/lib/supabase/server'
 import { PeriodsList } from './periods-list'
 import { CreatePeriodButton } from './create-period-button'
 
 export default async function PeriodsPage() {
+  const supabase = await createClient()
+  const periodService = getPeriodService(supabase)
   const periods = await periodService.getAllPeriods()
 
   return (

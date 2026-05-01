@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { customerService } from '@/services/customer-service'
-import { tariffService } from '@/services/tariff-service'
+import { getCustomerService } from '@/services/customer-service'
+import { getTariffService } from '@/services/tariff-service'
+import { createClient } from '@/lib/supabase/server'
 import { CustomersList } from './customers-list'
 import { CreateCustomerDialog } from './create-customer-dialog'
 
@@ -10,6 +11,9 @@ export default async function CustomersPage({
   searchParams: Promise<{ q?: string }>
 }) {
   const { q } = await searchParams
+  const supabase = await createClient()
+  const customerService = getCustomerService(supabase)
+  const tariffService = getTariffService(supabase)
   const customers = q ? await customerService.searchCustomers(q) : []
   const tariffs = await tariffService.getAllTariffs()
 

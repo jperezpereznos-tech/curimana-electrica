@@ -1,56 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PaymentService } from '@/services/payment-service'
-import { receiptRepository } from '@/repositories/receipt-repository'
-import { customerRepository } from '@/repositories/customer-repository'
-import { paymentRepository } from '@/repositories/payment-repository'
-import { cashClosureRepository } from '@/repositories/cash-closure-repository'
-import { auditService } from '@/services/audit-service'
+import { ReceiptRepository } from '@/repositories/receipt-repository'
+import { CustomerRepository } from '@/repositories/customer-repository'
+import { CashClosureRepository } from '@/repositories/cash-closure-repository'
+import { PaymentRepository } from '@/repositories/payment-repository'
+import { AuditService } from '@/services/audit-service'
 
-vi.mock('@/repositories/receipt-repository', () => ({
-  receiptRepository: {
-    getById: vi.fn(),
-    update: vi.fn().mockResolvedValue({}),
-  }
-}))
-
-vi.mock('@/repositories/customer-repository', () => ({
-  customerRepository: {
-    getById: vi.fn(),
-    update: vi.fn().mockResolvedValue({}),
-  }
-}))
-
-vi.mock('@/repositories/payment-repository', () => ({
-  paymentRepository: {
-    create: vi.fn((data) => Promise.resolve({ ...data, id: 'p1' })),
-  }
-}))
-
-vi.mock('@/repositories/cash-closure-repository', () => ({
-  cashClosureRepository: {
-    getById: vi.fn().mockResolvedValue({ id: 'cl1', cashier_id: 'user1' }),
-  }
-}))
-
-vi.mock('@/services/audit-service', () => ({
-  auditService: {
-    log: vi.fn().mockResolvedValue({}),
-  }
-}))
+vi.mock('@/repositories/receipt-repository')
+vi.mock('@/repositories/customer-repository')
+vi.mock('@/repositories/payment-repository')
+vi.mock('@/repositories/cash-closure-repository')
+vi.mock('@/services/audit-service')
 
 describe('PaymentService - processPayment', () => {
   const service = new PaymentService()
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.restoreAllMocks()
+    vi.spyOn(CashClosureRepository.prototype, 'getById').mockResolvedValue({ id: 'cl1', cashier_id: 'user1' } as any)
   })
 
   it('debería marcar el recibo como PAGADO si el monto cubre el total', async () => {
     const mockReceipt = { id: 'r1', total_amount: 100, paid_amount: 0 }
     const mockCustomer = { id: 'c1', current_debt: 100 }
 
-    vi.mocked(receiptRepository.getById).mockResolvedValue(mockReceipt as any)
-    vi.mocked(customerRepository.getById).mockResolvedValue(mockCustomer as any)
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
+    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
+    vi.spyOn(PaymentRepository.prototype, 'create').mockResolvedValue({ id: 'p1' } as any)
+    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(CustomerRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     await service.processPayment({
       receiptId: 'r1',
@@ -62,11 +41,11 @@ describe('PaymentService - processPayment', () => {
       changeAmount: 0
     })
 
-    expect(receiptRepository.update).toHaveBeenCalledWith('r1', {
+    expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', {
       paid_amount: 100,
       status: 'paid'
     })
-    expect(customerRepository.update).toHaveBeenCalledWith('c1', {
+    expect(CustomerRepository.prototype.update).toHaveBeenCalledWith('c1', {
       current_debt: 0
     })
   })
@@ -75,8 +54,12 @@ describe('PaymentService - processPayment', () => {
     const mockReceipt = { id: 'r1', total_amount: 100, paid_amount: 0 }
     const mockCustomer = { id: 'c1', current_debt: 100 }
 
-    vi.mocked(receiptRepository.getById).mockResolvedValue(mockReceipt as any)
-    vi.mocked(customerRepository.getById).mockResolvedValue(mockCustomer as any)
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
+    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
+    vi.spyOn(PaymentRepository.prototype, 'create').mockResolvedValue({ id: 'p1' } as any)
+    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(CustomerRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     await service.processPayment({
       receiptId: 'r1',
@@ -88,11 +71,11 @@ describe('PaymentService - processPayment', () => {
       changeAmount: 10
     })
 
-    expect(receiptRepository.update).toHaveBeenCalledWith('r1', {
+    expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', {
       paid_amount: 40,
       status: 'pending'
     })
-    expect(customerRepository.update).toHaveBeenCalledWith('c1', {
+    expect(CustomerRepository.prototype.update).toHaveBeenCalledWith('c1', {
       current_debt: 60
     })
   })

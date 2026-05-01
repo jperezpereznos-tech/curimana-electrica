@@ -1,15 +1,16 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 export class ConceptRepository extends BaseRepository<'billing_concepts'> {
-  constructor() {
-    super('billing_concepts')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('billing_concepts', supabaseClient)
   }
 
   async getAllActive() {
     const { data, error } = await this.supabase
       .from('billing_concepts')
-      .select('*, tariffs(name)')
+      .select('*')
       .eq('is_active', true)
       .order('name')
 

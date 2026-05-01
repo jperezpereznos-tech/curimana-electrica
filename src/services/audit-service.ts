@@ -1,7 +1,14 @@
-import { auditRepository } from '@/repositories/audit-repository'
+import { AuditRepository } from '@/repositories/audit-repository'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 export class AuditService {
+  private auditRepo: AuditRepository
+
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    this.auditRepo = new AuditRepository(supabaseClient)
+  }
+
   async log(data: {
     table_name: string
     record_id: string
@@ -12,19 +19,22 @@ export class AuditService {
     user_role?: string
   }) {
     try {
-      await auditRepository.create({
+      await this.auditRepo.create({
         ...data,
-        ip_address: '0.0.0.0' // En producción se obtendría de la request
+        ip_address: '0.0.0.0'
       })
     } catch (error) {
       console.error('Error recording audit log:', error)
-      // No lanzamos el error para no bloquear la transacción principal
     }
   }
 
   async getAuditLogs() {
-    return await auditRepository.getAllLogs()
+    return await this.auditRepo.getAllLogs()
   }
 }
 
 export const auditService = new AuditService()
+
+export function getAuditService(supabaseClient: SupabaseClient<Database>) {
+  return new AuditService(supabaseClient)
+}

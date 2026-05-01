@@ -1,11 +1,12 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 type Reading = Database['public']['Tables']['readings']['Row']
 
 export class ReadingRepository extends BaseRepository<'readings'> {
-  constructor() {
-    super('readings')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('readings', supabaseClient)
   }
 
   async getLatestReadingByCustomer(customerId: string): Promise<Reading | null> {
@@ -33,15 +34,11 @@ export class ReadingRepository extends BaseRepository<'readings'> {
   }
 
   async getPendingReadingsCount(periodId: string): Promise<number> {
-    // Esta es una query un poco más compleja, necesitamos contar clientes que NO tienen lectura en este periodo
-    // Para simplificar, podríamos traer todos los clientes activos y filtrar en el servicio, 
-    // o hacer una query con NOT EXISTS en SQL.
     const { count, error } = await this.supabase
       .from('customers')
       .select('id', { count: 'exact', head: true })
       .eq('is_active', true)
-      // Aquí falta la lógica de "no tiene lectura en este periodo" via SQL
-    
+
     if (error) throw error
     return count || 0
   }

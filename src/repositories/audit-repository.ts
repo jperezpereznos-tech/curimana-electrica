@@ -1,12 +1,10 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
-type AuditLog = Database['public']['Tables']['audit_logs']['Row']
-type AuditLogInsert = Database['public']['Tables']['audit_logs']['Insert']
-
 export class AuditRepository extends BaseRepository<'audit_logs'> {
-  constructor() {
-    super('audit_logs')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('audit_logs', supabaseClient)
   }
 
   async getAllLogs() {

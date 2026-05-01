@@ -1,4 +1,5 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 type Tariff = Database['public']['Tables']['tariffs']['Row']
@@ -9,8 +10,8 @@ export type TariffWithTiers = Tariff & {
 }
 
 export class TariffRepository extends BaseRepository<'tariffs'> {
-  constructor() {
-    super('tariffs')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('tariffs', supabaseClient)
   }
 
   async getAllWithTiers(): Promise<TariffWithTiers[]> {
@@ -38,7 +39,6 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
     tariff: Omit<Database['public']['Tables']['tariffs']['Insert'], 'id' | 'created_at'>,
     tiers: Omit<Database['public']['Tables']['tariff_tiers']['Insert'], 'id' | 'created_at' | 'tariff_id'>[]
   ) {
-    // 1. Crear tarifa
     const { data: newTariff, error: tariffError } = await this.supabase
       .from('tariffs')
       .insert(tariff)
@@ -47,7 +47,6 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
 
     if (tariffError) throw tariffError
 
-    // 2. Crear tramos vinculados
     if (tiers.length > 0) {
       const tiersToInsert = tiers.map(t => ({ ...t, tariff_id: newTariff.id }))
       const { error: tiersError } = await this.supabase
@@ -55,7 +54,6 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
         .insert(tiersToInsert)
 
       if (tiersError) {
-        // Rollback manual simple si falla la inserción de tramos
         await this.delete(newTariff.id)
         throw tiersError
       }

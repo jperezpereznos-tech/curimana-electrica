@@ -1,9 +1,12 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { conceptService } from '@/services/concept-service'
+import { getConceptService } from '@/services/concept-service'
+import { createClient } from '@/lib/supabase/server'
 import { ConceptsList } from './concepts-list'
 import { CreateConceptDialog } from './create-concept-dialog'
 
 export default async function ConceptsPage() {
+  const supabase = await createClient()
+  const conceptService = getConceptService(supabase)
   const concepts = await conceptService.getAllConcepts()
 
   return (

@@ -1,26 +1,21 @@
-import { periodRepository } from '@/repositories/period-repository'
+import { PeriodRepository } from '@/repositories/period-repository'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { format, subMonths, startOfMonth, endOfMonth, setDate } from 'date-fns'
+import { format, subMonths, setDate } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-type PeriodInsert = Database['public']['Tables']['billing_periods']['Insert']
-
 export class PeriodService {
-  /**
-   * Genera los datos para un nuevo periodo basado en el mes y año actual o especificado.
-   * Si el día de corte es 26:
-   * El periodo de JUNIO 2025 sería: 26/05/2025 al 25/06/2025.
-   */
+  private periodRepo: PeriodRepository
+
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    this.periodRepo = new PeriodRepository(supabaseClient)
+  }
+
   calculatePeriodDates(year: number, month: number, cutDay: number = 26) {
-    // Mes actual para el periodo (ej: Junio)
     const currentMonthDate = new Date(year, month - 1, 1)
-    
-    // El fin del periodo es el día anterior al corte del mes actual
     const endDate = setDate(currentMonthDate, cutDay - 1)
-    
-    // El inicio es el día de corte del mes anterior
     const startDate = setDate(subMonths(currentMonthDate, 1), cutDay)
-    
+
     const name = format(currentMonthDate, 'MMMM yyyy', { locale: es }).toUpperCase()
 
     return {
@@ -34,8 +29,7 @@ export class PeriodService {
   }
 
   async createNextPeriod() {
-    // Por simplicidad, tomamos el mes siguiente al último periodo creado
-    const lastPeriod = await periodRepository.getCurrentPeriod()
+    const lastPeriod = await this.periodRepo.getCurrentPeriod()
     let nextYear, nextMonth
 
     if (lastPeriod) {
@@ -52,20 +46,23 @@ export class PeriodService {
     }
 
     const periodData = this.calculatePeriodDates(nextYear, nextMonth)
-    return await periodRepository.create(periodData)
+    return await this.periodRepo.create(periodData)
   }
 
   async getAllPeriods() {
-    return await periodRepository.getAllPeriods()
+    return await this.periodRepo.getAllPeriods()
   }
 
   async closePeriod(id: string) {
-    // Aquí se llamaría a la Edge Function en el futuro
-    return await periodRepository.update(id, { 
-      is_closed: true, 
-      closed_at: new Date().toISOString() 
+    return await this.periodRepo.update(id, {
+      is_closed: true,
+      closed_at: new Date().toISOString()
     })
   }
 }
 
 export const periodService = new PeriodService()
+
+export function getPeriodService(supabaseClient: SupabaseClient<Database>) {
+  return new PeriodService(supabaseClient)
+}

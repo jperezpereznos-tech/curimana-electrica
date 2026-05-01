@@ -1,12 +1,22 @@
 import { describe, it, expect, vi } from 'vitest'
 import { TariffService } from '@/services/tariff-service'
 
-// Mock del repositorio para evitar llamadas a Supabase en tests unitarios
-vi.mock('@/repositories/tariff-repository', () => ({
-  tariffRepository: {
-    createTariffWithTiers: vi.fn()
+vi.mock('@/repositories/tariff-repository', () => {
+  class MockTariffRepository {
+    createTariffWithTiers = vi.fn()
+    getAllWithTiers = vi.fn()
+    getByIdWithTiers = vi.fn()
+    update = vi.fn()
+    getAll = vi.fn()
+    getById = vi.fn()
+    create = vi.fn()
+    delete = vi.fn()
   }
-}))
+  return {
+    TariffRepository: MockTariffRepository,
+    tariffRepository: new MockTariffRepository(),
+  }
+})
 
 describe('TariffService - validateTiers', () => {
   const service = new TariffService()

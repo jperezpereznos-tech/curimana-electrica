@@ -1,13 +1,23 @@
-import { cashClosureRepository } from '@/repositories/cash-closure-repository'
-import { paymentRepository } from '@/repositories/payment-repository'
+import { CashClosureRepository } from '@/repositories/cash-closure-repository'
+import { PaymentRepository } from '@/repositories/payment-repository'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '@/types/database'
 
 export class CashClosureService {
+  private cashClosureRepo: CashClosureRepository
+  private paymentRepo: PaymentRepository
+
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    this.cashClosureRepo = new CashClosureRepository(supabaseClient)
+    this.paymentRepo = new PaymentRepository(supabaseClient)
+  }
+
   async getActiveClosure(userId: string) {
-    return await cashClosureRepository.getActiveClosure(userId)
+    return await this.cashClosureRepo.getActiveClosure(userId)
   }
 
   async openClosure(userId: string, initialAmount: number) {
-    return await cashClosureRepository.create({
+    return await this.cashClosureRepo.create({
       cashier_id: userId,
       opening_amount: initialAmount,
       total_collected: 0,
@@ -17,22 +27,20 @@ export class CashClosureService {
   }
 
   async closeClosure(id: string) {
-    const closure = await cashClosureRepository.getById(id)
+    const closure = await this.cashClosureRepo.getById(id)
     if (!closure) {
       throw new Error('No se encontro el cierre de caja')
     }
 
-    // 1. Calcular totales desde los pagos registrados
     if (!closure.cashier_id) {
       throw new Error('El cierre no tiene cajero asociado')
     }
 
-    const payments = await paymentRepository.getPaymentsByCashier(closure.cashier_id)
+    const payments = await this.paymentRepo.getPaymentsByCashier(closure.cashier_id)
     const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0)
     const receiptsCount = new Set(payments.map(p => p.receipt_id)).size
 
-    // 2. Actualizar cierre
-    return await cashClosureRepository.close(id, {
+    return await this.cashClosureRepo.close(id, {
       closed_at: new Date().toISOString(),
       total_collected: totalCollected,
       total_receipts: receiptsCount
@@ -41,3 +49,7 @@ export class CashClosureService {
 }
 
 export const cashClosureService = new CashClosureService()
+
+export function getCashClosureService(supabaseClient: SupabaseClient<Database>) {
+  return new CashClosureService(supabaseClient)
+}

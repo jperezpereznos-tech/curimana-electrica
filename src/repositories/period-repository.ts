@@ -1,11 +1,12 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 type Period = Database['public']['Tables']['billing_periods']['Row']
 
 export class PeriodRepository extends BaseRepository<'billing_periods'> {
-  constructor() {
-    super('billing_periods')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('billing_periods', supabaseClient)
   }
 
   async getCurrentPeriod(): Promise<Period | null> {

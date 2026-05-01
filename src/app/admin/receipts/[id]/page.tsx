@@ -1,5 +1,6 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { receiptService } from '@/services/receipt-service'
+import { getReceiptService } from '@/services/receipt-service'
+import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,8 @@ export default async function ReceiptDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const supabase = await createClient()
+  const receiptService = getReceiptService(supabase)
   const receipt = await receiptService.getReceiptDetails(id)
 
   if (!receipt) {

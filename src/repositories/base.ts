@@ -1,16 +1,27 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { Database } from '@/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export class BaseRepository<T extends keyof Database['public']['Tables']> {
-  protected supabase = createClient()
+  protected supabase: SupabaseClient<Database>
 
-  constructor(protected tableName: T) {}
+  constructor(protected tableName: T, supabaseClient?: SupabaseClient<Database>) {
+    this.supabase = supabaseClient ?? createBrowserClient()
+  }
+
+  static async createWithServerClient<T extends keyof Database['public']['Tables']>(
+    tableName: T
+  ): Promise<BaseRepository<T>> {
+    const supabase = await createServerClient()
+    return new BaseRepository(tableName, supabase)
+  }
 
   async getAll() {
     const { data, error } = await this.supabase
       .from(this.tableName)
       .select('*')
-    
+
     if (error) throw error
     return data
   }

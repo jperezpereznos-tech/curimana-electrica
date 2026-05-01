@@ -1,5 +1,6 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { customerService } from '@/services/customer-service'
+import { getCustomerService } from '@/services/customer-service'
+import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -21,6 +22,8 @@ export default async function CustomerDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const supabase = await createClient()
+  const customerService = getCustomerService(supabase)
   const data = await customerService.getCustomerDetails(id)
 
   if (!data.customer) {

@@ -1,17 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
-import { customerService } from '@/services/customer-service'
-import { customerRepository } from '@/repositories/customer-repository'
+import { CustomerService } from '@/services/customer-service'
+import { CustomerRepository } from '@/repositories/customer-repository'
 
-// Mock del repositorio
-vi.mock('@/repositories/customer-repository', () => ({
-  customerRepository: {
-    generateSupplyNumber: vi.fn(),
-    searchCustomers: vi.fn(),
-    create: vi.fn(),
-  }
-}))
+vi.mock('@/repositories/customer-repository')
 
 describe('Customer Management Integration Flow', () => {
+  const service = new CustomerService()
+  const proto = CustomerRepository.prototype
+
   it('debería registrar un cliente con número de suministro generado automáticamente', async () => {
     const mockSupplyNumber = '202604001'
     const customerData = {
@@ -25,19 +21,19 @@ describe('Customer Management Integration Flow', () => {
       is_active: true
     }
 
-    vi.mocked(customerRepository.generateSupplyNumber).mockResolvedValue(mockSupplyNumber)
-    vi.mocked(customerRepository.create).mockImplementation(async (data) => ({
+    vi.spyOn(proto, 'generateSupplyNumber').mockResolvedValue(mockSupplyNumber)
+    vi.spyOn(proto, 'create').mockImplementation(async (data: any) => ({
       id: 'new-uuid',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       current_debt: 0,
       ...data
-    } as any))
+    }))
 
-    const result = await customerService.registerCustomer(customerData)
+    const result = await service.registerCustomer(customerData)
 
-    expect(customerRepository.generateSupplyNumber).toHaveBeenCalled()
-    expect(customerRepository.create).toHaveBeenCalledWith({
+    expect(proto.generateSupplyNumber).toHaveBeenCalled()
+    expect(proto.create).toHaveBeenCalledWith({
       ...customerData,
       supply_number: mockSupplyNumber
     })
@@ -53,11 +49,11 @@ describe('Customer Management Integration Flow', () => {
       current_debt: 0
     }
 
-    vi.mocked(customerRepository.searchCustomers).mockResolvedValue([mockCustomer] as any)
+    vi.spyOn(proto, 'searchCustomers').mockResolvedValue([mockCustomer] as any)
 
-    const results = await customerService.searchCustomers('202604999')
+    const results = await service.searchCustomers('202604999')
 
-    expect(customerRepository.searchCustomers).toHaveBeenCalledWith('202604999')
+    expect(proto.searchCustomers).toHaveBeenCalledWith('202604999')
     expect(results).toHaveLength(1)
     expect(results[0].supply_number).toBe('202604999')
   })

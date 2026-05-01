@@ -1,19 +1,20 @@
-import { tariffRepository } from '@/repositories/tariff-repository'
+import { TariffRepository } from '@/repositories/tariff-repository'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 type TierInsert = Omit<Database['public']['Tables']['tariff_tiers']['Insert'], 'id' | 'created_at' | 'tariff_id'>
 type TariffInsert = Omit<Database['public']['Tables']['tariffs']['Insert'], 'id' | 'created_at'>
 
 export class TariffService {
-  /**
-   * Valida que los tramos de consumo no se superpongan y cubran desde 0
-   * Ej: 0-30, 31-100, 101-null es válido.
-   * Ej: 0-30, 20-50 es inválido.
-   */
+  private tariffRepo: TariffRepository
+
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    this.tariffRepo = new TariffRepository(supabaseClient)
+  }
+
   validateTiers(tiers: TierInsert[]): void {
     if (!tiers || tiers.length === 0) return
 
-    // Ordenar tramos por min_kwh
     const sortedTiers = [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
 
     if (sortedTiers[0].min_kwh !== 0) {
@@ -44,21 +45,24 @@ export class TariffService {
   async createTariffWithValidation(tariff: TariffInsert, tiers: TierInsert[]) {
     this.validateTiers(tiers)
 
-    // Asignar order_index automáticamente basado en min_kwh
     const tiersWithOrder = [...tiers]
       .sort((a, b) => a.min_kwh - b.min_kwh)
       .map((t, index) => ({ ...t, order_index: index + 1 }))
 
-    return await tariffRepository.createTariffWithTiers(tariff, tiersWithOrder)
+    return await this.tariffRepo.createTariffWithTiers(tariff, tiersWithOrder)
   }
 
   async getAllTariffs() {
-    return await tariffRepository.getAllWithTiers()
+    return await this.tariffRepo.getAllWithTiers()
   }
 
   async toggleTariffStatus(id: string, isActive: boolean) {
-    return await tariffRepository.update(id, { is_active: isActive })
+    return await this.tariffRepo.update(id, { is_active: isActive })
   }
 }
 
 export const tariffService = new TariffService()
+
+export function getTariffService(supabaseClient: SupabaseClient<Database>) {
+  return new TariffService(supabaseClient)
+}

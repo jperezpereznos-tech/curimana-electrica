@@ -1,5 +1,6 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
-import { auditService } from '@/services/audit-service'
+import { getAuditService } from '@/services/audit-service'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -14,6 +15,8 @@ import { Shield, Clock, Database, User } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 export default async function AuditPage() {
+  const supabase = await createClient()
+  const auditService = getAuditService(supabase)
   const logs = await auditService.getAuditLogs()
 
   return (

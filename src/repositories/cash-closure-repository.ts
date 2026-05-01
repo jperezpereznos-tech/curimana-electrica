@@ -1,11 +1,12 @@
 import { BaseRepository } from './base'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 type CashClosure = Database['public']['Tables']['cash_closures']['Row']
 
 export class CashClosureRepository extends BaseRepository<'cash_closures'> {
-  constructor() {
-    super('cash_closures')
+  constructor(supabaseClient?: SupabaseClient<Database>) {
+    super('cash_closures', supabaseClient)
   }
 
   async getActiveClosure(userId: string): Promise<CashClosure | null> {
@@ -20,10 +21,8 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
     return data
   }
 
-  async close(id: string, data: { 
-    closed_at: string, 
-    total_collected: number, 
-    total_receipts: number 
+  async close(id: string, data: {
+    closed_at: string, total_collected: number, total_receipts: number
   }) {
     const { data: closure, error } = await this.supabase
       .from('cash_closures')
