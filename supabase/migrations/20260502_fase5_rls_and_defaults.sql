@@ -6,77 +6,46 @@
 -- ============================================================================
 
 -- ============================================================================
--- 1. PROFILES RLS: Eliminar políticas que causan recursión y crear las nuevas
---    (Las políticas FOR ALL que usan get_user_role() causan recursión infinita
---     porque get_user_role() consulta profiles, que a su vez evalúa las RLS)
+-- 1. PROFILES RLS: Simplificar a solo 2 políticas seguras
+--
+--    PROBLEMA: Las políticas anteriores causaban recursión infinita porque:
+--    a) Usaban get_user_role() que hace SELECT sobre profiles (ciclo RLS)
+--    b) Consultaban auth.users (tabla oculta, sin permiso para authenticated)
+--
+--    SOLUCIÓN: La app no tiene UI para que admins gestionen perfiles de otros
+--    usuarios (se hace vía triggers de auth y superusuario). Solo necesitamos:
+--    - SELECT para todos (necesario para JOINs: nombres de cajeros en recibos, etc.)
+--    - UPDATE solo para el propio usuario
 -- ============================================================================
 
--- Drop old policies (IF EXISTS para idempotencia)
-DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
-DROP POLICY IF EXISTS "Authenticated read all profiles" ON profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+-- Eliminar TODAS las políticas existentes en profiles (incluidas las recursivas)
+DROP POLICY IF EXISTS "Admin can manage all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admin insert profiles" ON profiles;
 DROP POLICY IF EXISTS "Admin update all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admin delete profiles" ON profiles;
+DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
+DROP POLICY IF EXISTS "Authenticated read all profiles" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 
--- También eliminar la vieja política "Admin can manage all profiles" si existe
-DROP POLICY IF EXISTS "Admin can manage all profiles" ON profiles;
-
--- Crear políticas nuevas (sin usar get_user_role() para evitar recursión)
--- SELECT: cualquier usuario autenticado puede leer todos los profiles
--- (necesario para JOINs en receipts, payments, etc.)
+-- Polísticas finales (solo 2, sin recursión posible)
 CREATE POLICY "Authenticated read all profiles" ON profiles
   FOR SELECT TO authenticated
   USING (true);
 
--- UPDATE: usuarios pueden actualizar su propio perfil
 CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE TO authenticated
-  USING ((SELECT auth.uid()) = id)
-  WITH CHECK ((SELECT auth.uid()) = id);
-
--- INSERT: solo admin (usando auth.users.raw_app_meta_data en vez de get_user_role)
-CREATE POLICY "Admin insert profiles" ON profiles
-  FOR INSERT TO authenticated
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM auth.users au
-    WHERE au.id = auth.uid()
-    AND au.raw_app_meta_data->>'role' = 'admin'
-  ));
-
--- UPDATE: admin puede actualizar cualquier perfil
-CREATE POLICY "Admin update all profiles" ON profiles
-  FOR UPDATE TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM auth.users au
-    WHERE au.id = auth.uid()
-    AND au.raw_app_meta_data->>'role' = 'admin'
-  ))
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM auth.users au
-    WHERE au.id = auth.uid()
-    AND au.raw_app_meta_data->>'role' = 'admin'
-  ));
-
--- DELETE: solo admin
-CREATE POLICY "Admin delete profiles" ON profiles
-  FOR DELETE TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM auth.users au
-    WHERE au.id = auth.uid()
-    AND au.raw_app_meta_data->>'role' = 'admin'
-  ));
+  USING (id = auth.uid())
+  WITH CHECK (id = auth.uid());
 
 -- ============================================================================
--- 2. CASH_CLOSURES: Agregar DEFAULT auth.uid() en cashier_id
+-- 2. CASH_CLOSURES: DEFAULT auth.uid() en cashier_id
 -- ============================================================================
 
--- Cambiar el DEFAULT de cashier_id para que use auth.uid() automáticamente
 ALTER TABLE cash_closures
   ALTER COLUMN cashier_id SET DEFAULT auth.uid();
 
 -- ============================================================================
--- 3. CASH_CLOSURES: Agregar política UPDATE para cajeros (sus propios cierres)
+-- 3. CASH_CLOSURES: Policy UPDATE para cajeros (sus propios cierres)
 -- ============================================================================
 
 DROP POLICY IF EXISTS "Cashier update own closures" ON cash_closures;
@@ -87,8 +56,7 @@ CREATE POLICY "Cashier update own closures" ON cash_closures
   WITH CHECK (cashier_id = (SELECT auth.uid()));
 
 -- ============================================================================
--- 4. CLOSE_BILLING_PERIOD: Agregar verificación de rol admin
---    (La función actual no verifica quién la ejecuta)
+-- 4. CLOSE_BILLING_PERIOD: Verificación de rol admin
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.close_billing_period(p_period_id UUID)
@@ -101,7 +69,6 @@ DECLARE
   v_is_closed BOOLEAN;
   v_user_role TEXT;
 BEGIN
-  -- Verificar que el usuario es admin
   SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
 
   IF v_user_role != 'admin' THEN
@@ -109,7 +76,6 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Verificar que el periodo existe y no está cerrado
   SELECT is_closed INTO v_is_closed FROM billing_periods WHERE id = p_period_id;
 
   IF NOT FOUND THEN
@@ -122,7 +88,6 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Cerrar el periodo atómicamente
   UPDATE billing_periods
   SET is_closed = true, closed_at = now()
   WHERE id = p_period_id;
@@ -132,10 +97,9 @@ END;
 $$;
 
 -- ============================================================================
--- 5. READINGS: Agregar FK en meter_reader_id -> profiles(id)
+-- 5. READINGS: Agregar FK meter_reader_id -> profiles(id)
 -- ============================================================================
 
--- Primero verificar que no exista ya la constraint
 DO $$
 BEGIN
   IF NOT EXISTS (

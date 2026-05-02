@@ -398,31 +398,14 @@ CREATE POLICY "roles_select_authenticated" ON roles
   USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
 
 -- ── profiles ──
-CREATE POLICY "Users can read own profile" ON profiles
-FOR SELECT TO authenticated
-USING ((SELECT auth.uid()) = id);
-
 CREATE POLICY "Authenticated read all profiles" ON profiles
 FOR SELECT TO authenticated
 USING (true);
 
 CREATE POLICY "Users can update own profile" ON profiles
 FOR UPDATE TO authenticated
-USING ((SELECT auth.uid()) = id)
-WITH CHECK ((SELECT auth.uid()) = id);
-
-CREATE POLICY "Admin insert profiles" ON profiles
-FOR INSERT TO authenticated
-WITH CHECK (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'));
-
-CREATE POLICY "Admin update all profiles" ON profiles
-FOR UPDATE TO authenticated
-USING (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'))
-WITH CHECK (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'));
-
-CREATE POLICY "Admin delete profiles" ON profiles
-FOR DELETE TO authenticated
-USING (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'));
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
 
 -- ── municipality_config ──
 CREATE POLICY "Admin CRUD municipality_config" ON municipality_config
