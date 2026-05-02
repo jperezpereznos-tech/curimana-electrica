@@ -84,8 +84,8 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
   return (
     <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger render={
-      <Button className="gap-2">
-        <CreditCard className="h-4 w-4" /> Cobrar
+      <Button variant="outline" size="sm">
+        Registrar Pago
       </Button>
     } />
       <DialogContent className="sm:max-w-[425px]">

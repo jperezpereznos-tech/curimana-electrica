@@ -119,7 +119,7 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger render={
+    <DialogTrigger nativeButton={!trigger} render={
       (trigger || (
         <Button variant="ghost" size="sm" className="gap-1">
           <Pencil className="h-3 w-3" /> Editar
