@@ -49,6 +49,7 @@ export async function searchCashierCustomerAction(query: string) {
     customer,
     receipts: receipts || []
   }
+}
 
 export async function getPaymentsByCashierAction(userId: string, dateFilterParams: { from?: string; to?: string }) {
   const supabase = await createClient()

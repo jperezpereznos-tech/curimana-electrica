@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { toggleConceptStatusAction } from './actions'
+import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 
 export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
@@ -41,7 +41,7 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
     if (!confirm('¿Estás seguro de eliminar este concepto?')) return
     setActionError(null)
     try {
-      await conceptService.deleteConcept(id)
+      await deleteConceptAction(id)
       setConcepts(prev => prev.filter(c => c.id !== id))
     } catch {
       setActionError('Error al eliminar el concepto.')

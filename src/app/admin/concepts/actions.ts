@@ -21,3 +21,12 @@ export async function toggleConceptStatusAction(id: string, isActive: boolean) {
   revalidatePath('/admin/concepts')
   return result
 }
+
+export async function deleteConceptAction(id: string) {
+  const supabase = await createClient()
+  const conceptService = getConceptService(supabase)
+  
+  const result = await conceptService.deleteConcept(id)
+  revalidatePath('/admin/concepts')
+  return result
+}

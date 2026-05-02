@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { toggleTariffStatusAction } from './actions'
+import { toggleTariffStatusAction, deleteTariffAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 
 interface TariffsListProps {
@@ -46,7 +46,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
     if (!confirm('¿Estás seguro de eliminar esta tarifa? Esta acción es irreversible.')) return
     setActionError(null)
     try {
-      await tariffService.deleteTariff(id)
+      await deleteTariffAction(id)
       setTariffs(prev => prev.filter(t => t.id !== id))
     } catch {
       setActionError('Error al eliminar la tarifa. Puede tener clientes asociados.')

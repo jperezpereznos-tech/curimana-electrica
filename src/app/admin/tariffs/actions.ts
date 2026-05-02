@@ -21,3 +21,12 @@ export async function toggleTariffStatusAction(id: string, isActive: boolean) {
   revalidatePath('/admin/tariffs')
   return result
 }
+
+export async function deleteTariffAction(id: string) {
+  const supabase = await createClient()
+  const tariffService = getTariffService(supabase)
+  
+  const result = await tariffService.deleteTariff(id)
+  revalidatePath('/admin/tariffs')
+  return result
+}
