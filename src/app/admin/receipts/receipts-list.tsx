@@ -17,7 +17,9 @@ import { Input } from '@/components/ui/input'
 import {
   Search,
   Download,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import {
   Select,
@@ -29,9 +31,15 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { pdfService } from '@/services/pdf-service'
 
+const PAGE_SIZE = 25
+
 export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) {
   const router = useRouter()
   const [q, setQ] = useState(currentFilters.q || '')
+  const [page, setPage] = useState(1)
+
+  const totalPages = Math.max(1, Math.ceil(initialReceipts.length / PAGE_SIZE))
+  const paginated = initialReceipts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const updateFilters = (newFilters: any) => {
     const params = new URLSearchParams(window.location.search)
@@ -126,41 +134,57 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
                   No se encontraron recibos con estos filtros.
                 </TableCell>
               </TableRow>
-            ) : (
-              initialReceipts.map((receipt: any) => (
-                <TableRow key={receipt.id}>
-                  <TableCell className="font-mono font-bold">{receipt.receipt_number}</TableCell>
-                  <TableCell className="font-mono text-primary">{receipt.customers?.supply_number}</TableCell>
-                  <TableCell className="font-medium">{receipt.customers?.full_name}</TableCell>
-                  <TableCell>{receipt.billing_periods?.name}</TableCell>
-                  <TableCell className="font-bold">{formatCurrency(receipt.total_amount)}</TableCell>
-                  <TableCell>
-                <Badge variant={
-                  receipt.status === 'paid' ? 'default' :
-                  receipt.status === 'pending' ? 'outline' :
-                  receipt.status === 'partial' ? 'secondary' :
-                  'destructive'
-                }>
-                  {receipt.status === 'paid' ? 'Pagado' :
-                   receipt.status === 'pending' ? 'Pendiente' :
-                   receipt.status === 'partial' ? 'Parcial' :
-                   receipt.status === 'overdue' ? 'Vencido' :
-                   receipt.status === 'cancelled' ? 'Anulado' :
-                   receipt.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right flex justify-end gap-2">
-            <Button variant="ghost" size="icon" render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
-                    <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+) : (
+  paginated.map((receipt: any) => (
+    <TableRow key={receipt.id}>
+      <TableCell className="font-mono font-bold">{receipt.receipt_number}</TableCell>
+      <TableCell className="font-mono text-primary">{receipt.customers?.supply_number}</TableCell>
+      <TableCell className="font-medium">{receipt.customers?.full_name}</TableCell>
+      <TableCell>{receipt.billing_periods?.name}</TableCell>
+      <TableCell className="font-bold">{formatCurrency(receipt.total_amount)}</TableCell>
+      <TableCell>
+        <Badge variant={
+          receipt.status === 'paid' ? 'default' :
+          receipt.status === 'pending' ? 'outline' :
+          receipt.status === 'partial' ? 'secondary' :
+          'destructive'
+        }>
+          {receipt.status === 'paid' ? 'Pagado' :
+          receipt.status === 'pending' ? 'Pendiente' :
+          receipt.status === 'partial' ? 'Parcial' :
+          receipt.status === 'overdue' ? 'Vencido' :
+          receipt.status === 'cancelled' ? 'Anulado' :
+          receipt.status}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-right flex justify-end gap-2">
+        <Button variant="ghost" size="icon" render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
+        <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)}>
+          <Download className="h-4 w-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  ))
+)}
+</TableBody>
+</Table>
+{totalPages > 1 && (
+  <div className="flex items-center justify-between py-4 border-t">
+    <p className="text-sm text-muted-foreground">
+      {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, initialReceipts.length)} de {initialReceipts.length}
+    </p>
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <span className="text-sm font-medium">{page} / {totalPages}</span>
+      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
     </div>
-  )
+  </div>
+)}
+</div>
+</div>
+)
 }

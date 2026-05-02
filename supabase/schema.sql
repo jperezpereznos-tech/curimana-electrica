@@ -191,6 +191,8 @@ CREATE TABLE IF NOT EXISTS payments (
   reference TEXT,
   cashier_id UUID REFERENCES profiles(id),
   payment_date DATE DEFAULT CURRENT_DATE,
+  status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'voided')),
+  voided_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -408,6 +410,15 @@ FOR UPDATE TO authenticated
 USING (id = auth.uid())
 WITH CHECK (id = auth.uid());
 
+CREATE POLICY "Admin insert profiles" ON profiles
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Admin update all profiles" ON profiles
+FOR UPDATE TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
 -- ── municipality_config ──
 CREATE POLICY "Admin CRUD municipality_config" ON municipality_config
 FOR ALL TO authenticated
@@ -475,8 +486,13 @@ USING ((SELECT public.get_user_role()) = 'admin')
 WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Reader insert readings" ON readings
-  FOR INSERT TO authenticated
-  WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
+
+CREATE POLICY "Reader update own readings" ON readings
+FOR UPDATE TO authenticated
+USING ((SELECT public.get_user_role()) IN ('admin', 'meter_reader') AND meter_reader_id = auth.uid())
+WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
 
 CREATE POLICY "Users read readings" ON readings
   FOR SELECT TO authenticated
@@ -541,3 +557,19 @@ USING ((SELECT public.get_user_role()) = 'admin');
 CREATE POLICY "System insert logs" ON audit_logs
 FOR INSERT TO authenticated
 WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+
+-- ============================================================================
+-- 6. STORAGE BUCKETS
+-- ============================================================================
+
+INSERT INTO storage.buckets (id, name, public, avif_auto_detection)
+VALUES ('reading-photos', 'reading-photos', true, false)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Authenticated upload reading photos" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'reading-photos' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read reading photos" ON storage.objects
+FOR SELECT TO public
+USING (bucket_id = 'reading-photos');

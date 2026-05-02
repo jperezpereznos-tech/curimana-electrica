@@ -44,13 +44,15 @@ export class ReceiptService {
     })
 
     const subtotal = Math.round((energyAmount + totalFixed) * 100) / 100
-    const total = Math.round((subtotal + previousDebt) * 100) / 100
+    const igv = Math.round(subtotal * 0.18 * 100) / 100
+    const total = Math.round((subtotal + igv + previousDebt) * 100) / 100
 
     return {
       energyAmount,
       conceptsBreakdown,
       fixedCharges: Math.round(totalFixed * 100) / 100,
       subtotal,
+      igv,
       previousDebt,
       totalAmount: total
     }
@@ -60,6 +62,7 @@ export class ReceiptService {
     const receipt = await this.receiptRepo.getById(id)
     if (!receipt) throw new Error('Recibo no encontrado')
     if (receipt.status === 'cancelled') throw new Error('El recibo ya está anulado')
+    if ((receipt.paid_amount || 0) > 0) throw new Error('No se puede anular un recibo con pagos registrados. Anule los pagos primero.')
 
     const customerId = receipt.customer_id
     if (!customerId) throw new Error('Recibo sin cliente asociado')
@@ -75,18 +78,18 @@ export class ReceiptService {
       })
     }
 
-  if (userId) {
-    try {
-      await this.auditSvc.log({
-        table_name: 'receipts',
-        record_id: id,
-        action: 'UPDATE',
-        old_data: { status: receipt.status },
-        new_data: { status: 'cancelled', reason },
-        user_id: userId
-      })
-    } catch {}
-  }
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'receipts',
+          record_id: id,
+          action: 'UPDATE',
+          old_data: { status: receipt.status },
+          new_data: { status: 'cancelled', reason },
+          user_id: userId
+        })
+      } catch {}
+    }
 
     return updatedReceipt
   }

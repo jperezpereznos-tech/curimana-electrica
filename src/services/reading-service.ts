@@ -33,6 +33,7 @@ export class ReadingService {
       ...data,
       consumption,
       needs_review: isMeterReset,
+      ...(userId ? { meter_reader_id: userId } : {}),
     })
 
     if (userId) {

@@ -38,7 +38,7 @@ export default async function CashClosurePage() {
 
   let payments: SessionPayment[] = []
   if (activeClosure) {
-    payments = await paymentSvc.getPaymentsByCashier(userId)
+    payments = await paymentSvc.getPaymentsByCashier(userId, { from: activeClosure.created_at ?? undefined })
   }
 
   const totalCollected = payments.reduce((sum: number, p) => sum + p.amount, 0)

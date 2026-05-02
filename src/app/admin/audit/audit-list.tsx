@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -12,7 +13,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Shield, Search } from 'lucide-react'
+import { Shield, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+
+const PAGE_SIZE = 25
 
 function formatDateTime(date: Date | string | null | undefined): string {
   if (!date) return '-'
@@ -30,6 +33,7 @@ function formatDateTime(date: Date | string | null | undefined): string {
 
 export function AuditList({ initialLogs }: { initialLogs: any[] }) {
   const [filter, setFilter] = useState('')
+  const [page, setPage] = useState(1)
 
   const filteredLogs = initialLogs.filter(log => {
     if (!filter) return true
@@ -43,11 +47,14 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
     )
   })
 
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE))
+  const paginated = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Shield className="h-4 w-4" /> Últimas 100 Operaciones
+          <Shield className="h-4 w-4" /> Últimas Operaciones
         </CardTitle>
         <div className="relative w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -55,7 +62,7 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
             placeholder="Filtrar..."
             className="pl-8 h-8 text-sm"
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => { setFilter(e.target.value); setPage(1) }}
           />
         </div>
       </CardHeader>
@@ -80,7 +87,7 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLogs.map((log) => (
+              paginated.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="font-mono text-xs">
                     {formatDateTime(log.created_at || '')}
@@ -114,6 +121,22 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
             )}
           </TableBody>
         </Table>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between py-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filteredLogs.length)} de {filteredLogs.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium">{page} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

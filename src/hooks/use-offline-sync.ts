@@ -4,6 +4,7 @@ import { readingService } from '@/services/reading-service'
 import { periodService } from '@/services/period-service'
 import { storageService } from '@/services/storage-service'
 import { customerService } from '@/services/customer-service'
+import { useAuth } from '@/hooks/use-auth'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
@@ -12,6 +13,7 @@ export function useOfflineSync() {
   const [pendingCount, setPendingCount] = useState(0)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
+  const { user } = useAuth()
 
   const updateCounter = useCallback(async () => {
     const count = await db.pending_readings.where('status').equals('pending').count()
@@ -121,7 +123,7 @@ export function useOfflineSync() {
           reading_date: reading.reading_date,
           notes: reading.notes,
           photo_url: photoUrl
-        })
+        }, user?.id)
 
         // Eliminar de local si tuvo éxito
         await db.pending_readings.delete(reading.id!)

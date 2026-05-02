@@ -22,13 +22,14 @@ export class PaymentService {
   }
 
   async processPayment(data: {
-    receiptId: string
-    customerId: string
-    cashClosureId: string
-    amount: number
-    paymentMethod: 'cash'
-    receivedAmount: number
-    changeAmount: number
+  receiptId: string
+  customerId: string
+  cashClosureId: string
+  amount: number
+  paymentMethod: 'cash' | 'transfer' | 'card'
+  receivedAmount: number
+  changeAmount: number
+  cashierUserId?: string
   }) {
     const { receiptId, customerId, amount, cashClosureId } = data
     const closure = await this.cashClosureRepo.getById(cashClosureId)
@@ -69,21 +70,70 @@ export class PaymentService {
       })
     }
 
-  try {
-    await this.auditSvc.log({
-      table_name: 'payments',
-      record_id: payment.id,
-      action: 'INSERT',
-      new_data: payment,
-      user_id: closure.cashier_id
-    })
-  } catch {}
+    try {
+      await this.auditSvc.log({
+        table_name: 'payments',
+        record_id: payment.id,
+        action: 'INSERT',
+        new_data: payment,
+        user_id: data.cashierUserId || closure.cashier_id
+      })
+    } catch {}
 
     return payment
   }
 
   async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {
     return await this.paymentRepo.getPaymentsByCashier(cashierId, dateFilter)
+  }
+
+  async voidPayment(paymentId: string, userId?: string) {
+    const { data: payment, error } = await this.paymentRepo['supabase']
+      .from('payments')
+      .select('*, receipts!payments_receipt_id_fkey(id, paid_amount, total_amount, status, customer_id)')
+      .eq('id', paymentId)
+      .single()
+
+    if (error || !payment) throw new Error('Pago no encontrado')
+    if (payment.status === 'voided') throw new Error('El pago ya está anulado')
+
+    const receipt = payment.receipts as { id: string, paid_amount: number, total_amount: number, status: string, customer_id: string | null }
+
+    await this.paymentRepo.update(paymentId, {
+      status: 'voided',
+      voided_at: new Date().toISOString(),
+    } as Database['public']['Tables']['payments']['Update'])
+
+    if (receipt && receipt.customer_id) {
+      const newPaidAmount = Math.max(0, (receipt.paid_amount || 0) - payment.amount)
+      const newStatus = newPaidAmount <= 0 ? 'pending' : 'partial'
+
+      await this.receiptRepo.update(receipt.id, {
+        paid_amount: newPaidAmount,
+        status: newStatus,
+      })
+
+      const customer = await this.customerRepo.getById(receipt.customer_id)
+      if (customer) {
+        const newDebt = (customer.current_debt || 0) + payment.amount
+        await this.customerRepo.update(receipt.customer_id, {
+          current_debt: newDebt,
+        })
+      }
+    }
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'payments',
+          record_id: paymentId,
+          action: 'UPDATE',
+          old_data: { status: 'completed', amount: payment.amount },
+          new_data: { status: 'voided' },
+          user_id: userId,
+        })
+      } catch {}
+    }
   }
 
   async getAllPayments(filters?: { cashierId?: string; from?: string; to?: string }) {

@@ -16,10 +16,10 @@ export async function closePeriodAction(id: string) {
 
 export async function openNextPeriodAction() {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const periodService = getPeriodService(supabase)
-  
-  const result = await periodService.createNextPeriod()
+
+  const result = await periodService.createNextPeriod(user?.id)
   revalidatePath('/admin/periods')
   return result
 }

@@ -258,40 +258,46 @@ export type Database = {
         }
         Relationships: []
       }
-      payments: {
-        Row: {
-          amount: number
-          cashier_id: string | null
-          created_at: string | null
-          customer_id: string | null
-          id: string
-          method: string | null
-          payment_date: string | null
-          receipt_id: string | null
-          reference: string | null
-        }
-        Insert: {
-          amount: number
-          cashier_id?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          method?: string | null
-          payment_date?: string | null
-          receipt_id?: string | null
-          reference?: string | null
-        }
-        Update: {
-          amount?: number
-          cashier_id?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          method?: string | null
-          payment_date?: string | null
-          receipt_id?: string | null
-          reference?: string | null
-        }
+payments: {
+      Row: {
+        amount: number
+        cashier_id: string | null
+        created_at: string | null
+        customer_id: string | null
+        id: string
+        method: string | null
+        payment_date: string | null
+        receipt_id: string | null
+        reference: string | null
+        status: string | null
+        voided_at: string | null
+      }
+      Insert: {
+        amount: number
+        cashier_id?: string | null
+        created_at?: string | null
+        customer_id?: string | null
+        id?: string
+        method?: string | null
+        payment_date?: string | null
+        receipt_id?: string | null
+        reference?: string | null
+        status?: string | null
+        voided_at?: string | null
+      }
+      Update: {
+        amount?: number
+        cashier_id?: string | null
+        created_at?: string | null
+        customer_id?: string | null
+        id?: string
+        method?: string | null
+        payment_date?: string | null
+        receipt_id?: string | null
+        reference?: string | null
+        status?: string | null
+        voided_at?: string | null
+      }
         Relationships: [
           {
             foreignKeyName: "payments_customer_id_fkey"

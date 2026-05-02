@@ -13,7 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MoreHorizontal } from 'lucide-react'
+import { Search, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +26,17 @@ import { formatCurrency } from '@/lib/utils'
 import { updateCustomerAction } from './actions'
 import { EditCustomerDialog } from './edit-customer-dialog'
 
+const PAGE_SIZE = 25
+
 export function CustomersList({ initialCustomers, query, tariffs }: { initialCustomers: any[], query: string, tariffs: any[] }) {
   const [searchTerm, setSearchTerm] = useState(query)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
   const router = useRouter()
 
   const customers = useMemo(() => initialCustomers, [initialCustomers])
+  const totalPages = Math.max(1, Math.ceil(customers.length / PAGE_SIZE))
+  const paginated = customers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     const msg = isActive ? '¿Estás seguro de dar de baja este cliente?' : '¿Estás seguro de reactivar este cliente?'
@@ -88,14 +93,14 @@ export function CustomersList({ initialCustomers, query, tariffs }: { initialCus
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialCustomers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No se encontraron clientes.
-                </TableCell>
-              </TableRow>
-            ) : (
-              customers.map((customer) => (
+        {initialCustomers.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={7} className="h-24 text-center">
+              No se encontraron clientes.
+            </TableCell>
+          </TableRow>
+        ) : (
+          paginated.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-mono font-bold text-primary">
                     {customer.supply_number}
@@ -158,8 +163,24 @@ export function CustomersList({ initialCustomers, query, tariffs }: { initialCus
               ))
             )}
           </TableBody>
-        </Table>
-      </div>
+      </Table>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between py-4 border-t">
+          <p className="text-sm text-muted-foreground">
+            {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, customers.length)} de {customers.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   )
 }

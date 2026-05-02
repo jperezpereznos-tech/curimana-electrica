@@ -12,7 +12,7 @@ export class AuditRepository extends BaseRepository<'audit_logs'> {
       .from('audit_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100)
+        .limit(500)
 
     if (error) throw error
     return data

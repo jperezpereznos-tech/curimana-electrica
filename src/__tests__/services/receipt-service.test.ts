@@ -23,38 +23,44 @@ describe('ReceiptService - calculateBreakdown', () => {
     { name: 'Mantenimiento', amount: 1.50, type: 'fixed' }
   ]
 
-  it('debería calcular correctamente para 50 kWh con cargos fijos', () => {
+  it('debería calcular correctamente para 50 kWh con cargos fijos e IGV', () => {
     const result = service.calculateBreakdown(50, mockTiers, mockFixedConcepts)
 
     expect(result.energyAmount).toBe(21.70)
     expect(result.fixedCharges).toBe(9.20)
-    expect(result.totalAmount).toBe(30.90)
+    expect(result.subtotal).toBe(30.90)
+    expect(result.igv).toBe(5.56)
+    expect(result.totalAmount).toBe(36.46)
   })
 
-  it('debería calcular correctamente para 0 kWh (solo cargos fijos)', () => {
+  it('debería calcular correctamente para 0 kWh (solo cargos fijos + IGV)', () => {
     const result = service.calculateBreakdown(0, mockTiers, mockFixedConcepts)
 
     expect(result.energyAmount).toBe(0)
-    expect(result.totalAmount).toBe(9.20)
+    expect(result.subtotal).toBe(9.20)
+    expect(result.igv).toBe(1.66)
+    expect(result.totalAmount).toBe(10.86)
   })
 
   it('debería incluir la deuda anterior en el total', () => {
     const previousDebt = 15.50
     const result = service.calculateBreakdown(50, mockTiers, mockFixedConcepts, previousDebt)
 
-    expect(result.totalAmount).toBe(46.40)
+    expect(result.subtotal).toBe(30.90)
+    expect(result.igv).toBe(5.56)
+    expect(result.previousDebt).toBe(15.50)
+    expect(result.totalAmount).toBe(51.96)
   })
 
-  it('debería manejar conceptos porcentuales (ej: IGV)', () => {
-    const conceptsWithIGV = [
+  it('debería manejar conceptos porcentuales adicionales', () => {
+    const conceptsWithExtra = [
       ...mockFixedConcepts,
-      { name: 'IGV', amount: 18, type: 'percentage' }
+      { name: 'Fondo de Compensación', amount: 5, type: 'percentage' }
     ]
-    const result = service.calculateBreakdown(50, mockTiers, conceptsWithIGV)
+    const result = service.calculateBreakdown(50, mockTiers, conceptsWithExtra)
 
-    const igv = result.conceptsBreakdown.find(c => c.name === 'IGV')
-    expect(igv?.amount).toBe(3.91)
-    expect(result.subtotal).toBe(34.81)
+    const extra = result.conceptsBreakdown.find(c => c.name === 'Fondo de Compensación')
+    expect(extra?.amount).toBe(1.09)
   })
 })
 
@@ -65,9 +71,9 @@ describe('ReceiptService - cancelReceipt', () => {
     vi.clearAllMocks()
   })
 
-  it('debería anular el recibo y revertir la deuda del cliente', async () => {
-    const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 30, customer_id: 'c1' }
-    const mockCustomer = { id: 'c1', current_debt: 70 }
+  it('debería anular el recibo sin pagos y revertir la deuda del cliente', async () => {
+    const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
+    const mockCustomer = { id: 'c1', current_debt: 100 }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
     vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
@@ -82,6 +88,14 @@ describe('ReceiptService - cancelReceipt', () => {
     expect(AuditService.prototype.log).toHaveBeenCalled()
   })
 
+  it('debería lanzar error si el recibo tiene pagos registrados', async () => {
+    const mockReceipt = { id: 'r1', status: 'partial', total_amount: 100, paid_amount: 30, customer_id: 'c1' }
+
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
+
+    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('No se puede anular un recibo con pagos registrados')
+  })
+
   it('debería lanzar error si el recibo no existe', async () => {
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(null as any)
 
@@ -89,7 +103,7 @@ describe('ReceiptService - cancelReceipt', () => {
   })
 
   it('debería lanzar error si el recibo ya está anulado', async () => {
-    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', status: 'cancelled', paid_amount: 0 } as any)
 
     await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('El recibo ya está anulado')
   })

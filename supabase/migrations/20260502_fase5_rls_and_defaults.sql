@@ -139,3 +139,38 @@ ALTER TABLE billing_concepts
 
 ALTER TABLE receipts
 ADD COLUMN IF NOT EXISTS igv NUMERIC DEFAULT 0;
+
+-- ============================================================================
+-- 8. PAYMENTS: Agregar columna status y voided_at
+-- ============================================================================
+
+ALTER TABLE payments
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'voided'));
+
+ALTER TABLE payments
+ADD COLUMN IF NOT EXISTS voided_at TIMESTAMPTZ;
+
+-- ============================================================================
+-- 9. STORAGE: Crear bucket reading-photos si no existe
+-- ============================================================================
+
+INSERT INTO storage.buckets (id, name, public, avif_auto_detection)
+VALUES ('reading-photos', 'reading-photos', true, false)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Authenticated upload reading photos" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'reading-photos' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read reading photos" ON storage.objects
+FOR SELECT TO public
+USING (bucket_id = 'reading-photos');
+
+-- ============================================================================
+-- 10. READINGS: Policy UPDATE para lectores (sus propias lecturas)
+-- ============================================================================
+
+CREATE POLICY "Reader update own readings" ON readings
+FOR UPDATE TO authenticated
+USING (get_user_role() IN ('admin', 'meter_reader') AND meter_reader_id = auth.uid())
+WITH CHECK (get_user_role() IN ('admin', 'meter_reader'));

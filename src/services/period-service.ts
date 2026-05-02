@@ -47,7 +47,7 @@ export class PeriodService {
     }
   }
 
-  async createNextPeriod() {
+  async createNextPeriod(userId?: string) {
     const openPeriod = await this.periodRepo.getCurrentPeriod()
     if (openPeriod && !openPeriod.is_closed) {
       throw new Error('No se puede crear un nuevo periodo mientras exista uno abierto')
@@ -77,7 +77,23 @@ export class PeriodService {
 
     const cutDay = config?.billing_cut_day || 26
     const periodData = this.calculatePeriodDates(nextYear, nextMonth, cutDay)
-    return await this.periodRepo.create(periodData)
+    const result = await this.periodRepo.create(periodData)
+
+    if (userId && result) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'billing_periods',
+          record_id: result.id,
+          action: 'INSERT',
+          new_data: periodData,
+          user_id: userId
+        })
+      } catch (e) {
+        console.error('Audit log failed for createNextPeriod:', e)
+      }
+    }
+
+    return result
   }
 
   private async getLastPeriod() {

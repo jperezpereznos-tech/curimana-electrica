@@ -25,8 +25,8 @@ export default function PendingReadingsPage() {
           id: r.id?.toString() || '0',
           supply_number: r.supply_number,
           full_name: r.full_name,
-          address: r.notes || 'Sin dirección',
-          sector: r.supply_number || 'Sin sector',
+        address: r.address || 'Sin dirección',
+        sector: r.sector || 'Sin sector',
           has_photo: !!r.photo_base64
         }))
         setPendingReadings(formattedReadings)

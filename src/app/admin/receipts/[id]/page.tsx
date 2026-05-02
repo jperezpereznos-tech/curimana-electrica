@@ -115,14 +115,18 @@ export default async function ReceiptDetailsPage({
                     <span>Cargos Fijos y Otros Conceptos</span>
                     <span className="font-medium">{formatCurrency(receipt.fixed_charges)}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b font-semibold bg-muted/20 px-2 rounded">
-                    <span>Subtotal del Mes</span>
-                    <span>{formatCurrency(receipt.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 text-destructive">
-                    <span>Deuda de Meses Anteriores</span>
-                    <span className="font-medium">{formatCurrency(receipt.previous_debt)}</span>
-                  </div>
+            <div className="flex justify-between items-center py-2 border-b font-semibold bg-muted/20 px-2 rounded">
+              <span>Subtotal del Mes</span>
+              <span>{formatCurrency(receipt.subtotal)}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b text-sm">
+              <span>IGV (18%)</span>
+              <span className="font-medium">{formatCurrency(receipt.igv || 0)}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 text-destructive">
+              <span>Deuda de Meses Anteriores</span>
+              <span className="font-medium">{formatCurrency(receipt.previous_debt)}</span>
+            </div>
                 </div>
 
                 {/* Total */}

@@ -5,6 +5,8 @@ export interface PendingReading {
   customer_id: string
   supply_number: string
   full_name: string
+  address?: string
+  sector?: string
   previous_reading: number
   current_reading: number
   reading_date: string

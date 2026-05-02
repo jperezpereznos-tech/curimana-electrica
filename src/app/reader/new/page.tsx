@@ -51,12 +51,13 @@ function NewReadingContent() {
         .first()
 
       if (cachedCustomer) {
-        setCustomer({
-          id: cachedCustomer.id,
-          full_name: cachedCustomer.full_name,
-          address: cachedCustomer.address,
-          previous_reading: cachedCustomer.previous_reading,
-        })
+          setCustomer({
+            id: cachedCustomer.id,
+            full_name: cachedCustomer.full_name,
+            address: cachedCustomer.address,
+            sector: cachedCustomer.sector,
+            previous_reading: cachedCustomer.previous_reading,
+          })
       } else if (navigator.onLine) {
         const results = await customerService.searchCustomers(supply)
         const found = results?.find((c: any) => c.supply_number === supply)
@@ -77,12 +78,13 @@ function NewReadingContent() {
             tariff_id: found.tariff_id || '',
             previous_reading: previousReading,
           })
-          setCustomer({
-            id: found.id,
-            full_name: found.full_name,
-            address: found.address,
-            previous_reading: previousReading,
-          })
+            setCustomer({
+              id: found.id,
+              full_name: found.full_name,
+              address: found.address,
+              sector: found.sector,
+              previous_reading: previousReading,
+            })
         } else {
           setNotFound(true)
         }
@@ -126,10 +128,12 @@ function NewReadingContent() {
     }
 
   try {
-    await db.pending_readings.add({
+      await db.pending_readings.add({
         customer_id: customer.id,
         supply_number: supplyNumber,
         full_name: customer.full_name,
+        address: customer.address || '',
+        sector: customer.sector || '',
         previous_reading: previous,
         current_reading: reading,
         reading_date: new Date().toISOString().split('T')[0],
@@ -137,8 +141,8 @@ function NewReadingContent() {
         photo_base64: capturedPhoto || undefined,
         status: 'pending',
         created_at: new Date().toISOString(),
-      needs_review: reading < previous
-    })
+        needs_review: reading < previous
+      })
 
     setSaveSuccess(true)
     router.push('/reader')

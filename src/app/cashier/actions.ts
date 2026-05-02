@@ -9,10 +9,10 @@ import { revalidatePath } from 'next/cache'
 
 export async function processPaymentAction(data: any) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const paymentService = getPaymentService(supabase)
 
-  const result = await paymentService.processPayment(data)
+  const result = await paymentService.processPayment({ ...data, cashierUserId: user?.id })
   revalidatePath('/cashier')
   return result
 }
