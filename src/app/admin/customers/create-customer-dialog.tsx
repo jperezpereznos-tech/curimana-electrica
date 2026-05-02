@@ -69,7 +69,10 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
       form.reset()
       router.refresh()
     } catch (error: any) {
-      setServerError(error.message || 'Error al registrar cliente')
+      const msg = error?.code === '42501'
+        ? 'No tiene permisos para realizar esta acción'
+        : (error.message || 'Error al registrar cliente')
+      setServerError(msg)
     }
   }
 

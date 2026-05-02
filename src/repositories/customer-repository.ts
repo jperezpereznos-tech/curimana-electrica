@@ -57,22 +57,20 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   }
 
   async generateSupplyNumber(): Promise<string> {
-    let unique = false
-    let supplyNumber = ''
-
-    while (!unique) {
+    const maxAttempts = 10
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const random = Math.floor(100000000 + Math.random() * 900000000).toString()
-      supplyNumber = random
 
-      const { count } = await this.supabase
+      const { count, error } = await this.supabase
         .from('customers')
         .select('id', { count: 'exact', head: true })
-        .eq('supply_number', supplyNumber)
+        .eq('supply_number', random)
 
-      if (count === 0) unique = true
+      if (error) throw error
+      if (count === 0) return random
     }
 
-    return supplyNumber
+    throw new Error('No se pudo generar un número de suministro único')
   }
 
   async getTopDebtors(limit: number = 5) {

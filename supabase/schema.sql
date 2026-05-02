@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS municipality_config (
 CREATE TABLE IF NOT EXISTS tariffs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  connection_type TEXT DEFAULT 'monofasica',
+  connection_type TEXT DEFAULT 'monofásico',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS customers (
   sector TEXT,
   phone TEXT,
   tariff_id UUID REFERENCES tariffs(id),
-  connection_type TEXT DEFAULT 'monofasica',
+  connection_type TEXT DEFAULT 'monofásico',
   is_active BOOLEAN DEFAULT true,
   current_debt NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -370,13 +370,15 @@ USING ((SELECT auth.uid()) = id)
 WITH CHECK ((SELECT auth.uid()) = id AND role = (SELECT role FROM profiles WHERE id = auth.uid()));
 
 CREATE POLICY "Admin can manage all profiles" ON profiles
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 -- ── municipality_config ──
 CREATE POLICY "Admin CRUD municipality_config" ON municipality_config
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Users read municipality_config" ON municipality_config
   FOR SELECT TO authenticated
@@ -384,8 +386,9 @@ CREATE POLICY "Users read municipality_config" ON municipality_config
 
 -- ── tariffs ──
 CREATE POLICY "Admin CRUD tariffs" ON tariffs
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Users read tariffs" ON tariffs
   FOR SELECT TO authenticated
@@ -393,8 +396,9 @@ CREATE POLICY "Users read tariffs" ON tariffs
 
 -- ── tariff_tiers ──
 CREATE POLICY "Admin CRUD tariff_tiers" ON tariff_tiers
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Users read tariff_tiers" ON tariff_tiers
   FOR SELECT TO authenticated
@@ -402,8 +406,9 @@ CREATE POLICY "Users read tariff_tiers" ON tariff_tiers
 
 -- ── billing_concepts ──
 CREATE POLICY "Admin CRUD billing_concepts" ON billing_concepts
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Users read billing_concepts" ON billing_concepts
   FOR SELECT TO authenticated
@@ -411,17 +416,19 @@ CREATE POLICY "Users read billing_concepts" ON billing_concepts
 
 -- ── customers ──
 CREATE POLICY "Admin CRUD customers" ON customers
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Users read customers" ON customers
-  FOR SELECT TO authenticated
-  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+FOR SELECT TO authenticated
+USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
 
 -- ── billing_periods ──
 CREATE POLICY "Admin CRUD billing_periods" ON billing_periods
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Users read billing_periods" ON billing_periods
   FOR SELECT TO authenticated
@@ -429,8 +436,9 @@ CREATE POLICY "Users read billing_periods" ON billing_periods
 
 -- ── readings ──
 CREATE POLICY "Admin CRUD readings" ON readings
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Reader insert readings" ON readings
   FOR INSERT TO authenticated
@@ -442,8 +450,9 @@ CREATE POLICY "Users read readings" ON readings
 
 -- ── receipts ──
 CREATE POLICY "Admin CRUD receipts" ON receipts
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Cashier update receipts" ON receipts
 FOR UPDATE TO authenticated
@@ -459,8 +468,9 @@ CREATE POLICY "Users read receipts" ON receipts
 
 -- ── payments ──
 CREATE POLICY "Admin CRUD payments" ON payments
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Cashier insert payments" ON payments
   FOR INSERT TO authenticated
@@ -472,8 +482,9 @@ CREATE POLICY "Users read payments" ON payments
 
 -- ── cash_closures ──
 CREATE POLICY "Admin CRUD cash_closures" ON cash_closures
-  FOR ALL TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR ALL TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Cashier insert closures" ON cash_closures
   FOR INSERT TO authenticated
@@ -485,9 +496,11 @@ CREATE POLICY "Cashier read own closures" ON cash_closures
 
 -- ── audit_logs ──
 CREATE POLICY "Admin read logs" ON audit_logs
-  FOR SELECT TO authenticated
-  USING ((SELECT public.get_user_role()) = 'admin');
+FOR SELECT TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "System insert logs" ON audit_logs
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
   FOR INSERT TO authenticated
   WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
