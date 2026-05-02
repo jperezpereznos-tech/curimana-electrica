@@ -1,11 +1,9 @@
-'use client'
-
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, ChevronRight, User, Calendar } from 'lucide-react'
-import { readingService } from '@/services/reading-service'
+import { getReadingService } from '@/services/reading-service'
+import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -20,86 +18,40 @@ interface LatestReading {
   has_photo: boolean
 }
 
-export function LatestReadings() {
-  const [readings, setReadings] = useState<LatestReading[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+function formatTimeAgo(dateString: string) {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
 
-  useEffect(() => {
-    let cancelled = false
-
-    readingService.getLatestReadings()
-      .then((data) => {
-        if (cancelled) return
-        const formattedReadings: LatestReading[] = data?.map((r: any) => ({
-          id: r.id,
-          customer_name: (r as any).customers?.full_name || 'Desconocido',
-          supply_number: (r as any).customers?.supply_number || 'N/A',
-          previous_reading: r.previous_reading,
-          current_reading: r.current_reading,
-          consumption: r.consumption,
-          reading_date: r.reading_date,
-          has_photo: !!(r as any).photo_url,
-        })) || []
-        setReadings(formattedReadings)
-      })
-      .catch(() => {
-        if (!cancelled) setError('Error al cargar datos')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => { cancelled = true }
-  }, [])
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-
-    if (diffInMinutes < 60) {
-      return `Hace ${diffInMinutes} min`
-    } else if (diffInMinutes < 1440) {
-      const hours = Math.floor(diffInMinutes / 60)
-      return `Hace ${hours} h`
-    } else {
-      return formatDate(dateString)
-    }
+  if (diffInMinutes < 60) {
+    return `Hace ${diffInMinutes} min`
+  } else if (diffInMinutes < 1440) {
+    const hours = Math.floor(diffInMinutes / 60)
+    return `Hace ${hours} h`
+  } else {
+    return formatDate(dateString)
   }
+}
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Camera className="h-4 w-4 text-primary" />
-            Últimas Lecturas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground">Cargando...</div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Camera className="h-4 w-4 text-primary" />
-            Últimas Lecturas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-4 text-muted-foreground text-sm">
-            {error}
-          </div>
-        </CardContent>
-      </Card>
-    )
+export async function LatestReadings() {
+  const supabase = await createClient()
+  const readingService = getReadingService(supabase)
+  
+  let readings: LatestReading[] = []
+  try {
+    const data = await readingService.getLatestReadings()
+    readings = data?.map((r: any) => ({
+      id: r.id,
+      customer_name: (r as any).customers?.full_name || 'Desconocido',
+      supply_number: (r as any).customers?.supply_number || 'N/A',
+      previous_reading: r.previous_reading,
+      current_reading: r.current_reading,
+      consumption: r.consumption,
+      reading_date: r.reading_date,
+      has_photo: !!(r as any).photo_url,
+    })) || []
+  } catch (error) {
+    console.error('Error fetching latest readings:', error)
   }
 
   return (

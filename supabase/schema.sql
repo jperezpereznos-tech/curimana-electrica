@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS payments (
   amount NUMERIC NOT NULL,
   method TEXT DEFAULT 'cash',
   reference TEXT,
-  cashier_id UUID,
+  cashier_id UUID REFERENCES profiles(id),
   payment_date DATE DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS payments (
 -- Cierre de caja
 CREATE TABLE IF NOT EXISTS cash_closures (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  cashier_id UUID,
+  cashier_id UUID REFERENCES profiles(id),
   closure_date DATE DEFAULT CURRENT_DATE,
   opening_amount NUMERIC NOT NULL,
   total_collected NUMERIC DEFAULT 0,

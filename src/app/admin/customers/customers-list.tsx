@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -30,6 +30,10 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
   const [customers, setCustomers] = useState(initialCustomers)
   const [actionError, setActionError] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    setCustomers(initialCustomers)
+  }, [initialCustomers])
 
   const handleDeactivate = async (id: string) => {
     if (!confirm('¿Estás seguro de dar de baja este cliente?')) return
