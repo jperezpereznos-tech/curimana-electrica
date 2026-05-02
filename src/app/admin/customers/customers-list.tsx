@@ -92,7 +92,7 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
             {initialCustomers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  {query ? 'No se encontraron clientes.' : 'Realiza una búsqueda para ver clientes.'}
+                  No se encontraron clientes.
                 </TableCell>
               </TableRow>
             ) : (

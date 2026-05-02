@@ -14,7 +14,7 @@ export default async function CustomersPage({
   const supabase = await createClient()
   const customerService = getCustomerService(supabase)
   const tariffService = getTariffService(supabase)
-  const customers = q ? await customerService.searchCustomers(q) : []
+  const customers = await customerService.searchCustomers(q || '')
   const tariffs = await tariffService.getAllTariffs()
 
   return (
