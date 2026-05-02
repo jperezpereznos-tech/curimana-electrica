@@ -6,40 +6,40 @@ import { revalidatePath } from 'next/cache'
 
 export async function registerTariffAction(tariff: any, tiers: any[]) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
 
-  const result = await tariffService.createTariffWithValidation(tariff, tiers)
+  const result = await tariffService.createTariffWithValidation(tariff, tiers, user?.id)
   revalidatePath('/admin/tariffs')
   return result
 }
 
 export async function toggleTariffStatusAction(id: string, isActive: boolean) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
 
-  const result = await tariffService.toggleTariffStatus(id, isActive)
+  const result = await tariffService.toggleTariffStatus(id, isActive, user?.id)
   revalidatePath('/admin/tariffs')
   return result
 }
 
 export async function deleteTariffAction(id: string) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
 
-  const result = await tariffService.deleteTariff(id)
+  const result = await tariffService.deleteTariff(id, user?.id)
   revalidatePath('/admin/tariffs')
   return result
 }
 
 export async function updateTariffAction(id: string, tariff: any, tiers: any[]) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
 
-  const result = await tariffService.updateTariffWithTiers(id, tariff, tiers)
+  const result = await tariffService.updateTariffWithTiers(id, tariff, tiers, user?.id)
   revalidatePath('/admin/tariffs')
   return result
 }

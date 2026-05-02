@@ -25,7 +25,22 @@ import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { EditConceptDialog } from './edit-concept-dialog'
 
-export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
+function formatAmount(concept: any) {
+  if (concept.type === 'percentage') return `${concept.amount}%`
+  if (concept.type === 'per_kwh') return `${formatCurrency(concept.amount)}/kWh`
+  return formatCurrency(concept.amount)
+}
+
+function formatType(type: string) {
+  const map: Record<string, string> = {
+    fixed: 'Fijo (S/)',
+    percentage: 'Porcentaje (%)',
+    per_kwh: 'Por kWh (S/)',
+  }
+  return map[type] || type
+}
+
+export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcepts: any[]; tariffs?: any[] }) {
   const router = useRouter()
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -53,6 +68,12 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
     }
   }
 
+  const getTariffName = (tariffId: string | null) => {
+    if (!tariffId) return 'Todas'
+    const tariff = tariffs.find((t: any) => t.id === tariffId)
+    return tariff?.name || 'N/A'
+  }
+
   return (
     <div className="rounded-md border bg-card">
       {actionError && (
@@ -67,6 +88,7 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
             <TableHead>Nombre</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Monto</TableHead>
+            <TableHead>Tarifa</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
@@ -74,7 +96,7 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
         <TableBody>
           {concepts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 No hay conceptos registrados.
               </TableCell>
             </TableRow>
@@ -83,10 +105,9 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
               <TableRow key={concept.id}>
                 <TableCell className="font-mono text-xs">{concept.code}</TableCell>
                 <TableCell className="font-medium">{concept.name}</TableCell>
-                <TableCell className="capitalize">{concept.type}</TableCell>
-                <TableCell>
-                  {concept.type === 'percentage' ? `${concept.amount}%` : formatCurrency(concept.amount)}
-                </TableCell>
+                <TableCell>{formatType(concept.type)}</TableCell>
+                <TableCell>{formatAmount(concept)}</TableCell>
+                <TableCell className="text-sm">{getTariffName(concept.applies_to_tariff_id)}</TableCell>
                 <TableCell>
                   <Badge variant={concept.is_active ? 'default' : 'secondary'}>
                     {concept.is_active ? 'Activo' : 'Inactivo'}
@@ -94,27 +115,28 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
-              <DropdownMenuTrigger render={
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              } />
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <EditConceptDialog
-                  concept={concept}
-                  trigger={
-                    <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
-                      Editar
-                    </DropdownMenuItem>
-                  }
-                />
-                <DropdownMenuItem onClick={() => handleToggleStatus(concept.id, concept.is_active)}>
-                  {concept.is_active ? 'Desactivar' : 'Activar'}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(concept.id)}>Eliminar</DropdownMenuItem>
-              </DropdownMenuContent>
+                    <DropdownMenuTrigger render={
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    } />
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                      <EditConceptDialog
+                        concept={concept}
+                        tariffs={tariffs}
+                        trigger={
+                          <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
+                            Editar
+                          </DropdownMenuItem>
+                        }
+                      />
+                      <DropdownMenuItem onClick={() => handleToggleStatus(concept.id, concept.is_active)}>
+                        {concept.is_active ? 'Desactivar' : 'Activar'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(concept.id)}>Eliminar</DropdownMenuItem>
+                    </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>

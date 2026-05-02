@@ -58,7 +58,7 @@ export class PaymentService {
 
     await this.receiptRepo.update(receiptId, {
       paid_amount: newPaidAmount,
-      status: isFullyPaid ? 'paid' : 'pending'
+      status: isFullyPaid ? 'paid' : 'partial'
     })
 
     const customer = await this.customerRepo.getById(customerId)

@@ -4,7 +4,7 @@ import { ReadingRepository } from '@/repositories/reading-repository'
 import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { ConceptRepository } from '@/repositories/concept-repository'
 import { AuditService } from '@/services/audit-service'
-import { calculateEnergyAmount } from '@/lib/billing-utils'
+import { calculateEnergyAmount, calculateTotalReceipt } from '@/lib/billing-utils'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
@@ -48,7 +48,12 @@ export class PeriodService {
   }
 
   async createNextPeriod() {
-    const lastPeriod = await this.periodRepo.getCurrentPeriod()
+    const openPeriod = await this.periodRepo.getCurrentPeriod()
+    if (openPeriod && !openPeriod.is_closed) {
+      throw new Error('No se puede crear un nuevo periodo mientras exista uno abierto')
+    }
+
+    const lastPeriod = await this.getLastPeriod()
     let nextYear, nextMonth
 
     if (lastPeriod) {
@@ -64,8 +69,28 @@ export class PeriodService {
       nextMonth = now.getMonth() + 1
     }
 
-    const periodData = this.calculatePeriodDates(nextYear, nextMonth)
+    const { data: config } = await this.supabase
+      .from('municipality_config')
+      .select('billing_cut_day')
+      .limit(1)
+      .single()
+
+    const cutDay = config?.billing_cut_day || 26
+    const periodData = this.calculatePeriodDates(nextYear, nextMonth, cutDay)
     return await this.periodRepo.create(periodData)
+  }
+
+  private async getLastPeriod() {
+    const { data, error } = await this.supabase
+      .from('billing_periods')
+      .select('*')
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
   }
 
   async getAllPeriods() {
@@ -81,68 +106,101 @@ export class PeriodService {
     if (!period) throw new Error('Periodo no encontrado')
     if (period.is_closed) throw new Error('El periodo ya está cerrado')
 
-    const customers = await this.customerRepo.searchCustomers('')
-    const activeCustomers = (customers as any[]).filter((c: any) => c.is_active)
+    const { data: config } = await this.supabase
+      .from('municipality_config')
+      .select('payment_grace_days')
+      .limit(1)
+      .single()
+
+    const graceDays = config?.payment_grace_days || 20
+
+    const { data: activeCustomersData } = await this.supabase
+      .from('customers')
+      .select('*, tariffs(*, tariff_tiers(*))')
+      .eq('is_active', true)
+
+    const activeCustomers = activeCustomersData || []
     const activeConcepts = await this.conceptRepo.getAllActive()
     const allReadings = await this.readingRepo.getReadingsByPeriod(id)
 
     let generatedCount = 0
+    const skippedCustomers: string[] = []
     const errors: string[] = []
 
     for (const customer of activeCustomers) {
       try {
-        const customerReading = (allReadings as any[]).find((r: any) => r.customer_id === customer.id)
-
-        if (!customerReading) continue
+        const customerReadings = (allReadings as any[]).filter((r: any) => r.customer_id === customer.id)
+        if (customerReadings.length === 0) {
+          skippedCustomers.push(customer.supply_number || customer.id)
+          continue
+        }
+        const customerReading = customerReadings.sort((a: any, b: any) =>
+          new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
+        )[0]
 
         const consumption = customerReading.consumption || 0
         const tariff = customer.tariffs
         const tiers = tariff?.tariff_tiers || []
 
-        let energyAmount = 0
-        if (tiers.length > 0) {
-          const sortedTiers = [...tiers].sort((a: any, b: any) => a.min_kwh - b.min_kwh)
-          energyAmount = calculateEnergyAmount(consumption, sortedTiers)
+    let fixedCharges = 0
+      let percentageBase = 0
+
+      for (const concept of activeConcepts) {
+        if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
+          continue
         }
 
-        let fixedCharges = 0
-        for (const concept of activeConcepts) {
-          if (concept.type === 'fixed') {
-            fixedCharges += concept.amount
-          } else if (concept.type === 'percentage') {
-            fixedCharges += (energyAmount * concept.amount) / 100
-          } else if (concept.type === 'per_kwh') {
-            fixedCharges += consumption * concept.amount
-          }
+        if (concept.type === 'fixed') {
+          fixedCharges += concept.amount
+        } else if (concept.type === 'per_kwh') {
+          fixedCharges += consumption * concept.amount
         }
-        fixedCharges = Math.round(fixedCharges * 100) / 100
+      }
 
-        const subtotal = Math.round((energyAmount + fixedCharges) * 100) / 100
-        const previousDebt = customer.current_debt || 0
-        const totalAmount = Math.round((subtotal + previousDebt) * 100) / 100
+      const sortedTiers = tiers.length > 0
+        ? [...tiers].sort((a: any, b: any) => a.min_kwh - b.min_kwh)
+        : []
 
-        const dueDate = new Date()
-        dueDate.setDate(dueDate.getDate() + 30)
+      percentageBase = (sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges
 
-        const receiptPayload: Database['public']['Tables']['receipts']['Insert'] = {
-          customer_id: customer.id,
-          billing_period_id: id,
-          reading_id: customerReading.id,
-          previous_reading: customerReading.previous_reading || 0,
-          current_reading: customerReading.current_reading || 0,
-          consumption_kwh: consumption,
-          period_start: period.start_date,
-          period_end: period.end_date,
-          energy_amount: energyAmount,
-          fixed_charges: fixedCharges,
-          subtotal: subtotal,
-          previous_debt: previousDebt,
-          total_amount: totalAmount,
-          paid_amount: 0,
-          status: 'pending',
-          issue_date: new Date().toISOString().split('T')[0],
-          due_date: dueDate.toISOString().split('T')[0],
+      for (const concept of activeConcepts) {
+        if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
+          continue
         }
+
+        if (concept.type === 'percentage') {
+          fixedCharges += (percentageBase * concept.amount) / 100
+        }
+      }
+
+      fixedCharges = Math.round(fixedCharges * 100) / 100
+      const previousDebt = customer.current_debt || 0
+
+      const receipt = calculateTotalReceipt(consumption, sortedTiers, fixedCharges, previousDebt)
+
+      const dueDate = new Date()
+      dueDate.setDate(dueDate.getDate() + graceDays)
+
+      const receiptPayload: Database['public']['Tables']['receipts']['Insert'] = {
+        customer_id: customer.id,
+        billing_period_id: id,
+        reading_id: customerReading.id,
+        previous_reading: customerReading.previous_reading || 0,
+        current_reading: customerReading.current_reading || 0,
+        consumption_kwh: consumption,
+        period_start: period.start_date,
+        period_end: period.end_date,
+        energy_amount: receipt.energy_amount,
+        fixed_charges: receipt.fixed_charges,
+        subtotal: receipt.subtotal,
+        igv: receipt.igv,
+        previous_debt: previousDebt,
+        total_amount: receipt.total_amount,
+        paid_amount: 0,
+        status: 'pending',
+        issue_date: new Date().toISOString().split('T')[0],
+        due_date: dueDate.toISOString().split('T')[0],
+      }
 
         await this.receiptRepo.create(receiptPayload)
 
@@ -165,13 +223,15 @@ export class PeriodService {
           table_name: 'billing_periods',
           record_id: id,
           action: 'UPDATE',
-          new_data: { is_closed: true, receipts_generated: generatedCount, errors },
+          new_data: { is_closed: true, receipts_generated: generatedCount, skipped: skippedCustomers.length, errors },
           user_id: userId
         })
-      } catch {}
+      } catch (e) {
+        console.error('Audit log failed for closePeriod:', e)
+      }
     }
 
-    return { period_id: id, receiptsGenerated: generatedCount, errors }
+    return { period_id: id, receiptsGenerated: generatedCount, skipped: skippedCustomers.length, errors }
   }
 }
 

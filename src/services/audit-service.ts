@@ -2,6 +2,8 @@ import { AuditRepository } from '@/repositories/audit-repository'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
+type AuditLogInsert = Database['public']['Tables']['audit_logs']['Insert']
+
 export class AuditService {
   private auditRepo: AuditRepository
 
@@ -13,15 +15,22 @@ export class AuditService {
     table_name: string
     record_id: string
     action: 'INSERT' | 'UPDATE' | 'DELETE'
-    old_data?: any
-    new_data?: any
+    old_data?: Record<string, unknown>
+    new_data?: Record<string, unknown>
     user_id?: string
     user_role?: string
+    ip_address?: string
   }) {
     await this.auditRepo.create({
-      ...data,
-      ip_address: '0.0.0.0'
-    } as any)
+      table_name: data.table_name,
+      record_id: data.record_id,
+      action: data.action,
+      old_data: data.old_data ?? null,
+      new_data: data.new_data ?? null,
+      user_id: data.user_id ?? null,
+      user_role: data.user_role ?? null,
+      ip_address: data.ip_address ?? 'server-side'
+    } as AuditLogInsert)
   }
 
   async getAuditLogs() {

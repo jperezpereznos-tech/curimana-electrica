@@ -1,15 +1,21 @@
 import { TariffRepository } from '@/repositories/tariff-repository'
+import { AuditService } from '@/services/audit-service'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type TierInsert = Omit<Database['public']['Tables']['tariff_tiers']['Insert'], 'id' | 'created_at' | 'tariff_id'>
 type TariffInsert = Omit<Database['public']['Tables']['tariffs']['Insert'], 'id' | 'created_at'>
 
 export class TariffService {
   private tariffRepo: TariffRepository
+  private auditSvc: AuditService
+  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.tariffRepo = new TariffRepository(supabaseClient)
+    this.auditSvc = new AuditService(supabaseClient)
+    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
   validateTiers(tiers: TierInsert[]): void {
@@ -42,32 +48,75 @@ export class TariffService {
     }
   }
 
-  async createTariffWithValidation(tariff: TariffInsert, tiers: TierInsert[]) {
+  async createTariffWithValidation(tariff: TariffInsert, tiers: TierInsert[], userId?: string) {
     this.validateTiers(tiers)
 
     const tiersWithOrder = [...tiers]
       .sort((a, b) => a.min_kwh - b.min_kwh)
       .map((t, index) => ({ ...t, order_index: index + 1 }))
 
-    return await this.tariffRepo.createTariffWithTiers(tariff, tiersWithOrder)
+    const result = await this.tariffRepo.createTariffWithTiers(tariff, tiersWithOrder)
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'tariffs',
+          record_id: result.id,
+          action: 'INSERT',
+          new_data: { name: tariff.name, tiers_count: tiers.length },
+          user_id: userId
+        })
+      } catch {}
+    }
+
+    return result
   }
 
   async getAllTariffs() {
     return await this.tariffRepo.getAllWithTiers()
   }
 
-  async toggleTariffStatus(id: string, isActive: boolean) {
-    return await this.tariffRepo.update(id, { is_active: isActive })
+  async toggleTariffStatus(id: string, isActive: boolean, userId?: string) {
+    const result = await this.tariffRepo.update(id, { is_active: isActive })
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'tariffs',
+          record_id: id,
+          action: 'UPDATE',
+          new_data: { is_active: isActive },
+          user_id: userId
+        })
+      } catch {}
+    }
+
+    return result
   }
 
-  async deleteTariff(id: string) {
-    return await this.tariffRepo.delete(id)
+  async deleteTariff(id: string, userId?: string) {
+    const result = await this.tariffRepo.delete(id)
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'tariffs',
+          record_id: id,
+          action: 'DELETE',
+          old_data: { id },
+          user_id: userId
+        })
+      } catch {}
+    }
+
+    return result
   }
 
   async updateTariffWithTiers(
     id: string,
     tariff: Partial<Omit<Database['public']['Tables']['tariffs']['Update'], 'id' | 'created_at'>>,
-    tiers: TierInsert[]
+    tiers: TierInsert[],
+    userId?: string
   ) {
     this.validateTiers(tiers)
 
@@ -75,7 +124,21 @@ export class TariffService {
       .sort((a, b) => a.min_kwh - b.min_kwh)
       .map((t, index) => ({ ...t, order_index: index + 1 }))
 
-    return await this.tariffRepo.updateTariffWithTiers(id, tariff, tiersWithOrder)
+    const result = await this.tariffRepo.updateTariffWithTiers(id, tariff, tiersWithOrder)
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'tariffs',
+          record_id: id,
+          action: 'UPDATE',
+          new_data: { ...tariff, tiers_count: tiers.length },
+          user_id: userId
+        })
+      } catch {}
+    }
+
+    return result
   }
 }
 

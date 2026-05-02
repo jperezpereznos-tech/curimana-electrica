@@ -1,5 +1,6 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getConceptService } from '@/services/concept-service'
+import { getTariffService } from '@/services/tariff-service'
 import { createClient } from '@/lib/supabase/server'
 import { ConceptsList } from './concepts-list'
 import { CreateConceptDialog } from './create-concept-dialog'
@@ -7,7 +8,11 @@ import { CreateConceptDialog } from './create-concept-dialog'
 export default async function ConceptsPage() {
   const supabase = await createClient()
   const conceptService = getConceptService(supabase)
-  const concepts = await conceptService.getAllConcepts()
+  const tariffService = getTariffService(supabase)
+  const [concepts, tariffs] = await Promise.all([
+    conceptService.getAllConcepts(),
+    tariffService.getAllTariffs()
+  ])
 
   return (
     <AdminLayout>
@@ -16,10 +21,10 @@ export default async function ConceptsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Conceptos de Cobro</h2>
           <p className="text-muted-foreground">Cargos fijos y variables adicionales al consumo.</p>
         </div>
-        <CreateConceptDialog />
+        <CreateConceptDialog tariffs={tariffs} />
       </div>
 
-      <ConceptsList initialConcepts={concepts} />
+      <ConceptsList initialConcepts={concepts} tariffs={tariffs} />
     </AdminLayout>
   )
 }

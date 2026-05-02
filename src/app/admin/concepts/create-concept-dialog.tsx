@@ -33,15 +33,20 @@ const conceptSchema = z.object({
   description: z.string().optional(),
   amount: z.number().min(0),
   type: z.enum(['fixed', 'percentage', 'per_kwh']),
+  applies_to_tariff_id: z.string().optional(),
 })
 
 type ConceptFormValues = z.infer<typeof conceptSchema>
 
-export function CreateConceptDialog() {
+interface CreateConceptDialogProps {
+  tariffs: any[]
+}
+
+export function CreateConceptDialog({ tariffs }: CreateConceptDialogProps) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
-  
+
   const form = useForm<ConceptFormValues>({
     resolver: zodResolver(conceptSchema),
     defaultValues: {
@@ -50,6 +55,7 @@ export function CreateConceptDialog() {
       description: '',
       amount: 0,
       type: 'fixed',
+      applies_to_tariff_id: 'all',
     },
   })
 
@@ -58,7 +64,8 @@ export function CreateConceptDialog() {
     try {
       await registerConceptAction({
         ...values,
-        is_active: true
+        is_active: true,
+        applies_to_tariff_id: values.applies_to_tariff_id === 'all' ? null : values.applies_to_tariff_id,
       })
       setOpen(false)
       form.reset()
@@ -86,13 +93,13 @@ export function CreateConceptDialog() {
           </DialogDescription>
         </DialogHeader>
 
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      {serverError && (
-        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-          {serverError}
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {serverError && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+              {serverError}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>
               <Input id="code" placeholder="Ej: ALUM" {...form.register('code')} />
@@ -127,13 +134,31 @@ export function CreateConceptDialog() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">Monto / Valor</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  {...form.register('amount', { valueAsNumber: true })}
-                />
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                {...form.register('amount', { valueAsNumber: true })}
+              />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Aplica a Tarifa</Label>
+            <Select
+              onValueChange={(val) => form.setValue('applies_to_tariff_id', val ?? 'all')}
+              defaultValue={form.getValues('applies_to_tariff_id')}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar tarifa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las tarifas</SelectItem>
+                {tariffs.map((t: any) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter className="mt-6">

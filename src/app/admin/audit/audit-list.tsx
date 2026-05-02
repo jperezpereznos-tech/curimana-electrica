@@ -13,7 +13,20 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Shield, Search } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+
+function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return '-'
+  const d = typeof date === 'string' ? new Date(date) : date
+  return new Intl.DateTimeFormat('es-PE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(d)
+}
 
 export function AuditList({ initialLogs }: { initialLogs: any[] }) {
   const [filter, setFilter] = useState('')
@@ -24,7 +37,9 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
     return (
       log.action?.toLowerCase().includes(q) ||
       log.table_name?.toLowerCase().includes(q) ||
-      log.record_id?.toLowerCase().includes(q)
+      log.record_id?.toLowerCase().includes(q) ||
+      log.user_id?.toLowerCase().includes(q) ||
+      log.user_role?.toLowerCase().includes(q)
     )
   })
 
@@ -52,13 +67,15 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
               <TableHead>Acción</TableHead>
               <TableHead>Tabla</TableHead>
               <TableHead>ID Registro</TableHead>
+              <TableHead>Usuario</TableHead>
+              <TableHead>Rol</TableHead>
               <TableHead>Detalle</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredLogs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                   No hay registros de auditoría disponibles.
                 </TableCell>
               </TableRow>
@@ -66,7 +83,7 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
               filteredLogs.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="font-mono text-xs">
-                    {formatDate(log.created_at || '')}
+                    {formatDateTime(log.created_at || '')}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -78,6 +95,14 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
                   <TableCell className="font-medium">{log.table_name}</TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {log.record_id?.substring(0, 8)}...
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {log.user_id ? log.user_id.substring(0, 8) + '...' : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {log.user_role ? (
+                      <Badge variant="outline" className="text-xs">{log.user_role}</Badge>
+                    ) : '-'}
                   </TableCell>
                   <TableCell>
                     <div className="max-w-[300px] truncate text-xs text-muted-foreground">

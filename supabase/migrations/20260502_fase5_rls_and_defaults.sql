@@ -132,3 +132,10 @@ ALTER TABLE billing_concepts
 ALTER TABLE billing_concepts
   ADD CONSTRAINT billing_concepts_type_check
   CHECK (type IN ('fixed', 'percentage', 'per_kwh'));
+
+-- ============================================================================
+-- 7. RECEIPTS: Agregar columna igv
+-- ============================================================================
+
+ALTER TABLE receipts
+ADD COLUMN IF NOT EXISTS igv NUMERIC DEFAULT 0;

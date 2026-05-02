@@ -1,18 +1,24 @@
 import { ReadingRepository } from '@/repositories/reading-repository'
+import { AuditService } from '@/services/audit-service'
 import { Database } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { storageService } from './storage-service'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type ReadingInsert = Database['public']['Tables']['readings']['Insert']
 
 export class ReadingService {
   private readingRepo: ReadingRepository
+  private auditSvc: AuditService
+  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.readingRepo = new ReadingRepository(supabaseClient)
+    this.auditSvc = new AuditService(supabaseClient)
+    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
-  async registerReading(data: Omit<ReadingInsert, 'consumption' | 'created_at' | 'needs_review'>) {
+  async registerReading(data: Omit<ReadingInsert, 'consumption' | 'created_at' | 'needs_review'>, userId?: string) {
     const previous = Number(data.previous_reading)
     const current = Number(data.current_reading)
 
@@ -23,11 +29,26 @@ export class ReadingService {
       console.warn('Meter reset detected for customer. Creating reading with zero consumption and marking for review.')
     }
 
-    return await this.readingRepo.create({
+    const reading = await this.readingRepo.create({
       ...data,
       consumption,
       needs_review: isMeterReset,
     })
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'readings',
+          record_id: reading.id,
+          action: 'INSERT',
+          new_data: { customer_id: data.customer_id, previous_reading: previous, current_reading: current, consumption, needs_review: isMeterReset },
+          user_id: userId,
+          user_role: 'meter_reader'
+        })
+      } catch {}
+    }
+
+    return reading
   }
 
   async getLatestReading(customerId: string) {

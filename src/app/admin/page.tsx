@@ -28,13 +28,12 @@ export default async function AdminDashboard() {
 
         {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <KPICard 
-            title="Recaudación del Mes" 
-            value={formatCurrency(kpis.totalCollected)} 
-            subtext="Pagos registrados en este mes"
-            icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
-            trend={12}
-          />
+        <KPICard
+          title="Recaudación del Mes"
+          value={formatCurrency(kpis.totalCollected)}
+          subtext="Pagos registrados en este mes"
+          icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+        />
           <KPICard 
             title="Deuda Pendiente" 
             value={formatCurrency(kpis.totalDebt)} 

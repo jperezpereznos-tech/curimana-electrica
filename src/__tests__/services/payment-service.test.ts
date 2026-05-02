@@ -73,7 +73,7 @@ describe('PaymentService - processPayment', () => {
 
     expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', {
       paid_amount: 40,
-      status: 'pending'
+      status: 'partial'
     })
     expect(CustomerRepository.prototype.update).toHaveBeenCalledWith('c1', {
       current_debt: 60

@@ -1,14 +1,20 @@
 import { CustomerRepository } from '@/repositories/customer-repository'
+import { AuditService } from '@/services/audit-service'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type CustomerInsert = Omit<Database['public']['Tables']['customers']['Insert'], 'id' | 'created_at' | 'updated_at'>
 
 export class CustomerService {
   private customerRepo: CustomerRepository
+  private auditSvc: AuditService
+  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.customerRepo = new CustomerRepository(supabaseClient)
+    this.auditSvc = new AuditService(supabaseClient)
+    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
   async searchCustomers(query: string) {
@@ -19,17 +25,44 @@ export class CustomerService {
     return await this.customerRepo.getCustomerDetails(id)
   }
 
-  async registerCustomer(customerData: Omit<CustomerInsert, 'supply_number'>) {
+  async registerCustomer(customerData: Omit<CustomerInsert, 'supply_number'>, userId?: string) {
     const supply_number = await this.customerRepo.generateSupplyNumber()
-
-    return await this.customerRepo.create({
+    const customer = await this.customerRepo.create({
       ...customerData,
       supply_number
     })
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'customers',
+          record_id: customer.id,
+          action: 'INSERT',
+          new_data: { supply_number, full_name: customerData.full_name },
+          user_id: userId
+        })
+      } catch {}
+    }
+
+    return customer
   }
 
-  async updateCustomer(id: string, customerData: Partial<CustomerInsert>) {
-    return await this.customerRepo.update(id, customerData)
+  async updateCustomer(id: string, customerData: Partial<CustomerInsert>, userId?: string) {
+    const customer = await this.customerRepo.update(id, customerData)
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'customers',
+          record_id: id,
+          action: 'UPDATE',
+          new_data: customerData,
+          user_id: userId
+        })
+      } catch {}
+    }
+
+    return customer
   }
 
   async getTopDebtors(limit: number = 5) {

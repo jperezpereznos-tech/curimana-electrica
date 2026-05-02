@@ -33,16 +33,18 @@ const conceptSchema = z.object({
   description: z.string().optional(),
   amount: z.number().min(0),
   type: z.enum(['fixed', 'percentage', 'per_kwh']),
+  applies_to_tariff_id: z.string().optional(),
 })
 
 type ConceptFormValues = z.infer<typeof conceptSchema>
 
 interface EditConceptDialogProps {
   concept: any
+  tariffs?: any[]
   trigger?: React.ReactNode
 }
 
-export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) {
+export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConceptDialogProps) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
@@ -55,6 +57,7 @@ export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) 
       description: concept.description || '',
       amount: concept.amount || 0,
       type: concept.type || 'fixed',
+      applies_to_tariff_id: concept.applies_to_tariff_id || 'all',
     },
   })
 
@@ -66,6 +69,7 @@ export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) 
         description: concept.description || '',
         amount: concept.amount || 0,
         type: concept.type || 'fixed',
+        applies_to_tariff_id: concept.applies_to_tariff_id || 'all',
       })
       setServerError(null)
     }
@@ -74,7 +78,10 @@ export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) 
   const onSubmit = async (values: ConceptFormValues) => {
     setServerError(null)
     try {
-      await updateConceptAction(concept.id, values)
+      await updateConceptAction(concept.id, {
+        ...values,
+        applies_to_tariff_id: values.applies_to_tariff_id === 'all' ? null : values.applies_to_tariff_id,
+      })
       setOpen(false)
       router.refresh()
     } catch (error: any) {
@@ -87,13 +94,13 @@ export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger nativeButton={!trigger} render={
-      (trigger || (
-        <Button variant="ghost" size="sm" className="gap-1">
-          <Pencil className="h-3 w-3" /> Editar
-        </Button>
-      )) as React.ReactElement
-    } />
+      <DialogTrigger nativeButton={!trigger} render={
+        (trigger || (
+          <Button variant="ghost" size="sm" className="gap-1">
+            <Pencil className="h-3 w-3" /> Editar
+          </Button>
+        )) as React.ReactElement
+      } />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar Concepto de Cobro</DialogTitle>
@@ -147,6 +154,23 @@ export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) 
                 {...form.register('amount', { valueAsNumber: true })}
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Aplica a Tarifa</Label>
+            <Select
+              onValueChange={(val) => form.setValue('applies_to_tariff_id', val ?? 'all')}
+              value={form.watch('applies_to_tariff_id') || 'all'}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar tarifa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las tarifas</SelectItem>
+                {tariffs.map((t: any) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

@@ -33,14 +33,15 @@ export function CustomersList({ initialCustomers, query, tariffs }: { initialCus
 
   const customers = useMemo(() => initialCustomers, [initialCustomers])
 
-  const handleDeactivate = async (id: string) => {
-    if (!confirm('¿Estás seguro de dar de baja este cliente?')) return
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    const msg = isActive ? '¿Estás seguro de dar de baja este cliente?' : '¿Estás seguro de reactivar este cliente?'
+    if (!confirm(msg)) return
     setActionError(null)
     try {
-      await updateCustomerAction(id, { is_active: false } as any)
+      await updateCustomerAction(id, { is_active: isActive } as any)
       router.refresh()
     } catch {
-      setActionError('Error al dar de baja el cliente.')
+      setActionError(isActive ? 'Error al dar de baja el cliente.' : 'Error al reactivar el cliente.')
     }
   }
 
@@ -140,10 +141,16 @@ export function CustomersList({ initialCustomers, query, tariffs }: { initialCus
                     </DropdownMenuItem>
                   }
                 />
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => handleDeactivate(customer.id)}>
-                  Dar de Baja
-                </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {customer.is_active ? (
+            <DropdownMenuItem className="text-destructive" onClick={() => handleToggleActive(customer.id, false)}>
+              Dar de Baja
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => handleToggleActive(customer.id, true)}>
+              Reactivar
+            </DropdownMenuItem>
+          )}
               </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

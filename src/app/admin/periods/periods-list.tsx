@@ -23,9 +23,9 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
   const [error, setError] = useState<string | null>(null)
 
   const handleClosePeriod = async (id: string) => {
-    // if (!confirm('¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas.')) {
-    //   return
-    // }
+    if (!confirm('¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas.')) {
+      return
+    }
 
     setError(null)
     setLoading(id)

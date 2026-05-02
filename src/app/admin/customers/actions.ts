@@ -6,20 +6,20 @@ import { revalidatePath } from 'next/cache'
 
 export async function registerCustomerAction(data: any) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const customerService = getCustomerService(supabase)
 
-  const result = await customerService.registerCustomer(data)
+  const result = await customerService.registerCustomer(data, user?.id)
   revalidatePath('/admin/customers')
   return result
 }
 
 export async function updateCustomerAction(id: string, data: any) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const customerService = getCustomerService(supabase)
 
-  const result = await customerService.updateCustomer(id, data)
+  const result = await customerService.updateCustomer(id, data, user?.id)
   revalidatePath('/admin/customers')
   return result
 }

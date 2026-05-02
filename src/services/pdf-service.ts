@@ -7,7 +7,7 @@ export class PdfService {
    * Genera el PDF del recibo eléctrico.
    */
   generateReceiptPdf(data: any) {
-    const { customer, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, previous_debt } = data
+    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, igv, previous_debt } = data
     
     const doc = new jsPDF()
     const primaryColor = [0, 102, 204] // Azul municipal
@@ -35,10 +35,10 @@ export class PdfService {
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
-    doc.text(`Suministro: ${customer.supply_number}`, 15, 60)
-    doc.text(`Cliente: ${customer.full_name}`, 15, 66)
-    doc.text(`Dirección: ${customer.address}`, 15, 72)
-    doc.text(`Sector: ${customer.sector}`, 15, 78)
+    doc.text(`Suministro: ${customers?.supply_number || ''}`, 15, 60)
+    doc.text(`Cliente: ${customers?.full_name || ''}`, 15, 66)
+    doc.text(`Dirección: ${customers?.address || ''}`, 15, 72)
+    doc.text(`Sector: ${customers?.sector || ''}`, 15, 78)
 
     doc.text(`Periodo: ${billing_periods.name}`, 140, 60)
     doc.text(`Vencimiento: ${formatDate(due_date)}`, 140, 66)
@@ -53,6 +53,7 @@ export class PdfService {
       body: [
         ['Consumo de Energía', formatCurrency(energy_amount).replace('S/ ', '')],
         ['Cargos Fijos y Otros', formatCurrency(fixed_charges).replace('S/ ', '')],
+        ['IGV (18%)', formatCurrency(igv || 0).replace('S/ ', '')],
         ['Deuda Anterior', formatCurrency(previous_debt).replace('S/ ', '')],
       ],
       theme: 'striped',
@@ -76,7 +77,7 @@ export class PdfService {
     doc.text('Si usted ya realizó el pago, por favor omita este recibo.', 105, footerY + 5, { align: 'center' })
 
     // Save
-    doc.save(`recibo_${customer.supply_number}_${billing_periods.name.replace(' ', '_')}.pdf`)
+    doc.save(`recibo_${customers?.supply_number || 'unknown'}_${(billing_periods?.name || 'periodo').replace(' ', '_')}.pdf`)
   }
 }
 

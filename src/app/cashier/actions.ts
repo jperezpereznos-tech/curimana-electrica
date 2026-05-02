@@ -19,7 +19,7 @@ export async function processPaymentAction(data: any) {
 
 export async function openClosureAction(userId: string, amount: number) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const cashClosureService = getCashClosureService(supabase)
 
   const result = await cashClosureService.openClosure(userId, amount)
@@ -29,10 +29,10 @@ export async function openClosureAction(userId: string, amount: number) {
 
 export async function closeClosureAction(closureId: string) {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   const cashClosureService = getCashClosureService(supabase)
 
-  const result = await cashClosureService.closeClosure(closureId)
+  const result = await cashClosureService.closeClosure(closureId, user?.id)
   revalidatePath('/cashier')
   return result
 }

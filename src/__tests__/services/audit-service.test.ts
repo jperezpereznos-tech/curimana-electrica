@@ -29,20 +29,20 @@ describe('AuditService', () => {
           table_name: 'receipts',
           record_id: 'r1',
           action: 'UPDATE',
-          ip_address: '0.0.0.0'
+          ip_address: 'server-side'
         })
       )
     })
 
-  it('debería lanzar error si el repositorio falla', async () => {
-    vi.spyOn(AuditRepository.prototype, 'create').mockRejectedValue(new Error('DB error'))
+    it('debería lanzar error si el repositorio falla', async () => {
+      vi.spyOn(AuditRepository.prototype, 'create').mockRejectedValue(new Error('DB error'))
 
-    await expect(service.log({
-      table_name: 'test',
-      record_id: '1',
-      action: 'INSERT'
-    })).rejects.toThrow('DB error')
-  })
+      await expect(service.log({
+        table_name: 'test',
+        record_id: '1',
+        action: 'INSERT'
+      })).rejects.toThrow('DB error')
+    })
   })
 
   describe('getAuditLogs', () => {

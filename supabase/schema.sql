@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   energy_amount NUMERIC NOT NULL,
   fixed_charges NUMERIC NOT NULL,
   subtotal NUMERIC NOT NULL,
+  igv NUMERIC DEFAULT 0,
   previous_debt NUMERIC DEFAULT 0,
   total_amount NUMERIC NOT NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),

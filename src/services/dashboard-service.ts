@@ -9,7 +9,6 @@ export class DashboardService {
   }
 
   async getSummaryKPIs() {
-    // 1. Recaudación Mes Actual (Pagos realizados en el mes actual)
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
     startOfMonth.setHours(0,0,0,0)
@@ -21,7 +20,6 @@ export class DashboardService {
 
     const totalCollected = payments?.reduce((sum, p) => sum + p.amount, 0) || 0
 
-    // 2. Deuda Total Pendiente
     const { data: customers } = await this.supabase
       .from('customers')
       .select('current_debt')
@@ -29,23 +27,33 @@ export class DashboardService {
 
     const totalDebt = customers?.reduce((sum, c) => sum + (c.current_debt || 0), 0) || 0
 
-    // 3. Cantidad de Clientes Activos
     const { count: activeCustomers } = await this.supabase
       .from('customers')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true)
 
-    // 4. Recibos Pendientes del Periodo Actual
-    const { count: pendingReceipts } = await this.supabase
-      .from('receipts')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending')
+    const { data: currentPeriod } = await this.supabase
+      .from('billing_periods')
+      .select('id')
+      .eq('is_closed', false)
+      .limit(1)
+      .maybeSingle()
+
+    let pendingReceipts = 0
+    if (currentPeriod) {
+      const { count } = await this.supabase
+        .from('receipts')
+        .select('*', { count: 'exact', head: true })
+        .eq('billing_period_id', currentPeriod.id)
+        .in('status', ['pending', 'partial'])
+      pendingReceipts = count || 0
+    }
 
     return {
       totalCollected,
       totalDebt,
       activeCustomers: activeCustomers || 0,
-      pendingReceipts: pendingReceipts || 0
+      pendingReceipts
     }
   }
 
