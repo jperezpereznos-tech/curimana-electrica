@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS billing_concepts (
   name TEXT NOT NULL,
   description TEXT,
   amount NUMERIC NOT NULL,
-  type TEXT DEFAULT 'fixed',
+  type TEXT DEFAULT 'fixed' CHECK (type IN ('fixed', 'percentage', 'per_kwh')),
   applies_to_tariff_id UUID REFERENCES tariffs(id),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS readings (
   photo_url TEXT,
   notes TEXT,
   is_estimated BOOLEAN DEFAULT false,
-  meter_reader_id UUID,
+  meter_reader_id UUID REFERENCES profiles(id),
   sync_id TEXT,
   is_synced BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
