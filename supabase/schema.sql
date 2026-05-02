@@ -295,6 +295,7 @@ CREATE TRIGGER on_auth_user_created
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   NEW.updated_at = now();
@@ -502,5 +503,3 @@ USING ((SELECT public.get_user_role()) = 'admin');
 CREATE POLICY "System insert logs" ON audit_logs
 FOR INSERT TO authenticated
 WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
-  FOR INSERT TO authenticated
-  WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
