@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { customerService } from '@/services/customer-service'
+import { registerCustomerAction } from './actions'
 
 const customerSchema = z.object({
   full_name: z.string().min(5, 'Nombre completo requerido'),
@@ -60,7 +60,7 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
   const onSubmit = async (values: CustomerFormValues) => {
     setServerError(null)
     try {
-      await customerService.registerCustomer({
+      await registerCustomerAction({
         ...values,
         is_active: true,
         current_debt: 0

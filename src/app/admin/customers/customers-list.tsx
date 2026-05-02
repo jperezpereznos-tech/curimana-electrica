@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
-import { customerService } from '@/services/customer-service'
+import { updateCustomerAction } from './actions'
 
 export function CustomersList({ initialCustomers, query }: { initialCustomers: any[], query: string }) {
   const [searchTerm, setSearchTerm] = useState(query)
@@ -39,7 +39,7 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
     if (!confirm('¿Estás seguro de dar de baja este cliente?')) return
     setActionError(null)
     try {
-      await customerService.updateCustomer(id, { is_active: false } as any)
+      await updateCustomerAction(id, { is_active: false } as any)
       setCustomers(prev => prev.map(c => c.id === id ? { ...c, is_active: false } : c))
     } catch {
       setActionError('Error al dar de baja el cliente.')
