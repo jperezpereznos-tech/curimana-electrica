@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { conceptService } from '@/services/concept-service'
+import { toggleConceptStatusAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 
 export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
@@ -30,10 +30,8 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
     try {
-      await conceptService.toggleConceptStatus(id, !currentStatus)
-      setConcepts(prev =>
-        prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c)
-      )
+      await toggleConceptStatusAction(id, !currentStatus)
+      setConcepts(prev => prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c))
     } catch {
       setActionError('Error al cambiar estado del concepto.')
     }

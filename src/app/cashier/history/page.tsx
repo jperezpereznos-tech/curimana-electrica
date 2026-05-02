@@ -24,7 +24,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import { paymentService } from '@/services/payment-service'
+import { getPaymentsByCashierAction } from '../actions'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -60,20 +60,9 @@ export default function CashierHistoryPage() {
 
     const dateFilterParams = getDateFilterParams(dateFilter)
 
-    paymentService.getPaymentsByCashier(user.id, dateFilterParams)
+    getPaymentsByCashierAction(user.id, dateFilterParams)
       .then((data) => {
-        if (cancelled) return
-        const formattedPayments = data?.map((p: any) => ({
-          id: p.id,
-          receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
-          customer_name: p.receipts?.customers?.full_name || 'Desconocido',
-          supply_number: p.receipts?.customers?.supply_number || 'N/A',
-          amount: p.amount,
-          payment_date: p.payment_date,
-          status: 'completed',
-          reference: p.reference
-        })) || []
-        setPayments(formattedPayments)
+        if (!cancelled) setPayments(data)
       })
       .catch(() => {})
       .finally(() => {

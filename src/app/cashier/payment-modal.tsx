@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CreditCard, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { paymentService } from '@/services/payment-service'
+import { processPaymentAction } from './actions'
 import { Database } from '@/types/database'
 
 type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
@@ -54,7 +54,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
 
     setLoading(true)
     try {
-      await paymentService.processPayment({
+      await processPaymentAction({
         receiptId: receipt.id,
         customerId: customer.id,
         cashClosureId: closureId,

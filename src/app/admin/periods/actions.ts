@@ -13,3 +13,12 @@ export async function closePeriodAction(id: string) {
   revalidatePath('/admin/periods')
   return result
 }
+
+export async function openNextPeriodAction() {
+  const supabase = await createClient()
+  const periodService = getPeriodService(supabase)
+  
+  const result = await periodService.createNextPeriod()
+  revalidatePath('/admin/periods')
+  return result
+}

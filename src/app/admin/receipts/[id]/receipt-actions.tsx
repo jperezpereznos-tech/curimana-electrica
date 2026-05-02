@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, Printer, XCircle } from 'lucide-react'
 import { pdfService } from '@/services/pdf-service'
-import { receiptService } from '@/services/receipt-service'
+import { cancelReceiptAction } from '../actions'
 import { useRouter } from 'next/navigation'
 
 export function ReceiptDetailActions({ receipt }: { receipt: any }) {
@@ -22,7 +22,7 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
 
     setCancelError(null)
     try {
-      await receiptService.cancelReceipt(receipt.id, 'Anulación administrativa')
+      await cancelReceiptAction(receipt.id, 'Anulación administrativa')
       router.refresh()
     } catch {
       setCancelError('Error al anular el recibo')

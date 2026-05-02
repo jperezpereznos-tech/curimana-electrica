@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { tariffService } from '@/services/tariff-service'
+import { toggleTariffStatusAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 
 interface TariffsListProps {
@@ -35,10 +35,8 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
     try {
-      await tariffService.toggleTariffStatus(id, !currentStatus)
-      setTariffs(prev =>
-        prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t)
-      )
+      await toggleTariffStatusAction(id, !currentStatus)
+      setTariffs(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t))
     } catch {
       setActionError('Error al cambiar estado de la tarifa.')
     }

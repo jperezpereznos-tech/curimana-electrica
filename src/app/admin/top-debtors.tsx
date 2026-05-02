@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, ChevronRight, Eye } from 'lucide-react'
-import { customerService } from '@/services/customer-service'
+import { getTopDebtorsAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -25,7 +25,7 @@ export function TopDebtors() {
   useEffect(() => {
     let cancelled = false
 
-    customerService.getTopDebtors(5)
+    getTopDebtorsAction(5)
       .then((data) => {
         if (!cancelled) setDebtors(data || [])
       })

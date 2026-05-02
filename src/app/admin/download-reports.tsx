@@ -10,8 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { FileDown, Loader2 } from 'lucide-react'
 import { downloadCSV } from '@/lib/report-utils'
-import { customerService } from '@/services/customer-service'
-import { receiptService } from '@/services/receipt-service'
+import { getCustomersWithDebtAction, getPaidReceiptsAction } from './actions'
 
 export function DownloadReports() {
   const [loading, setLoading] = useState(false)
@@ -21,7 +20,7 @@ export function DownloadReports() {
     setLoading(true)
     setError(null)
     try {
-      const customers = await customerService.getCustomersWithDebt()
+      const customers = await getCustomersWithDebtAction()
       const filtered = customers
         .filter(c => (c.current_debt ?? 0) > 0)
         .map(c => ({
@@ -43,7 +42,7 @@ export function DownloadReports() {
     setLoading(true)
     setError(null)
     try {
-      const receipts = await receiptService.getAllReceipts({ status: 'paid' })
+      const receipts = await getPaidReceiptsAction()
       const data = (receipts || []).map((r: any) => ({
         Recibo: r.receipt_number,
         Suministro: r.customers?.supply_number,

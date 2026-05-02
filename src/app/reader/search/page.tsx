@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Zap, ChevronRight } from 'lucide-react'
-import { customerService } from '@/services/customer-service'
+import { searchReaderCustomersAction } from '../actions'
 import Link from 'next/link'
 
 export default function SearchPage() {
@@ -23,7 +23,7 @@ export default function SearchPage() {
     setLoading(true)
     setSearched(true)
     try {
-      const customers = await customerService.searchCustomers(searchTerm)
+      const customers = await searchReaderCustomersAction(searchTerm)
       setResults(customers)
     } catch {
     } finally {

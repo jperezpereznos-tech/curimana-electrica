@@ -9,8 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Wifi, WifiOff, RefreshCcw, Camera, Search, List } from 'lucide-react'
 import Link from 'next/link'
 import { db } from '@/lib/db/dexie'
-import { readingService } from '@/services/reading-service'
-import { periodService } from '@/services/period-service'
+import { getReaderDashboardDataAction } from './actions'
 
 export default function ReaderDashboard() {
   const { isOnline, pendingSyncCount, syncNow } = useOfflineSync()
@@ -31,21 +30,12 @@ export default function ReaderDashboard() {
       .then(count => { if (!cancelled) setTodayCount(count) })
 
     if (navigator.onLine) {
-      readingService.getTodayReadingsCount()
-        .then(count => { if (!cancelled) setSyncedCount(count) })
-        .catch(() => {})
-
-      readingService.getActiveCustomersCount()
-        .then(count => { if (!cancelled) setActiveCustomers(count) })
-        .catch(() => {})
-
-      periodService.getCurrentPeriod()
-        .then(period => {
-          if (!cancelled && period) {
-            setPeriodInfo({
-              name: period.name,
-              endDate: period.end_date
-            })
+      getReaderDashboardDataAction()
+        .then(data => {
+          if (!cancelled) {
+            setSyncedCount(data.syncedCount)
+            setActiveCustomers(data.activeCustomers)
+            setPeriodInfo(data.period)
           }
         })
         .catch(() => {})

@@ -14,7 +14,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog'
 import { Lock, Unlock, PlayCircle, Loader2 } from 'lucide-react'
-import { cashClosureService } from '@/services/cash-closure-service'
+import { openClosureAction, closeClosureAction } from '../actions'
 
 export function ClosureActions({ action, closureId, userId }: { action: 'open' | 'close', closureId?: string, userId: string }) {
   const [open, setOpen] = useState(false)
@@ -33,7 +33,7 @@ export function ClosureActions({ action, closureId, userId }: { action: 'open' |
 
     setLoading(true)
     try {
-      await cashClosureService.openClosure(userId, amount)
+      await openClosureAction(userId, amount)
       setOpen(false)
       router.refresh()
     } catch {
@@ -50,7 +50,7 @@ export function ClosureActions({ action, closureId, userId }: { action: 'open' |
     setError(null)
     setLoading(true)
     try {
-      await cashClosureService.closeClosure(closureId!)
+      await closeClosureAction(closureId!)
       router.refresh()
     } catch {
       setError('Error al cerrar caja')

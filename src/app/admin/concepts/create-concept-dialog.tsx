@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { conceptService } from '@/services/concept-service'
+import { registerConceptAction } from './actions'
 
 const conceptSchema = z.object({
   code: z.string().min(2, 'Código requerido'),
@@ -56,7 +56,7 @@ export function CreateConceptDialog() {
   const onSubmit = async (values: ConceptFormValues) => {
     setServerError(null)
     try {
-      await conceptService.createConcept({
+      await registerConceptAction({
         ...values,
         is_active: true
       })

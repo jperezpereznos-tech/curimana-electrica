@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { tariffService } from '@/services/tariff-service'
+import { registerTariffAction } from './actions'
 
 const tierSchema = z.object({
   min_kwh: z.coerce.number().min(0),
@@ -62,7 +62,7 @@ export function CreateTariffDialog() {
   const onSubmit = async (values: any) => {
     setFormError(null)
     try {
-      await tariffService.createTariffWithValidation(
+      await registerTariffAction(
         { 
           name: values.name, 
           connection_type: values.connection_type,

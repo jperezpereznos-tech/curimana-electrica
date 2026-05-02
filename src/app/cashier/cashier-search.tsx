@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Search, User, MapPin, AlertCircle, Receipt } from 'lucide-react'
-import { customerService } from '@/services/customer-service'
-import { receiptService } from '@/services/receipt-service'
+import { searchCashierCustomerAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentModal } from './payment-modal'
 import { Database } from '@/types/database'
@@ -32,15 +31,12 @@ export function CashierSearch({ closureId }: { closureId: string }) {
     setLoading(true)
     setNotFound(false)
     try {
-      const results = await customerService.searchCustomers(q)
+      const result = await searchCashierCustomerAction(q)
       if (version !== searchVersionRef.current) return
 
-      if (results.length > 0) {
-        const cust = results[0]
-        setCustomer(cust)
-        const res = await receiptService.getAllReceipts({ supplyNumber: cust.supply_number, status: 'pending' })
-        if (version !== searchVersionRef.current) return
-        setReceipts((res as ReceiptItem[]) || [])
+      if (result) {
+        setCustomer(result.customer as any)
+        setReceipts(result.receipts as any)
       } else {
         setCustomer(null)
         setReceipts([])
