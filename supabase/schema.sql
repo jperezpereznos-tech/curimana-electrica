@@ -176,7 +176,6 @@ CREATE TABLE IF NOT EXISTS receipts (
   due_date DATE NOT NULL,
   paid_amount NUMERIC DEFAULT 0,
   paid_at TIMESTAMPTZ,
-  payment_id UUID,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

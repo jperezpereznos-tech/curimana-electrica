@@ -177,3 +177,9 @@ CREATE POLICY "Reader update own readings" ON readings
 FOR UPDATE TO authenticated
 USING (get_user_role() IN ('admin', 'meter_reader') AND meter_reader_id = auth.uid())
 WITH CHECK (get_user_role() IN ('admin', 'meter_reader'));
+
+-- ============================================================================
+-- 11. RECEIPTS: Drop orphan payment_id column (no FK, never used)
+-- ============================================================================
+
+ALTER TABLE receipts DROP COLUMN IF EXISTS payment_id;

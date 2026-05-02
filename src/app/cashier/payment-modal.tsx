@@ -42,7 +42,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
   const [open, setOpen] = useState(false)
   const [amountToPay, setAmountToPay] = useState(receipt.total_amount - (receipt.paid_amount || 0))
   const [received, setReceived] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card'>('cash')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

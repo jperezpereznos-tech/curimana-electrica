@@ -399,8 +399,7 @@ payments: {
         issue_date: string | null
         paid_amount: number | null
         paid_at: string | null
-        payment_id: string | null
-        period_end: string
+              period_end: string
         period_start: string
         previous_debt: number | null
         previous_reading: number
@@ -424,9 +423,8 @@ payments: {
         igv?: number | null
         issue_date?: string | null
         paid_amount?: number | null
-        paid_at?: string | null
-        payment_id?: string | null
-        period_end: string
+  paid_at?: string | null
+  period_end: string
         period_start: string
         previous_debt?: number | null
         previous_reading: number
@@ -450,9 +448,8 @@ payments: {
         igv?: number | null
         issue_date?: string | null
         paid_amount?: number | null
-        paid_at?: string | null
-        payment_id?: string | null
-        period_end?: string
+  paid_at?: string | null
+  period_end?: string
         period_start?: string
         previous_debt?: number | null
         previous_reading?: number

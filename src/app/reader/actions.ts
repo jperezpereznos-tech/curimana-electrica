@@ -5,9 +5,15 @@ import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
 import { getCustomerService } from '@/services/customer-service'
 
-export async function getReaderDashboardDataAction() {
+async function requireAuth() {
   const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+  return { supabase, userId: user.id }
+}
+
+export async function getReaderDashboardDataAction() {
+  const { supabase } = await requireAuth()
   const readingService = getReadingService(supabase)
   const periodService = getPeriodService(supabase)
 
@@ -28,15 +34,13 @@ export async function getReaderDashboardDataAction() {
 }
 
 export async function searchReaderCustomersAction(query: string) {
-  const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { supabase } = await requireAuth()
   const customerService = getCustomerService(supabase)
   return await customerService.searchCustomers(query)
 }
 
 export async function getLatestReadingAction(customerId: string) {
-  const supabase = await createClient()
-  await supabase.auth.getUser()
+  const { supabase } = await requireAuth()
   const readingService = getReadingService(supabase)
   const reading = await readingService.getLatestReading(customerId)
   return reading
