@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
+import { EditConceptDialog } from './edit-concept-dialog'
 
 export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
   const [concepts, setConcepts] = useState(initialConcepts)
@@ -94,14 +95,22 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               } />
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleToggleStatus(concept.id, concept.is_active)}>
-                        {concept.is_active ? 'Desactivar' : 'Activar'}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(concept.id)}>Eliminar</DropdownMenuItem>
-                    </DropdownMenuContent>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <EditConceptDialog
+                  concept={concept}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
+                      Editar
+                    </DropdownMenuItem>
+                  }
+                />
+                <DropdownMenuItem onClick={() => handleToggleStatus(concept.id, concept.is_active)}>
+                  {concept.is_active ? 'Desactivar' : 'Activar'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(concept.id)}>Eliminar</DropdownMenuItem>
+              </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>

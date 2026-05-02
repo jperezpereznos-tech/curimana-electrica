@@ -32,7 +32,7 @@ export function useOfflineSync() {
             address: c.address || '',
             sector: c.sector || '',
             tariff_id: c.tariff_id || '',
-            previous_reading: 0,
+            previous_reading: c.readings?.[0]?.current_reading || 0,
           }))
         )
       }

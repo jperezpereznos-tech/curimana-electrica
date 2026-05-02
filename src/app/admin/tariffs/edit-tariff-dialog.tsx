@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { registerTariffAction } from './actions'
+import { updateTariffAction } from './actions'
 
 const tierSchema = z.object({
   min_kwh: z.coerce.number().min(0),
@@ -39,16 +39,30 @@ const tariffSchema = z.object({
   tiers: z.array(tierSchema).min(1, 'Debe haber al menos un tramo'),
 })
 
-export function CreateTariffDialog() {
+interface EditTariffDialogProps {
+  tariff: any
+  trigger?: React.ReactNode
+}
+
+export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
   const [open, setOpen] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
   const router = useRouter()
-  
+
   const form = useForm({
     resolver: zodResolver(tariffSchema),
     defaultValues: {
-      name: '',
-      connection_type: 'monofásico' as const,
-      tiers: [{ min_kwh: 0, max_kwh: null, price_per_kwh: 0 }],
+      name: tariff.name || '',
+      connection_type: tariff.connection_type || 'monofásico',
+      tiers: tariff.tariff_tiers?.length
+        ? tariff.tariff_tiers
+            .sort((a: any, b: any) => a.order_index - b.order_index)
+            .map((t: any) => ({
+              min_kwh: t.min_kwh,
+              max_kwh: t.max_kwh,
+              price_per_kwh: t.price_per_kwh,
+            }))
+        : [{ min_kwh: 0, max_kwh: null, price_per_kwh: 0 }],
     },
   })
 
@@ -57,30 +71,44 @@ export function CreateTariffDialog() {
     name: 'tiers',
   })
 
-  const [formError, setFormError] = useState<string | null>(null)
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: tariff.name || '',
+        connection_type: tariff.connection_type || 'monofásico',
+        tiers: tariff.tariff_tiers?.length
+          ? tariff.tariff_tiers
+              .sort((a: any, b: any) => a.order_index - b.order_index)
+              .map((t: any) => ({
+                min_kwh: t.min_kwh,
+                max_kwh: t.max_kwh,
+                price_per_kwh: t.price_per_kwh,
+              }))
+          : [{ min_kwh: 0, max_kwh: null, price_per_kwh: 0 }],
+      })
+      setFormError(null)
+    }
+  }, [open, tariff, form])
 
   const onSubmit = async (values: any) => {
     setFormError(null)
     try {
-      await registerTariffAction(
-        { 
-          name: values.name, 
+      await updateTariffAction(
+        tariff.id,
+        {
+          name: values.name,
           connection_type: values.connection_type,
-          is_active: true
         },
         values.tiers.map((t: { min_kwh: number; max_kwh: number | null | undefined; price_per_kwh: number }, i: number) => ({
           ...t,
           max_kwh: t.max_kwh || null,
-          order_index: i + 1
+          order_index: i + 1,
         }))
       )
       setOpen(false)
-      form.reset()
-      setFormError(null)
       router.refresh()
     } catch (error: any) {
-      const msg = error.message || 'Error al crear la tarifa'
-      // Filter out internal lock errors and show a user-friendly message
+      const msg = error.message || 'Error al actualizar la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {
         setFormError('Error de conexión. Por favor intenta nuevamente.')
       } else {
@@ -91,37 +119,34 @@ export function CreateTariffDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" /> Nueva Tarifa
+    <DialogTrigger render={
+      (trigger || (
+        <Button variant="ghost" size="sm" className="gap-1">
+          <Pencil className="h-3 w-3" /> Editar
         </Button>
-      } />
+      )) as React.ReactElement
+    } />
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Crear Nueva Tarifa</DialogTitle>
+          <DialogTitle>Editar Tarifa</DialogTitle>
           <DialogDescription>
-            Define el nombre y los tramos de consumo para esta tarifa.
+            Modifica el nombre y los tramos de consumo para esta tarifa.
           </DialogDescription>
         </DialogHeader>
-
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre de la Tarifa</Label>
-              <Input
-                id="name"
-                placeholder="Ej: Residencial BTSB"
-                {...form.register('name')}
-              />
-              {form.formState.errors.name && (
-                <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+              <Input id="name" placeholder="Ej: Residencial BTSB" {...form.register('name')} />
+{form.formState.errors.name && (
+          <p className="text-xs text-destructive">{String(form.formState.errors.name.message)}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label>Tipo de Conexión</Label>
               <Select
                 onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as any)}
-                defaultValue={form.getValues('connection_type')}
+                value={form.watch('connection_type')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar tipo" />
@@ -133,7 +158,6 @@ export function CreateTariffDialog() {
               </Select>
             </div>
           </div>
-
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Tramos de Consumo</Label>
@@ -146,30 +170,19 @@ export function CreateTariffDialog() {
                 Agregar Tramo
               </Button>
             </div>
-
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-4 gap-2 items-end border p-3 rounded-lg bg-muted/50">
                 <div className="space-y-1">
                   <Label className="text-xs">Min kWh</Label>
-                  <Input
-                    type="number"
-                    {...form.register(`tiers.${index}.min_kwh`)}
-                  />
+                  <Input type="number" {...form.register(`tiers.${index}.min_kwh`)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Max kWh (vacio = ilimitado)</Label>
-                  <Input
-                    type="number"
-                    {...form.register(`tiers.${index}.max_kwh`)}
-                  />
+                  <Input type="number" {...form.register(`tiers.${index}.max_kwh`)} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Precio S/</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...form.register(`tiers.${index}.price_per_kwh`)}
-                  />
+                  <Input type="number" step="0.01" {...form.register(`tiers.${index}.price_per_kwh`)} />
                 </div>
                 <Button
                   type="button"
@@ -183,22 +196,20 @@ export function CreateTariffDialog() {
                 </Button>
               </div>
             ))}
-            {form.formState.errors.tiers && (
-              <p className="text-xs text-destructive">{form.formState.errors.tiers.message}</p>
+{form.formState.errors.tiers && (
+        <p className="text-xs text-destructive">{String(form.formState.errors.tiers.message)}</p>
             )}
           </div>
-
           {formError && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-md">
               {formError}
             </div>
           )}
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit">Guardar Tarifa</Button>
+            <Button type="submit">Guardar Cambios</Button>
           </DialogFooter>
         </form>
       </DialogContent>

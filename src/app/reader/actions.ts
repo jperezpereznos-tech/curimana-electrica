@@ -9,7 +9,7 @@ export async function getReaderDashboardDataAction() {
   const supabase = await createClient()
   const readingService = getReadingService(supabase)
   const periodService = getPeriodService(supabase)
-  
+
   const [syncedCount, activeCustomers, period] = await Promise.all([
     readingService.getTodayReadingsCount(),
     readingService.getActiveCustomersCount(),
@@ -30,4 +30,11 @@ export async function searchReaderCustomersAction(query: string) {
   const supabase = await createClient()
   const customerService = getCustomerService(supabase)
   return await customerService.searchCustomers(query)
+}
+
+export async function getLatestReadingAction(customerId: string) {
+  const supabase = await createClient()
+  const readingService = getReadingService(supabase)
+  const reading = await readingService.getLatestReading(customerId)
+  return reading
 }

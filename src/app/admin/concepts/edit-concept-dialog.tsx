@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Plus } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { registerConceptAction } from './actions'
+import { updateConceptAction } from './actions'
 
 const conceptSchema = z.object({
   code: z.string().min(2, 'Código requerido'),
@@ -37,62 +37,77 @@ const conceptSchema = z.object({
 
 type ConceptFormValues = z.infer<typeof conceptSchema>
 
-export function CreateConceptDialog() {
+interface EditConceptDialogProps {
+  concept: any
+  trigger?: React.ReactNode
+}
+
+export function EditConceptDialog({ concept, trigger }: EditConceptDialogProps) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
-  
+
   const form = useForm<ConceptFormValues>({
     resolver: zodResolver(conceptSchema),
     defaultValues: {
-      code: '',
-      name: '',
-      description: '',
-      amount: 0,
-      type: 'fixed',
+      code: concept.code || '',
+      name: concept.name || '',
+      description: concept.description || '',
+      amount: concept.amount || 0,
+      type: concept.type || 'fixed',
     },
   })
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        code: concept.code || '',
+        name: concept.name || '',
+        description: concept.description || '',
+        amount: concept.amount || 0,
+        type: concept.type || 'fixed',
+      })
+      setServerError(null)
+    }
+  }, [open, concept, form])
 
   const onSubmit = async (values: ConceptFormValues) => {
     setServerError(null)
     try {
-      await registerConceptAction({
-        ...values,
-        is_active: true
-      })
+      await updateConceptAction(concept.id, values)
       setOpen(false)
-      form.reset()
       router.refresh()
     } catch (error: any) {
       const msg = error?.code === '42501'
         ? 'No tiene permisos para realizar esta acción'
-        : (error.message || 'Error al crear el concepto')
+        : (error.message || 'Error al actualizar el concepto')
       setServerError(msg)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" /> Nuevo Concepto
+    <DialogTrigger render={
+      (trigger || (
+        <Button variant="ghost" size="sm" className="gap-1">
+          <Pencil className="h-3 w-3" /> Editar
         </Button>
-      } />
+      )) as React.ReactElement
+    } />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Crear Concepto de Cobro</DialogTitle>
+          <DialogTitle>Editar Concepto de Cobro</DialogTitle>
           <DialogDescription>
-            Configura un nuevo cargo para los recibos.
+            Modifica los datos del concepto &ldquo;{concept.name}&rdquo;.
           </DialogDescription>
         </DialogHeader>
-
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      {serverError && (
-        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-          {serverError}
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {serverError && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+              {serverError}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="code">Código</Label>
               <Input id="code" placeholder="Ej: ALUM" {...form.register('code')} />
@@ -102,18 +117,16 @@ export function CreateConceptDialog() {
               <Input id="name" placeholder="Ej: Alumbrado Público" {...form.register('name')} />
             </div>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="description">Descripción</Label>
             <Input id="description" {...form.register('description')} />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Tipo de Cargo</Label>
               <Select
                 onValueChange={(val) => form.setValue('type', (val ?? 'fixed') as any)}
-                defaultValue={form.getValues('type')}
+                value={form.watch('type')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar tipo" />
@@ -127,20 +140,19 @@ export function CreateConceptDialog() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">Monto / Valor</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  {...form.register('amount', { valueAsNumber: true })}
-                />
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                {...form.register('amount', { valueAsNumber: true })}
+              />
             </div>
           </div>
-
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit">Guardar Concepto</Button>
+            <Button type="submit">Guardar Cambios</Button>
           </DialogFooter>
         </form>
       </DialogContent>

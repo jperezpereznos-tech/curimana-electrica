@@ -12,7 +12,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async searchCustomers(query: string): Promise<Customer[]> {
     let queryBuilder = this.supabase
       .from('customers')
-      .select('*, tariffs(name, tariff_tiers(*))')
+      .select('*, tariffs(name, tariff_tiers(*)), readings(current_reading, reading_date)')
 
     if (query && query.length >= 2) {
       queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,supply_number.ilike.%${query}%,document_number.ilike.%${query}%`)
@@ -23,7 +23,15 @@ export class CustomerRepository extends BaseRepository<'customers'> {
       .limit(50)
 
     if (error) throw error
-    return data as any
+
+    const processed = (data as any[]).map((c: any) => ({
+      ...c,
+      readings: c.readings?.sort((a: any, b: any) =>
+        new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
+      ).slice(0, 1) || []
+    }))
+
+    return processed as any
   }
 
   async getCustomerDetails(id: string) {

@@ -63,6 +63,20 @@ export class TariffService {
   async deleteTariff(id: string) {
     return await this.tariffRepo.delete(id)
   }
+
+  async updateTariffWithTiers(
+    id: string,
+    tariff: Partial<Omit<Database['public']['Tables']['tariffs']['Update'], 'id' | 'created_at'>>,
+    tiers: TierInsert[]
+  ) {
+    this.validateTiers(tiers)
+
+    const tiersWithOrder = [...tiers]
+      .sort((a, b) => a.min_kwh - b.min_kwh)
+      .map((t, index) => ({ ...t, order_index: index + 1 }))
+
+    return await this.tariffRepo.updateTariffWithTiers(id, tariff, tiersWithOrder)
+  }
 }
 
 export const tariffService = new TariffService()

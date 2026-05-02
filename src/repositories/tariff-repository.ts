@@ -61,4 +61,37 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
 
     return newTariff
   }
+
+  async updateTariffWithTiers(
+    id: string,
+    tariff: Partial<Omit<Database['public']['Tables']['tariffs']['Update'], 'id' | 'created_at'>>,
+    tiers: Omit<Database['public']['Tables']['tariff_tiers']['Insert'], 'id' | 'created_at' | 'tariff_id'>[]
+  ) {
+    const { data: updatedTariff, error: tariffError } = await this.supabase
+      .from('tariffs')
+      .update(tariff)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (tariffError) throw tariffError
+
+    const { error: deleteTiersError } = await this.supabase
+      .from('tariff_tiers')
+      .delete()
+      .eq('tariff_id', id)
+
+    if (deleteTiersError) throw deleteTiersError
+
+    if (tiers.length > 0) {
+      const tiersToInsert = tiers.map(t => ({ ...t, tariff_id: id }))
+      const { error: tiersError } = await this.supabase
+        .from('tariff_tiers')
+        .insert(tiersToInsert)
+
+      if (tiersError) throw tiersError
+    }
+
+    return updatedTariff
+  }
 }

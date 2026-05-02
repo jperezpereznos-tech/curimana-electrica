@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toggleTariffStatusAction, deleteTariffAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
+import { EditTariffDialog } from './edit-tariff-dialog'
 
 interface TariffsListProps {
   initialTariffs: TariffWithTiers[]
@@ -105,14 +106,22 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               } />
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleToggleStatus(tariff.id, tariff.is_active ?? false)}>
-              {tariff.is_active ? 'Desactivar' : 'Activar'}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tariff.id)}>Eliminar</DropdownMenuItem>
-                    </DropdownMenuContent>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <EditTariffDialog
+                  tariff={tariff}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
+                      Editar
+                    </DropdownMenuItem>
+                  }
+                />
+                <DropdownMenuItem onClick={() => handleToggleStatus(tariff.id, tariff.is_active ?? false)}>
+                  {tariff.is_active ? 'Desactivar' : 'Activar'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tariff.id)}>Eliminar</DropdownMenuItem>
+              </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>

@@ -17,6 +17,13 @@ import { CreditCard, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { processPaymentAction } from './actions'
 import { Database } from '@/types/database'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
   billing_periods: {
@@ -35,11 +42,12 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
   const [open, setOpen] = useState(false)
   const [amountToPay, setAmountToPay] = useState(receipt.total_amount - (receipt.paid_amount || 0))
   const [received, setReceived] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const remaining = receipt.total_amount - (receipt.paid_amount || 0)
-  const change = Number(received) > amountToPay ? Number(received) - amountToPay : 0
+  const change = paymentMethod === 'cash' && Number(received) > amountToPay ? Number(received) - amountToPay : 0
 
   const handlePayment = async () => {
     setError(null)
@@ -54,15 +62,15 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
 
     setLoading(true)
     try {
-      await processPaymentAction({
-        receiptId: receipt.id,
-        customerId: customer.id,
-        cashClosureId: closureId,
-        amount: amountToPay,
-        paymentMethod: 'cash',
-        receivedAmount: Number(received) || amountToPay,
-        changeAmount: change
-      })
+    await processPaymentAction({
+      receiptId: receipt.id,
+      customerId: customer.id,
+      cashClosureId: closureId,
+      amount: amountToPay,
+      paymentMethod,
+      receivedAmount: Number(received) || amountToPay,
+      changeAmount: change
+    })
       
       setOpen(false)
       onSuccess()
@@ -75,11 +83,11 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button className="gap-2">
-          <CreditCard className="h-4 w-4" /> Cobrar
-        </Button>
-      } />
+    <DialogTrigger render={
+      <Button className="gap-2">
+        <CreditCard className="h-4 w-4" /> Cobrar
+      </Button>
+    } />
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Registrar Pago</DialogTitle>
@@ -109,47 +117,57 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
-            <Input 
-              id="amount" 
-              type="number" 
-              className="text-2xl font-bold"
-              value={amountToPay}
-              onChange={(e) => setAmountToPay(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
-            <Input 
-              id="received" 
-              type="number" 
-              placeholder="0.00"
-              value={received}
-              onChange={(e) => setReceived(e.target.value)}
-            />
-          </div>
-
-          {Number(received) > 0 && (
-            <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
-              <span className="font-medium">Vuelto:</span>
-              <span className="text-2xl font-black">{formatCurrency(change)}</span>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
+              <Input id="amount" type="number" className="text-2xl font-bold" value={amountToPay} onChange={(e) => setAmountToPay(Number(e.target.value))} />
             </div>
-          )}
-        </div>
+            <div className="space-y-2">
+              <Label>Método de Pago</Label>
+              <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val ?? 'cash')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Efectivo</SelectItem>
+                  <SelectItem value="transfer">Transferencia</SelectItem>
+                  <SelectItem value="card">Tarjeta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {paymentMethod === 'cash' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
+                <Input
+                  id="received"
+                  type="number"
+                  placeholder="0.00"
+                  value={received}
+                  onChange={(e) => setReceived(e.target.value)}
+                />
+              </div>
 
-        <DialogFooter>
-          <Button 
-            className="w-full h-12 text-lg gap-2" 
-            onClick={handlePayment} 
-            disabled={loading || !amountToPay}
-          >
-            {loading ? 'Procesando...' : (
-              <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
+              {Number(received) > 0 && (
+              <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
+                <span className="font-medium">Vuelto:</span>
+                <span className="text-2xl font-black">{formatCurrency(change)}</span>
+              </div>
+              )}
+            </>
             )}
-          </Button>
-        </DialogFooter>
+
+      <DialogFooter>
+        <Button
+          className="w-full h-12 text-lg gap-2"
+          onClick={handlePayment}
+          disabled={loading || !amountToPay}
+        >
+          {loading ? 'Procesando...' : (
+            <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
+          )}
+        </Button>
+      </DialogFooter>
+      </div>
       </DialogContent>
     </Dialog>
   )

@@ -68,7 +68,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
           <span className="text-xs font-medium text-muted-foreground uppercase">Periodo</span>
           <Select 
             defaultValue={currentFilters.period} 
-            onValueChange={(val) => updateFilters({ period: val })}
+            onValueChange={(val) => updateFilters({ period: val ?? 'all' })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Todos" />
@@ -86,7 +86,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
           <span className="text-xs font-medium text-muted-foreground uppercase">Estado</span>
           <Select 
             defaultValue={currentFilters.status} 
-            onValueChange={(val) => updateFilters({ status: val })}
+            onValueChange={(val) => updateFilters({ status: val ?? 'all' })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Todos" />

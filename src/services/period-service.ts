@@ -11,8 +11,6 @@ import { Database } from '@/types/database'
 import { format, subMonths, setDate } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-type ReceiptInsert = Omit<Database['public']['Tables']['receipts']['Insert'], 'receipt_number'>
-
 export class PeriodService {
   private periodRepo: PeriodRepository
   private customerRepo: CustomerRepository
@@ -86,14 +84,14 @@ export class PeriodService {
     const customers = await this.customerRepo.searchCustomers('')
     const activeCustomers = (customers as any[]).filter((c: any) => c.is_active)
     const activeConcepts = await this.conceptRepo.getAllActive()
+    const allReadings = await this.readingRepo.getReadingsByPeriod(id)
 
     let generatedCount = 0
     const errors: string[] = []
 
     for (const customer of activeCustomers) {
       try {
-        const readings = await this.readingRepo.getReadingsByPeriod(id)
-        const customerReading = (readings as any[]).find((r: any) => r.customer_id === customer.id)
+        const customerReading = (allReadings as any[]).find((r: any) => r.customer_id === customer.id)
 
         if (!customerReading) continue
 
@@ -126,7 +124,7 @@ export class PeriodService {
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 30)
 
-        const receiptPayload: ReceiptInsert = {
+        const receiptPayload: Database['public']['Tables']['receipts']['Insert'] = {
           customer_id: customer.id,
           billing_period_id: id,
           reading_id: customerReading.id,
@@ -146,7 +144,7 @@ export class PeriodService {
           due_date: dueDate.toISOString().split('T')[0],
         }
 
-        await this.receiptRepo.create(receiptPayload as any)
+        await this.receiptRepo.create(receiptPayload)
 
         generatedCount++
       } catch (error) {

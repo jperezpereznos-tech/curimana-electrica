@@ -25,8 +25,17 @@ export async function toggleTariffStatusAction(id: string, isActive: boolean) {
 export async function deleteTariffAction(id: string) {
   const supabase = await createClient()
   const tariffService = getTariffService(supabase)
-  
+
   const result = await tariffService.deleteTariff(id)
+  revalidatePath('/admin/tariffs')
+  return result
+}
+
+export async function updateTariffAction(id: string, tariff: any, tiers: any[]) {
+  const supabase = await createClient()
+  const tariffService = getTariffService(supabase)
+
+  const result = await tariffService.updateTariffWithTiers(id, tariff, tiers)
   revalidatePath('/admin/tariffs')
   return result
 }

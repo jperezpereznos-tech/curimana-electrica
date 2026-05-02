@@ -81,7 +81,7 @@ export default function ReadingRoutePage() {
         </div>
 
         {/* Filtro */}
-        <Select value={selectedSector} onValueChange={(val) => setSelectedSector(val || 'all')}>
+        <Select value={selectedSector} onValueChange={(val) => setSelectedSector(val ?? 'all')}>
           <SelectTrigger>
             <SelectValue placeholder="Filtrar por sector" />
           </SelectTrigger>

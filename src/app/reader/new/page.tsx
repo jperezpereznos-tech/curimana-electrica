@@ -11,6 +11,7 @@ import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check, Loader2 } from '
 import { CameraCapture } from '@/components/camera-capture'
 import { db } from '@/lib/db/dexie'
 import { customerService } from '@/services/customer-service'
+import { getLatestReadingAction } from '../actions'
 import Link from 'next/link'
 
 export default function NewReadingPage() {
@@ -60,6 +61,13 @@ function NewReadingContent() {
         const results = await customerService.searchCustomers(supply)
         const found = results?.find((c: any) => c.supply_number === supply)
         if (found) {
+          let previousReading = 0
+          try {
+            const latestReading = await getLatestReadingAction(found.id)
+            if (latestReading) {
+              previousReading = Number(latestReading.current_reading) || 0
+            }
+          } catch {}
           await db.customers_cache.put({
             id: found.id,
             supply_number: found.supply_number,
@@ -67,13 +75,13 @@ function NewReadingContent() {
             address: found.address || '',
             sector: found.sector || '',
             tariff_id: found.tariff_id || '',
-            previous_reading: 0,
+            previous_reading: previousReading,
           })
           setCustomer({
             id: found.id,
             full_name: found.full_name,
             address: found.address,
-            previous_reading: 0,
+            previous_reading: previousReading,
           })
         } else {
           setNotFound(true)

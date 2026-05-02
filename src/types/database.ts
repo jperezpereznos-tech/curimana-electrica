@@ -423,13 +423,13 @@ export type Database = {
           previous_debt?: number | null
           previous_reading: number
           reading_id?: string | null
-          receipt_number: number
-          status?: string | null
-          subtotal: number
-          total_amount: number
-          updated_at?: string | null
-        }
-        Update: {
+      receipt_number?: number
+      status?: string | null
+      subtotal: number
+      total_amount: number
+      updated_at?: string | null
+    }
+    Update: {
           billing_period_id?: string | null
           consumption_kwh?: number
           created_at?: string | null

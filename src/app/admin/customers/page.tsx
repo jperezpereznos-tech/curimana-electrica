@@ -27,7 +27,7 @@ export default async function CustomersPage({
         <CreateCustomerDialog tariffs={tariffs} />
       </div>
 
-      <CustomersList initialCustomers={customers} query={q || ''} />
+      <CustomersList initialCustomers={customers} query={q || ''} tariffs={tariffs} />
     </AdminLayout>
   )
 }

@@ -195,15 +195,15 @@ CREATE TABLE IF NOT EXISTS payments (
 
 -- Cierre de caja
 CREATE TABLE IF NOT EXISTS cash_closures (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  cashier_id UUID REFERENCES profiles(id),
-  closure_date DATE DEFAULT CURRENT_DATE,
-  opening_amount NUMERIC NOT NULL,
-  total_collected NUMERIC DEFAULT 0,
-  total_receipts INT DEFAULT 0,
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
-  closed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+cashier_id UUID REFERENCES profiles(id) DEFAULT auth.uid(),
+closure_date DATE DEFAULT CURRENT_DATE,
+opening_amount NUMERIC NOT NULL,
+total_collected NUMERIC DEFAULT 0,
+total_receipts INT DEFAULT 0,
+status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+closed_at TIMESTAMPTZ,
+created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Registro de auditoría
@@ -267,23 +267,31 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_is_closed BOOLEAN;
+v_is_closed BOOLEAN;
+v_user_role TEXT;
 BEGIN
-  SELECT is_closed INTO v_is_closed FROM billing_periods WHERE id = p_period_id;
+SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
 
-  IF NOT FOUND THEN
-    RETURN QUERY SELECT false, p_period_id::uuid;
-    RETURN;
-  END IF;
+IF v_user_role != 'admin' THEN
+RETURN QUERY SELECT false, p_period_id::uuid;
+RETURN;
+END IF;
 
-  IF v_is_closed THEN
-    RETURN QUERY SELECT false, p_period_id::uuid;
-    RETURN;
-  END IF;
+SELECT is_closed INTO v_is_closed FROM billing_periods WHERE id = p_period_id;
 
-  UPDATE billing_periods SET is_closed = true, closed_at = now() WHERE id = p_period_id;
+IF NOT FOUND THEN
+RETURN QUERY SELECT false, p_period_id::uuid;
+RETURN;
+END IF;
 
-  RETURN QUERY SELECT true, p_period_id::uuid;
+IF v_is_closed THEN
+RETURN QUERY SELECT false, p_period_id::uuid;
+RETURN;
+END IF;
+
+UPDATE billing_periods SET is_closed = true, closed_at = now() WHERE id = p_period_id;
+
+RETURN QUERY SELECT true, p_period_id::uuid;
 END;
 $$;
 
@@ -391,18 +399,30 @@ CREATE POLICY "roles_select_authenticated" ON roles
 
 -- ── profiles ──
 CREATE POLICY "Users can read own profile" ON profiles
-  FOR SELECT TO authenticated
-  USING ((SELECT auth.uid()) = id);
+FOR SELECT TO authenticated
+USING ((SELECT auth.uid()) = id);
+
+CREATE POLICY "Authenticated read all profiles" ON profiles
+FOR SELECT TO authenticated
+USING (true);
 
 CREATE POLICY "Users can update own profile" ON profiles
 FOR UPDATE TO authenticated
 USING ((SELECT auth.uid()) = id)
-WITH CHECK ((SELECT auth.uid()) = id AND role = (SELECT role FROM profiles WHERE id = auth.uid()));
+WITH CHECK ((SELECT auth.uid()) = id);
 
-CREATE POLICY "Admin can manage all profiles" ON profiles
-FOR ALL TO authenticated
-USING ((SELECT public.get_user_role()) = 'admin')
-WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+CREATE POLICY "Admin insert profiles" ON profiles
+FOR INSERT TO authenticated
+WITH CHECK (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'));
+
+CREATE POLICY "Admin update all profiles" ON profiles
+FOR UPDATE TO authenticated
+USING (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'))
+WITH CHECK (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'));
+
+CREATE POLICY "Admin delete profiles" ON profiles
+FOR DELETE TO authenticated
+USING (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = auth.uid() AND au.raw_app_meta_data->>'role' = 'admin'));
 
 -- ── municipality_config ──
 CREATE POLICY "Admin CRUD municipality_config" ON municipality_config
@@ -517,12 +537,17 @@ USING ((SELECT public.get_user_role()) = 'admin')
 WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Cashier insert closures" ON cash_closures
-  FOR INSERT TO authenticated
-  WITH CHECK (cashier_id = (SELECT auth.uid()) AND (SELECT public.get_user_role()) IN ('admin', 'cashier'));
+FOR INSERT TO authenticated
+WITH CHECK (cashier_id = (SELECT auth.uid()) AND (SELECT public.get_user_role()) IN ('admin', 'cashier'));
+
+CREATE POLICY "Cashier update own closures" ON cash_closures
+FOR UPDATE TO authenticated
+USING (cashier_id = (SELECT auth.uid()))
+WITH CHECK (cashier_id = (SELECT auth.uid()));
 
 CREATE POLICY "Cashier read own closures" ON cash_closures
-  FOR SELECT TO authenticated
-  USING (cashier_id = (SELECT auth.uid()) OR (SELECT public.get_user_role()) = 'admin');
+FOR SELECT TO authenticated
+USING (cashier_id = (SELECT auth.uid()) OR (SELECT public.get_user_role()) = 'admin');
 
 -- ── audit_logs ──
 CREATE POLICY "Admin read logs" ON audit_logs

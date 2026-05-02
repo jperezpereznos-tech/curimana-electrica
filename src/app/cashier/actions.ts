@@ -43,12 +43,16 @@ export async function searchCashierCustomerAction(query: string) {
   if (!results || results.length === 0) return null
 
   const customer = results[0]
-  const receipts = await receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'pending' })
 
-  return {
-    customer,
-    receipts: receipts || []
-  }
+  const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
+    receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'pending' }),
+    receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'partial' }),
+    receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'overdue' }),
+  ])
+
+  const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])]
+
+  return { customer, receipts }
 }
 
 export async function getPaymentsByCashierAction(userId: string, dateFilterParams: { from?: string; to?: string }) {

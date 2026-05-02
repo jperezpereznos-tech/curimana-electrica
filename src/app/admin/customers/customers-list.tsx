@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -24,23 +24,21 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
 import { updateCustomerAction } from './actions'
+import { EditCustomerDialog } from './edit-customer-dialog'
 
-export function CustomersList({ initialCustomers, query }: { initialCustomers: any[], query: string }) {
+export function CustomersList({ initialCustomers, query, tariffs }: { initialCustomers: any[], query: string, tariffs: any[] }) {
   const [searchTerm, setSearchTerm] = useState(query)
-  const [customers, setCustomers] = useState(initialCustomers)
   const [actionError, setActionError] = useState<string | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    setCustomers(initialCustomers)
-  }, [initialCustomers])
+  const customers = useMemo(() => initialCustomers, [initialCustomers])
 
   const handleDeactivate = async (id: string) => {
     if (!confirm('¿Estás seguro de dar de baja este cliente?')) return
     setActionError(null)
     try {
       await updateCustomerAction(id, { is_active: false } as any)
-      setCustomers(prev => prev.map(c => c.id === id ? { ...c, is_active: false } : c))
+      router.refresh()
     } catch {
       setActionError('Error al dar de baja el cliente.')
     }
@@ -128,19 +126,25 @@ export function CustomersList({ initialCustomers, query }: { initialCustomers: a
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               } />
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Opciones</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${customer.id}`}>
-              Ver Detalle
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push(`/admin/customers/${customer.id}?edit=true`)}>
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={() => handleDeactivate(customer.id)}>
-              Dar de Baja
-            </DropdownMenuItem>
-                      </DropdownMenuContent>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Opciones</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${customer.id}`}>
+                  Ver Detalle
+                </DropdownMenuItem>
+                <EditCustomerDialog
+                  customer={customer}
+                  tariffs={tariffs}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
+                      Editar
+                    </DropdownMenuItem>
+                  }
+                />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => handleDeactivate(customer.id)}>
+                  Dar de Baja
+                </DropdownMenuItem>
+              </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
