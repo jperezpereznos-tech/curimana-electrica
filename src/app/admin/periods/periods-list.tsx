@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, Lock, Unlock, PlayCircle } from 'lucide-react'
-import { periodService } from '@/services/period-service'
+import { closePeriodAction } from './actions'
 import { formatDate } from '@/lib/utils'
 
 export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
@@ -21,14 +21,14 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
   const [error, setError] = useState<string | null>(null)
 
   const handleClosePeriod = async (id: string) => {
-    if (!confirm('¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas.')) {
-      return
-    }
+    // if (!confirm('¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas.')) {
+    //   return
+    // }
 
     setError(null)
     setLoading(id)
     try {
-      const result = await periodService.closePeriod(id) as any
+      const result = await closePeriodAction(id) as any
       const generated = result?.receiptsGenerated ?? 0
       setPeriods(prev =>
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
