@@ -27,7 +27,7 @@ export default async function CustomerDetailsPage({
   const data = await customerService.getCustomerDetails(id)
 
   if (!data.customer) {
-    notFound()
+    return notFound()
   }
 
   const { customer, readings, receipts } = data

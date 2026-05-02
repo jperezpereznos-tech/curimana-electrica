@@ -69,6 +69,7 @@ export class PaymentService {
       })
     }
 
+  try {
     await this.auditSvc.log({
       table_name: 'payments',
       record_id: payment.id,
@@ -76,6 +77,7 @@ export class PaymentService {
       new_data: payment,
       user_id: closure.cashier_id
     })
+  } catch {}
 
     return payment
   }

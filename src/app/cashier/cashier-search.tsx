@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,17 +24,22 @@ export function CashierSearch({ closureId }: { closureId: string }) {
   const [receipts, setReceipts] = useState<ReceiptItem[]>([])
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const searchVersionRef = useRef(0)
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!q) return
+    const version = ++searchVersionRef.current
     setLoading(true)
     setNotFound(false)
     try {
       const results = await customerService.searchCustomers(q)
+      if (version !== searchVersionRef.current) return
+
       if (results.length > 0) {
         const cust = results[0]
         setCustomer(cust)
         const res = await receiptService.getAllReceipts({ supplyNumber: cust.supply_number, status: 'pending' })
+        if (version !== searchVersionRef.current) return
         setReceipts((res as ReceiptItem[]) || [])
       } else {
         setCustomer(null)
@@ -42,11 +47,14 @@ export function CashierSearch({ closureId }: { closureId: string }) {
         setNotFound(true)
       }
     } catch {
+      if (version !== searchVersionRef.current) return
       setNotFound(true)
     } finally {
-      setLoading(false)
+      if (version === searchVersionRef.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [q])
 
   return (
     <div className="space-y-6">

@@ -127,12 +127,12 @@ export function CreateConceptDialog() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">Monto / Valor</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                {...form.register('amount')}
-              />
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  {...form.register('amount', { valueAsNumber: true })}
+                />
             </div>
           </div>
 

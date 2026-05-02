@@ -30,7 +30,7 @@ export default async function ReceiptDetailsPage({
   const receipt = await receiptService.getReceiptDetails(id)
 
   if (!receipt) {
-    notFound()
+    return notFound()
   }
 
   return (

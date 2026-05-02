@@ -29,10 +29,10 @@ BEGIN
 
     -- 4. Tramos de Tarifa (escalonado)
     IF NOT EXISTS (SELECT 1 FROM tariff_tiers WHERE tariff_id = v_tariff_id) THEN
-        INSERT INTO tariff_tiers (tariff_id, min_kwh, max_kwh, price_per_kwh, order_index) VALUES
-        (v_tariff_id, 0, 30, 0.31, 1),
-        (v_tariff_id, 30, 100, 0.62, 2),
-        (v_tariff_id, 100, NULL, 0.64, 3);
+      INSERT INTO tariff_tiers (tariff_id, min_kwh, max_kwh, price_per_kwh, order_index) VALUES
+      (v_tariff_id, 0, 30, 0.31, 1),
+      (v_tariff_id, 31, 100, 0.62, 2),
+      (v_tariff_id, 101, NULL, 0.64, 3);
     END IF;
 
     -- 5. Conceptos de Cobro

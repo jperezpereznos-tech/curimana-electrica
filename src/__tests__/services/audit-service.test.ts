@@ -34,15 +34,15 @@ describe('AuditService', () => {
       )
     })
 
-    it('no debería lanzar error si el repositorio falla', async () => {
-      vi.spyOn(AuditRepository.prototype, 'create').mockRejectedValue(new Error('DB error'))
+  it('debería lanzar error si el repositorio falla', async () => {
+    vi.spyOn(AuditRepository.prototype, 'create').mockRejectedValue(new Error('DB error'))
 
-      await expect(service.log({
-        table_name: 'test',
-        record_id: '1',
-        action: 'INSERT'
-      })).resolves.toBeUndefined()
-    })
+    await expect(service.log({
+      table_name: 'test',
+      record_id: '1',
+      action: 'INSERT'
+    })).rejects.toThrow('DB error')
+  })
   })
 
   describe('getAuditLogs', () => {

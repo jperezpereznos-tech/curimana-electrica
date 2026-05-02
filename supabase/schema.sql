@@ -32,6 +32,7 @@ AS $$ SELECT role FROM public.profiles WHERE id = auth.uid() $$;
 REVOKE EXECUTE ON FUNCTION public.get_user_role() FROM anon;
 REVOKE EXECUTE ON FUNCTION public."current_role"() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.calculate_energy_amount(NUMERIC, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.close_billing_period(UUID) FROM anon;
 
 -- ============================================================================
 -- 2. TABLAS
@@ -229,32 +230,60 @@ LANGUAGE plpgsql
 SET search_path = public
 AS $$
 DECLARE
-    v_total NUMERIC := 0;
-    v_tier RECORD;
-    v_remaining NUMERIC := p_consumption;
-    v_tier_consumption NUMERIC;
+  v_total NUMERIC := 0;
+  v_tier RECORD;
+  v_remaining NUMERIC := p_consumption;
+  v_tier_consumption NUMERIC;
 BEGIN
-    FOR v_tier IN 
-        SELECT min_kwh, max_kwh, price_per_kwh 
-        FROM tariff_tiers 
-        WHERE tariff_id = p_tariff_id 
-        ORDER BY order_index ASC
-    LOOP
-        IF v_remaining <= 0 THEN
-            EXIT;
-        END IF;
+  FOR v_tier IN
+    SELECT min_kwh, max_kwh, price_per_kwh
+    FROM tariff_tiers
+    WHERE tariff_id = p_tariff_id
+    ORDER BY order_index ASC
+  LOOP
+    IF v_remaining <= 0 THEN
+      EXIT;
+    END IF;
 
-        IF v_tier.max_kwh IS NULL THEN
-            v_tier_consumption := v_remaining;
-        ELSE
-            v_tier_consumption := LEAST(v_remaining, v_tier.max_kwh - v_tier.min_kwh);
-        END IF;
+    IF v_tier.max_kwh IS NULL THEN
+      v_tier_consumption := v_remaining;
+    ELSE
+      v_tier_consumption := LEAST(v_remaining, v_tier.max_kwh - v_tier.min_kwh);
+    END IF;
 
-        v_total := v_total + (v_tier_consumption * v_tier.price_per_kwh);
-        v_remaining := v_remaining - v_tier_consumption;
-    END LOOP;
-    
-    RETURN ROUND(v_total, 2);
+    v_total := v_total + (v_tier_consumption * v_tier.price_per_kwh);
+    v_remaining := v_remaining - v_tier_consumption;
+  END LOOP;
+
+  RETURN ROUND(v_total, 2);
+END;
+$$;
+
+-- Función para cerrar un periodo de forma atómica (evita doble cierre)
+CREATE OR REPLACE FUNCTION public.close_billing_period(p_period_id UUID)
+RETURNS TABLE(success BOOLEAN, period_id UUID)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_is_closed BOOLEAN;
+BEGIN
+  SELECT is_closed INTO v_is_closed FROM billing_periods WHERE id = p_period_id;
+
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT false, p_period_id::uuid;
+    RETURN;
+  END IF;
+
+  IF v_is_closed THEN
+    RETURN QUERY SELECT false, p_period_id::uuid;
+    RETURN;
+  END IF;
+
+  UPDATE billing_periods SET is_closed = true, closed_at = now() WHERE id = p_period_id;
+
+  RETURN QUERY SELECT true, p_period_id::uuid;
 END;
 $$;
 

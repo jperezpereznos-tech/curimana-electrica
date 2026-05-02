@@ -597,20 +597,24 @@ export type Database = {
     Views: {
       [_ in never]: never
     }
-    Functions: {
-      calculate_energy_amount: {
-        Args: { p_consumption: number; p_tariff_id: string }
-        Returns: number
-      }
-      get_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      current_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+  Functions: {
+    calculate_energy_amount: {
+      Args: { p_consumption: number; p_tariff_id: string }
+      Returns: number
     }
+    get_user_role: {
+      Args: Record<PropertyKey, never>
+      Returns: string
+    }
+    current_role: {
+      Args: Record<PropertyKey, never>
+      Returns: string
+    }
+    close_billing_period: {
+      Args: { p_period_id: string }
+      Returns: { success: boolean; period_id: string }[]
+    }
+  }
     Enums: {
       [_ in never]: never
     }

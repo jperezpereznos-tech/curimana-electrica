@@ -18,14 +18,10 @@ export class AuditService {
     user_id?: string
     user_role?: string
   }) {
-    try {
-      await this.auditRepo.create({
-        ...data,
-        ip_address: '0.0.0.0'
-      })
-    } catch (error) {
-      console.error('Error recording audit log:', error)
-    }
+    await this.auditRepo.create({
+      ...data,
+      ip_address: '0.0.0.0'
+    } as any)
   }
 
   async getAuditLogs() {

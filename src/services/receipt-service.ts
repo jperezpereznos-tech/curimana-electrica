@@ -75,7 +75,8 @@ export class ReceiptService {
       })
     }
 
-    if (userId) {
+  if (userId) {
+    try {
       await this.auditSvc.log({
         table_name: 'receipts',
         record_id: id,
@@ -84,7 +85,8 @@ export class ReceiptService {
         new_data: { status: 'cancelled', reason },
         user_id: userId
       })
-    }
+    } catch {}
+  }
 
     return updatedReceipt
   }
