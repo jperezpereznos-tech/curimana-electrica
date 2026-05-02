@@ -75,6 +75,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .single()
 
     if (tariffError) throw tariffError
+    if (!updatedTariff) throw new Error(`Tariff update failed — no rows matched id ${id}`)
 
     const { error: deleteTiersError } = await this.supabase
       .from('tariff_tiers')

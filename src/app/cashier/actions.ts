@@ -9,8 +9,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function processPaymentAction(data: any) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const paymentService = getPaymentService(supabase)
-  
+
   const result = await paymentService.processPayment(data)
   revalidatePath('/cashier')
   return result
@@ -18,8 +19,9 @@ export async function processPaymentAction(data: any) {
 
 export async function openClosureAction(userId: string, amount: number) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const cashClosureService = getCashClosureService(supabase)
-  
+
   const result = await cashClosureService.openClosure(userId, amount)
   revalidatePath('/cashier')
   return result
@@ -27,8 +29,9 @@ export async function openClosureAction(userId: string, amount: number) {
 
 export async function closeClosureAction(closureId: string) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const cashClosureService = getCashClosureService(supabase)
-  
+
   const result = await cashClosureService.closeClosure(closureId)
   revalidatePath('/cashier')
   return result
@@ -36,6 +39,7 @@ export async function closeClosureAction(closureId: string) {
 
 export async function searchCashierCustomerAction(query: string) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const customerService = getCustomerService(supabase)
   const receiptService = getReceiptService(supabase)
 
@@ -57,8 +61,9 @@ export async function searchCashierCustomerAction(query: string) {
 
 export async function getPaymentsByCashierAction(userId: string, dateFilterParams: { from?: string; to?: string }) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const paymentService = getPaymentService(supabase)
-  
+
   const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
   return data?.map((p: any) => ({
     id: p.id,

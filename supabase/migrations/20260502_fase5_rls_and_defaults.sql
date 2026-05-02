@@ -27,15 +27,24 @@ DROP POLICY IF EXISTS "Users can read own profile" ON profiles;
 DROP POLICY IF EXISTS "Authenticated read all profiles" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 
--- Polísticas finales (solo 2, sin recursión posible)
+-- Polísticas finales (4, sin recursión posible — get_user_role es SECURITY DEFINER)
 CREATE POLICY "Authenticated read all profiles" ON profiles
-  FOR SELECT TO authenticated
-  USING (true);
+FOR SELECT TO authenticated
+USING (true);
 
 CREATE POLICY "Users can update own profile" ON profiles
-  FOR UPDATE TO authenticated
-  USING (id = auth.uid())
-  WITH CHECK (id = auth.uid());
+FOR UPDATE TO authenticated
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
+
+CREATE POLICY "Admin insert profiles" ON profiles
+FOR INSERT TO authenticated
+WITH CHECK (get_user_role() = 'admin');
+
+CREATE POLICY "Admin update all profiles" ON profiles
+FOR UPDATE TO authenticated
+USING (get_user_role() = 'admin')
+WITH CHECK (get_user_role() = 'admin');
 
 -- ============================================================================
 -- 2. CASH_CLOSURES: DEFAULT auth.uid() en cashier_id

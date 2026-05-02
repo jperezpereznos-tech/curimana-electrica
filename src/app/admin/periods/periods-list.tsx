@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -16,6 +17,7 @@ import { closePeriodAction } from './actions'
 import { formatDate } from '@/lib/utils'
 
 export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
+  const router = useRouter()
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,9 +32,10 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
     try {
       const result = await closePeriodAction(id) as any
       const generated = result?.receiptsGenerated ?? 0
-      setPeriods(prev =>
-        prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
-      )
+        setPeriods(prev =>
+          prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
+        )
+        router.refresh()
       alert(`Periodo cerrado exitosamente. Se generaron ${generated} recibos.`)
     } catch {
       setError('Error al cerrar el periodo.')

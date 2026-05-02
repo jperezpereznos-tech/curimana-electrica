@@ -6,8 +6,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function registerTariffAction(tariff: any, tiers: any[]) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
-  
+
   const result = await tariffService.createTariffWithValidation(tariff, tiers)
   revalidatePath('/admin/tariffs')
   return result
@@ -15,8 +16,9 @@ export async function registerTariffAction(tariff: any, tiers: any[]) {
 
 export async function toggleTariffStatusAction(id: string, isActive: boolean) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
-  
+
   const result = await tariffService.toggleTariffStatus(id, isActive)
   revalidatePath('/admin/tariffs')
   return result
@@ -24,6 +26,7 @@ export async function toggleTariffStatusAction(id: string, isActive: boolean) {
 
 export async function deleteTariffAction(id: string) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
 
   const result = await tariffService.deleteTariff(id)
@@ -33,6 +36,7 @@ export async function deleteTariffAction(id: string) {
 
 export async function updateTariffAction(id: string, tariff: any, tiers: any[]) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const tariffService = getTariffService(supabase)
 
   const result = await tariffService.updateTariffWithTiers(id, tariff, tiers)

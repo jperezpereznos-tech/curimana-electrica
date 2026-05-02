@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -25,6 +26,7 @@ import { formatCurrency } from '@/lib/utils'
 import { EditConceptDialog } from './edit-concept-dialog'
 
 export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
+  const router = useRouter()
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -33,6 +35,7 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
     try {
       await toggleConceptStatusAction(id, !currentStatus)
       setConcepts(prev => prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c))
+      router.refresh()
     } catch {
       setActionError('Error al cambiar estado del concepto.')
     }
@@ -44,6 +47,7 @@ export function ConceptsList({ initialConcepts }: { initialConcepts: any[] }) {
     try {
       await deleteConceptAction(id)
       setConcepts(prev => prev.filter(c => c.id !== id))
+      router.refresh()
     } catch {
       setActionError('Error al eliminar el concepto.')
     }

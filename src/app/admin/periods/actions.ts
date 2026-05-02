@@ -16,6 +16,7 @@ export async function closePeriodAction(id: string) {
 
 export async function openNextPeriodAction() {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const periodService = getPeriodService(supabase)
   
   const result = await periodService.createNextPeriod()

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { TariffWithTiers } from '@/repositories/tariff-repository'
 import {
   Table,
@@ -30,6 +31,7 @@ interface TariffsListProps {
 }
 
 export function TariffsList({ initialTariffs }: TariffsListProps) {
+  const router = useRouter()
   const [tariffs, setTariffs] = useState(initialTariffs)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -38,6 +40,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
     try {
       await toggleTariffStatusAction(id, !currentStatus)
       setTariffs(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t))
+      router.refresh()
     } catch {
       setActionError('Error al cambiar estado de la tarifa.')
     }
@@ -49,6 +52,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
     try {
       await deleteTariffAction(id)
       setTariffs(prev => prev.filter(t => t.id !== id))
+      router.refresh()
     } catch {
       setActionError('Error al eliminar la tarifa. Puede tener clientes asociados.')
     }

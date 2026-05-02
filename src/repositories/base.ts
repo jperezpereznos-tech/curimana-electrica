@@ -48,17 +48,29 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('No se pudo actualizar. Verifique que tiene permisos de administrador.')
+      }
+      throw error
+    }
+    if (!data) {
+      throw new Error('No se pudo actualizar el registro. Verifique permisos.')
+    }
     return data
   }
 
   async delete(id: string) {
-    const { error } = await this.supabase
+    const { data, error } = await this.supabase
       .from(this.tableName)
       .delete()
       .eq('id' as any, id)
+      .select()
 
     if (error) throw error
+    if (!data || data.length === 0) {
+      throw new Error('No se pudo eliminar el registro. Verifique permisos.')
+    }
     return true
   }
 }

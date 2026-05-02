@@ -6,8 +6,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function registerConceptAction(data: any) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const conceptService = getConceptService(supabase)
-  
+
   const result = await conceptService.createConcept(data)
   revalidatePath('/admin/concepts')
   return result
@@ -15,8 +16,9 @@ export async function registerConceptAction(data: any) {
 
 export async function toggleConceptStatusAction(id: string, isActive: boolean) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const conceptService = getConceptService(supabase)
-  
+
   const result = await conceptService.toggleConceptStatus(id, isActive)
   revalidatePath('/admin/concepts')
   return result
@@ -24,6 +26,7 @@ export async function toggleConceptStatusAction(id: string, isActive: boolean) {
 
 export async function deleteConceptAction(id: string) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const conceptService = getConceptService(supabase)
 
   const result = await conceptService.deleteConcept(id)
@@ -33,6 +36,7 @@ export async function deleteConceptAction(id: string) {
 
 export async function updateConceptAction(id: string, data: any) {
   const supabase = await createClient()
+  await supabase.auth.getUser()
   const conceptService = getConceptService(supabase)
 
   const result = await conceptService.updateConcept(id, data)
