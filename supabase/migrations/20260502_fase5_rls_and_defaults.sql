@@ -154,14 +154,16 @@ ADD COLUMN IF NOT EXISTS voided_at TIMESTAMPTZ;
 -- 9. STORAGE: Crear bucket reading-photos si no existe
 -- ============================================================================
 
-INSERT INTO storage.buckets (id, name, public, avif_auto_detection)
-VALUES ('reading-photos', 'reading-photos', true, false)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('reading-photos', 'reading-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Authenticated upload reading photos" ON storage.objects;
 CREATE POLICY "Authenticated upload reading photos" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'reading-photos' AND auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Public read reading photos" ON storage.objects;
 CREATE POLICY "Public read reading photos" ON storage.objects
 FOR SELECT TO public
 USING (bucket_id = 'reading-photos');
@@ -170,6 +172,7 @@ USING (bucket_id = 'reading-photos');
 -- 10. READINGS: Policy UPDATE para lectores (sus propias lecturas)
 -- ============================================================================
 
+DROP POLICY IF EXISTS "Reader update own readings" ON readings;
 CREATE POLICY "Reader update own readings" ON readings
 FOR UPDATE TO authenticated
 USING (get_user_role() IN ('admin', 'meter_reader') AND meter_reader_id = auth.uid())

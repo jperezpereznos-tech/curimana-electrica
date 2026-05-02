@@ -562,8 +562,8 @@ WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reade
 -- 6. STORAGE BUCKETS
 -- ============================================================================
 
-INSERT INTO storage.buckets (id, name, public, avif_auto_detection)
-VALUES ('reading-photos', 'reading-photos', true, false)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('reading-photos', 'reading-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "Authenticated upload reading photos" ON storage.objects
