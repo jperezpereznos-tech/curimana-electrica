@@ -169,62 +169,72 @@ export type Database = {
         }
         Relationships: []
       }
-      customers: {
-        Row: {
-          address: string
-          connection_type: string | null
-          created_at: string | null
-          current_debt: number | null
-          document_number: string | null
-          full_name: string
-          id: string
-          is_active: boolean | null
-          phone: string | null
-          sector: string | null
-          supply_number: string
-          tariff_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address: string
-          connection_type?: string | null
-          created_at?: string | null
-          current_debt?: number | null
-          document_number?: string | null
-          full_name: string
-          id?: string
-          is_active?: boolean | null
-          phone?: string | null
-          sector?: string | null
-          supply_number: string
-          tariff_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string
-          connection_type?: string | null
-          created_at?: string | null
-          current_debt?: number | null
-          document_number?: string | null
-          full_name?: string
-          id?: string
-          is_active?: boolean | null
-          phone?: string | null
-          sector?: string | null
-          supply_number?: string
-          tariff_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "customers_tariff_id_fkey"
-            columns: ["tariff_id"]
-            isOneToOne: false
-            referencedRelation: "tariffs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+customers: {
+  Row: {
+    address: string
+    connection_type: string | null
+    created_at: string | null
+    current_debt: number | null
+    document_number: string | null
+    full_name: string
+    id: string
+    is_active: boolean | null
+    phone: string | null
+    sector: string | null
+    sector_id: string | null
+    supply_number: string
+    tariff_id: string | null
+    updated_at: string | null
+  }
+  Insert: {
+    address: string
+    connection_type?: string | null
+    created_at?: string | null
+    current_debt?: number | null
+    document_number?: string | null
+    full_name: string
+    id?: string
+    is_active?: boolean | null
+    phone?: string | null
+    sector?: string | null
+    sector_id?: string | null
+    supply_number: string
+    tariff_id?: string | null
+    updated_at?: string | null
+  }
+  Update: {
+    address?: string
+    connection_type?: string | null
+    created_at?: string | null
+    current_debt?: number | null
+    document_number?: string | null
+    full_name?: string
+    id?: string
+    is_active?: boolean | null
+    phone?: string | null
+    sector?: string | null
+    sector_id?: string | null
+    supply_number?: string
+    tariff_id?: string | null
+    updated_at?: string | null
+  }
+  Relationships: [
+    {
+      foreignKeyName: "customers_tariff_id_fkey"
+      columns: ["tariff_id"]
+      isOneToOne: false
+      referencedRelation: "tariffs"
+      referencedColumns: ["id"]
+    },
+    {
+      foreignKeyName: "customers_sector_id_fkey"
+      columns: ["sector_id"]
+      isOneToOne: false
+      referencedRelation: "sectors"
+      referencedColumns: ["id"]
+    },
+  ]
+}
       municipality_config: {
         Row: {
           address: string
@@ -484,60 +494,97 @@ payments: {
           },
         ]
       }
-   profiles: {
-    Row: {
-      id: string
-      email: string
-      role: string | null
-      full_name: string | null
-      created_at: string | null
-      updated_at: string | null
+profiles: {
+  Row: {
+    id: string
+    email: string
+    role: string | null
+    full_name: string | null
+    assigned_sector_id: string | null
+    created_at: string | null
+    updated_at: string | null
+  }
+  Insert: {
+    id: string
+    email: string
+    role?: string | null
+    full_name?: string | null
+    assigned_sector_id?: string | null
+    created_at?: string | null
+    updated_at?: string | null
+  }
+  Update: {
+    id?: string
+    email?: string
+    role?: string | null
+    full_name?: string | null
+    assigned_sector_id?: string | null
+    created_at?: string | null
+    updated_at?: string | null
+  }
+  Relationships: [
+    {
+      foreignKeyName: "profiles_role_fkey"
+      columns: ["role"]
+      isOneToOne: false
+      referencedRelation: "roles"
+      referencedColumns: ["id"]
+    },
+    {
+      foreignKeyName: "profiles_assigned_sector_id_fkey"
+      columns: ["assigned_sector_id"]
+      isOneToOne: false
+      referencedRelation: "sectors"
+      referencedColumns: ["id"]
     }
-    Insert: {
-      id: string
-      email: string
-      role?: string | null
-      full_name?: string | null
-      created_at?: string | null
-      updated_at?: string | null
-    }
-    Update: {
-      id?: string
-      email?: string
-      role?: string | null
-      full_name?: string | null
-      created_at?: string | null
-      updated_at?: string | null
-    }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_role_fkey"
-            columns: ["role"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      roles: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-        }
-        Relationships: []
-      }
-      tariff_tiers: {
+  ]
+}
+roles: {
+  Row: {
+    created_at: string | null
+    description: string | null
+    id: string
+  }
+  Insert: {
+    created_at?: string | null
+    description?: string | null
+    id: string
+  }
+  Update: {
+    created_at?: string | null
+    description?: string | null
+    id?: string
+  }
+  Relationships: []
+}
+sectors: {
+  Row: {
+    id: string
+    name: string
+    code: string
+    description: string | null
+    is_active: boolean | null
+    created_at: string | null
+  }
+  Insert: {
+    id?: string
+    name: string
+    code: string
+    description?: string | null
+    is_active?: boolean | null
+    created_at?: string | null
+  }
+  Update: {
+    id?: string
+    name?: string
+    code?: string
+    description?: string | null
+    is_active?: boolean | null
+    created_at?: string | null
+  }
+  Relationships: []
+}
+tariff_tiers: {
         Row: {
           created_at: string | null
           id: string

@@ -28,7 +28,7 @@ import { EditCustomerDialog } from './edit-customer-dialog'
 
 const PAGE_SIZE = 25
 
-export function CustomersList({ initialCustomers, query, tariffs }: { initialCustomers: any[], query: string, tariffs: any[] }) {
+export function CustomersList({ initialCustomers, query, tariffs, sectors }: { initialCustomers: any[], query: string, tariffs: any[], sectors: any[] }) {
   const [searchTerm, setSearchTerm] = useState(query)
   const [actionError, setActionError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -111,7 +111,7 @@ export function CustomersList({ initialCustomers, query, tariffs }: { initialCus
                       <span className="text-xs text-muted-foreground">{customer.document_number}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{customer.sector}</TableCell>
+                  <TableCell>{customer.sectors?.name || customer.sector || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{customer.tariffs?.name || 'N/A'}</Badge>
                   </TableCell>
@@ -137,10 +137,11 @@ export function CustomersList({ initialCustomers, query, tariffs }: { initialCus
                 <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${customer.id}`}>
                   Ver Detalle
                 </DropdownMenuItem>
-                <EditCustomerDialog
-                  customer={customer}
-                  tariffs={tariffs}
-                  trigger={
+                    <EditCustomerDialog
+                      customer={customer}
+                      tariffs={tariffs}
+                      sectors={sectors}
+                      trigger={
                     <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
                       Editar
                     </DropdownMenuItem>

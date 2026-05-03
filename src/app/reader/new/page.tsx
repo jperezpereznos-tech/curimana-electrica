@@ -69,15 +69,16 @@ function NewReadingContent() {
               previousReading = Number(latestReading.current_reading) || 0
             }
           } catch {}
-          await db.customers_cache.put({
-            id: found.id,
-            supply_number: found.supply_number,
-            full_name: found.full_name,
-            address: found.address || '',
-            sector: found.sector || '',
-            tariff_id: found.tariff_id || '',
-            previous_reading: previousReading,
-          })
+        await db.customers_cache.put({
+          id: found.id,
+          supply_number: found.supply_number,
+          full_name: found.full_name,
+          address: found.address || '',
+          sector: found.sector || '',
+          sector_id: found.sector_id || '',
+          tariff_id: found.tariff_id || '',
+          previous_reading: previousReading,
+        })
             setCustomer({
               id: found.id,
               full_name: found.full_name,

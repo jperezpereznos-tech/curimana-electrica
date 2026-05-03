@@ -25,6 +25,7 @@ export interface CustomerCache {
   full_name: string
   address: string
   sector: string
+  sector_id: string
   tariff_id: string
   previous_reading: number
 }
@@ -37,7 +38,7 @@ export class CurimanaDB extends Dexie {
     super('CurimanaDB')
     this.version(1).stores({
       pending_readings: '++id, customer_id, supply_number, status',
-      customers_cache: 'id, supply_number, sector'
+      customers_cache: 'id, supply_number, sector, sector_id'
     })
   }
 }

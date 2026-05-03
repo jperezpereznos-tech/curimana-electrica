@@ -12,6 +12,18 @@ async function requireAuth() {
   return { supabase, userId: user.id }
 }
 
+export async function getReaderAssignedSectorAction() {
+  const { supabase, userId } = await requireAuth()
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('assigned_sector_id, sectors:id!profiles_assigned_sector_id_fkey(id, name, code)')
+    .eq('id', userId)
+    .single()
+
+  if (error) throw error
+  return profile as any
+}
+
 export async function getReaderDashboardDataAction() {
   const { supabase } = await requireAuth()
   const readingService = getReadingService(supabase)

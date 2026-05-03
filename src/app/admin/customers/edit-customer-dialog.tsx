@@ -31,7 +31,7 @@ const customerSchema = z.object({
   full_name: z.string().min(5, 'Nombre completo requerido'),
   document_number: z.string().min(8, 'DNI/RUC inválido'),
   address: z.string().min(5, 'Dirección requerida'),
-  sector: z.string().min(1, 'Sector requerido'),
+  sector_id: z.string().min(1, 'Sector requerido'),
   phone: z.string().optional(),
   tariff_id: z.string().min(1, 'Tarifa requerida'),
   connection_type: z.enum(['monofásico', 'trifásico']),
@@ -42,26 +42,27 @@ type CustomerFormValues = z.infer<typeof customerSchema>
 interface EditCustomerDialogProps {
   customer: any
   tariffs: any[]
+  sectors: any[]
   trigger?: React.ReactNode
 }
 
-export function EditCustomerDialog({ customer, tariffs, trigger }: EditCustomerDialogProps) {
+export function EditCustomerDialog({ customer, tariffs, sectors, trigger }: EditCustomerDialogProps) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
-    defaultValues: {
-      full_name: customer.full_name || '',
-      document_number: customer.document_number || '',
-      address: customer.address || '',
-      sector: customer.sector || '',
-      phone: customer.phone || '',
-      tariff_id: customer.tariff_id || '',
-      connection_type: customer.connection_type || 'monofásico',
-    },
-  })
+  defaultValues: {
+    full_name: customer.full_name || '',
+    document_number: customer.document_number || '',
+    address: customer.address || '',
+    sector_id: customer.sector_id || '',
+    phone: customer.phone || '',
+    tariff_id: customer.tariff_id || '',
+    connection_type: customer.connection_type || 'monofásico',
+  },
+})
 
   useEffect(() => {
     if (open) {
@@ -69,7 +70,7 @@ export function EditCustomerDialog({ customer, tariffs, trigger }: EditCustomerD
         full_name: customer.full_name || '',
         document_number: customer.document_number || '',
         address: customer.address || '',
-        sector: customer.sector || '',
+        sector_id: customer.sector_id || '',
         phone: customer.phone || '',
         tariff_id: customer.tariff_id || '',
         connection_type: customer.connection_type || 'monofásico',
@@ -133,8 +134,22 @@ export function EditCustomerDialog({ customer, tariffs, trigger }: EditCustomerD
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sector">Sector / Barrio</Label>
-              <Input id="sector" placeholder="Ej: Sector 2" {...form.register('sector')} />
+              <Label>Sector</Label>
+              <Select
+                onValueChange={(val) => form.setValue('sector_id', (val ?? '') as string)}
+                value={form.watch('sector_id')}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar">
+                    {sectors.find(s => s.id === form.watch('sector_id'))?.name}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {sectors.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Dirección</Label>

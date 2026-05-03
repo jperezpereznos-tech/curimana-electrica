@@ -45,12 +45,23 @@ CREATE TABLE IF NOT EXISTS roles (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Sectores del distrito (para rutas de lectura)
+CREATE TABLE IF NOT EXISTS sectors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  code TEXT NOT NULL UNIQUE,
+  description TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Perfiles de usuario (vinculados a auth.users)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   full_name TEXT,
   role TEXT DEFAULT 'meter_reader' REFERENCES roles(id),
+  assigned_sector_id UUID REFERENCES sectors(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -108,6 +119,7 @@ CREATE TABLE IF NOT EXISTS customers (
   document_number TEXT,
   address TEXT NOT NULL,
   sector TEXT,
+  sector_id UUID REFERENCES sectors(id),
   phone TEXT,
   tariff_id UUID REFERENCES tariffs(id),
   connection_type TEXT DEFAULT 'monofásico',
@@ -422,6 +434,8 @@ CREATE INDEX IF NOT EXISTS idx_tariff_tiers_tariff_id ON tariff_tiers(tariff_id)
 CREATE INDEX IF NOT EXISTS idx_cash_closures_cashier_status ON cash_closures(cashier_id, status);
 CREATE INDEX IF NOT EXISTS idx_payments_cashier_id ON payments(cashier_id);
 CREATE INDEX IF NOT EXISTS idx_customers_sector ON customers(sector);
+CREATE INDEX IF NOT EXISTS idx_customers_sector_id ON customers(sector_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_assigned_sector_id ON profiles(assigned_sector_id);
 CREATE INDEX IF NOT EXISTS idx_customers_is_active ON customers(is_active);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_readings_customer_date ON readings(customer_id, reading_date DESC);
@@ -431,6 +445,7 @@ CREATE INDEX IF NOT EXISTS idx_readings_customer_date ON readings(customer_id, r
 -- ============================================================================
 
 ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sectors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE municipality_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tariffs ENABLE ROW LEVEL SECURITY;
@@ -452,6 +467,16 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "roles_select_authenticated" ON roles
   FOR SELECT TO authenticated
   USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+
+-- ── sectors ──
+CREATE POLICY "Admin CRUD sectors" ON sectors
+  FOR ALL TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin')
+  WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Users read sectors" ON sectors
+  FOR SELECT TO authenticated
+  USING (true);
 
 -- ── profiles ──
 CREATE POLICY "Authenticated read all profiles" ON profiles

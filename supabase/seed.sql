@@ -10,7 +10,15 @@ INSERT INTO roles (id, description) VALUES
 ('meter_reader', 'Lecturista - Registro de consumos en campo')
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Configuración Municipal
+-- 2. Sectores del distrito de Curimaná
+INSERT INTO sectors (name, code, description) VALUES
+('Sector 1 - Centro', 'S1', 'Zona central del distrito'),
+('Sector 2 - Comercio', 'S2', 'Zona comercial'),
+('Sector 3 - Residencial', 'S3', 'Zona residencial'),
+('Sector 4 - Rural', 'S4', 'Zona rural y anexos')
+ON CONFLICT (code) DO NOTHING;
+
+-- 3. Configuración Municipal
 INSERT INTO municipality_config (ruc, name, address, billing_cut_day, payment_grace_days)
 SELECT '20123456789', 'Municipalidad Distrital de Curimana', 'Plaza de Armas S/N, Curimana', 26, 20
 WHERE NOT EXISTS (SELECT 1 FROM municipality_config);
@@ -43,14 +51,23 @@ BEGIN
     ('IGV', 'IGV (18%)', 18.00, 'percentage', NULL)
     ON CONFLICT (code) DO NOTHING;
 
-    -- 6. Clientes de Prueba
-    INSERT INTO customers (full_name, supply_number, address, sector, tariff_id, connection_type) VALUES
+-- 6. Clientes de Prueba
+  INSERT INTO customers (full_name, supply_number, address, sector, sector_id, tariff_id, connection_type)
+  SELECT c.full_name, c.supply_number, c.address, c.sector, s.id, c.tariff_id, c.connection_type
+  FROM (VALUES
     ('Juan Perez Garcia', '100000001', 'Jr. Lima 123', 'Sector 1', v_tariff_id, 'monofásico'),
     ('Maria Rodriguez Soto', '100000002', 'Av. Ucayali 456', 'Sector 1', v_tariff_id, 'monofásico'),
     ('Carlos Mendoza Ruiz', '100000003', 'Calle Comercio 789', 'Sector 2', v_tariff_id, 'monofásico'),
     ('Ana Torres Vila', '100000004', 'Jr. Iquitos 321', 'Sector 2', v_tariff_id, 'monofásico'),
     ('Luis Quispe Huaman', '100000005', 'Av. Principal 101', 'Sector 3', v_tariff_id, 'monofásico')
-    ON CONFLICT (supply_number) DO NOTHING;
+  ) AS c(full_name, supply_number, address, sector, tariff_id, connection_type)
+  JOIN sectors s ON s.code = CASE c.sector
+    WHEN 'Sector 1' THEN 'S1'
+    WHEN 'Sector 2' THEN 'S2'
+    WHEN 'Sector 3' THEN 'S3'
+    ELSE 'S1'
+  END
+  WHERE NOT EXISTS (SELECT 1 FROM customers WHERE supply_number = c.supply_number);
 
 END $$;
 

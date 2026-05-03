@@ -12,7 +12,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async searchCustomers(query: string): Promise<Customer[]> {
     let queryBuilder = this.supabase
       .from('customers')
-      .select('*, tariffs(name, tariff_tiers(*)), readings(current_reading, reading_date)')
+      .select('*, tariffs(name, tariff_tiers(*)), sectors(id, name, code), readings(current_reading, reading_date)')
 
     if (query && query.length >= 2) {
       queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,supply_number.ilike.%${query}%,document_number.ilike.%${query}%`)
@@ -97,7 +97,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getActiveCustomersWithReadings() {
     const { data, error } = await this.supabase
       .from('customers')
-      .select('id, supply_number, full_name, address, sector, is_active, readings(id, reading_date)')
+      .select('id, supply_number, full_name, address, sector, sector_id, is_active, readings(id, reading_date), sectors(id, name, code)')
       .eq('is_active', true)
       .order('sector', { ascending: true })
       .order('full_name', { ascending: true })
@@ -109,7 +109,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getAllForCache() {
     const { data, error } = await this.supabase
       .from('customers')
-      .select('id, supply_number, full_name, address, sector, tariff_id, is_active, readings(current_reading, reading_date)')
+      .select('id, supply_number, full_name, address, sector, sector_id, tariff_id, is_active, readings(current_reading, reading_date)')
       .eq('is_active', true)
       .order('full_name', { ascending: true })
 
@@ -125,6 +125,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
         full_name: c.full_name,
         address: c.address || '',
         sector: c.sector || '',
+        sector_id: c.sector_id || '',
         tariff_id: c.tariff_id || '',
         previous_reading: latestReading?.current_reading || 0,
       }
