@@ -13,7 +13,8 @@ import {
   Calendar,
   Tag,
   ClipboardList,
-  MapPin
+  MapPin,
+  Shield
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -27,6 +28,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { name: 'Panel', href: '/admin', icon: LayoutDashboard },
+  { name: 'Usuarios', href: '/admin/users', icon: Shield },
   { name: 'Clientes', href: '/admin/customers', icon: Users },
   { name: 'Sectores', href: '/admin/sectors', icon: MapPin },
   { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
