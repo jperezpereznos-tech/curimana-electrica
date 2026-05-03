@@ -16,8 +16,9 @@ export function useOfflineSync() {
   const { user } = useAuth()
 
   const updateCounter = useCallback(async () => {
-    const count = await db.pending_readings.where('status').equals('pending').count()
-    setPendingCount(count)
+    const pending = await db.pending_readings
+      .where('status').anyOf(['pending', 'failed']).count()
+    setPendingCount(pending)
   }, [])
 
   const syncCustomerCache = useCallback(async () => {
@@ -38,14 +39,21 @@ export function useOfflineSync() {
 
     setSyncStatus('syncing')
 
+    // Reset failed readings back to pending so they can be retried
+    const failedReadings = await db.pending_readings.where('status').equals('failed').toArray()
+    if (failedReadings.length > 0) {
+      await db.pending_readings
+        .where('id').anyOf(failedReadings.map(r => r.id!))
+        .modify({ status: 'pending' })
+    }
+
     await syncCustomerCache()
 
     const pending = await db.pending_readings.where('status').equals('pending').toArray()
 
-    // Get current period ID
     let periodId: string | null = null
     try {
-      const currentPeriod = await periodService.getCurrentPeriod();
+      const currentPeriod = await periodService.getCurrentPeriod()
       if (currentPeriod) {
         periodId = currentPeriod.id
       }
@@ -62,31 +70,14 @@ export function useOfflineSync() {
     }
 
     let hasError = false
-    // Add exponential backoff for retry attempts
-    const now = Date.now();
-    const retryableReadings = pending.filter(reading => {
-      // If we don't have retry info, initialize it
-      if (reading.retry_count === undefined) {
-        return true;
-      }
-      
-      // Exponential backoff: wait 2^retry_count * 1000ms before retrying
-      const timeSinceLastAttempt = now - (reading.last_attempt_time || 0);
-      const minWaitTime = Math.pow(2, reading.retry_count || 0) * 1000; // 1 second * 2^retry_count
-      
-      return timeSinceLastAttempt > minWaitTime;
-    });
 
-    for (const reading of retryableReadings) {
+    for (const reading of pending) {
       try {
-        // Actualizar estado a syncing
-        await db.pending_readings.update(reading.id!, { 
+        await db.pending_readings.update(reading.id!, {
           status: 'syncing',
-          retry_count: reading.retry_count || 0,
-          last_attempt_time: now
+          last_attempt_time: Date.now()
         })
 
-        // Subir foto si existe
         let photoUrl: string | undefined = undefined
         if (reading.photo_base64) {
           try {
@@ -94,17 +85,9 @@ export function useOfflineSync() {
             photoUrl = await storageService.uploadReadingPhoto(reading.photo_base64, fileName)
           } catch (photoError) {
             console.error('Error uploading photo:', photoError)
-            // Si falla la foto, continuamos con la lectura pero sin foto
           }
         }
 
-        // Add a check for decreasing meter readings
-        if (reading.current_reading < reading.previous_reading) {
-          // This is a decreasing reading - flag it for review
-          console.warn('Reading is decreasing - marking for review')
-        }
-
-        // Enviar al servidor
         await readingService.registerReading({
           customer_id: reading.customer_id,
           billing_period_id: periodId,
@@ -115,13 +98,11 @@ export function useOfflineSync() {
           photo_url: photoUrl
         }, user?.id)
 
-        // Eliminar de local si tuvo éxito
         await db.pending_readings.delete(reading.id!)
       } catch (error) {
         console.error('Error syncing reading:', error)
-        // Update the reading with retry information
-        const retryCount = (reading.retry_count || 0) + 1;
-        await db.pending_readings.update(reading.id!, { 
+        const retryCount = (reading.retry_count || 0) + 1
+        await db.pending_readings.update(reading.id!, {
           status: 'failed',
           retry_count: retryCount,
           last_attempt_time: Date.now()
@@ -134,9 +115,8 @@ export function useOfflineSync() {
     setLastSyncTime(new Date().toISOString())
     await updateCounter()
 
-    // Reset status after 3 seconds
     setTimeout(() => setSyncStatus('idle'), 3000)
-  }, [isOnline, updateCounter, syncCustomerCache])
+  }, [isOnline, updateCounter, syncCustomerCache, user?.id])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -156,7 +136,6 @@ export function useOfflineSync() {
     }
   }, [updateCounter])
 
-  // Auto-sync cada 30 segundos si está online
   useEffect(() => {
     if (isOnline) {
       const interval = setInterval(syncNow, 30000)
@@ -164,11 +143,11 @@ export function useOfflineSync() {
     }
   }, [isOnline, syncNow])
 
-  return { 
-    isOnline, 
-    pendingSyncCount: pendingCount, 
-    syncStatus, 
+  return {
+    isOnline,
+    pendingSyncCount: pendingCount,
+    syncStatus,
     lastSyncTime,
-    syncNow 
+    syncNow
   }
 }
