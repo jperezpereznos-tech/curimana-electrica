@@ -33,11 +33,13 @@ export async function deleteSectorAction(id: string) {
 
 export async function assignReaderToSectorAction(readerId: string, sectorId: string | null) {
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .update({ assigned_sector_id: sectorId })
     .eq('id', readerId)
+    .select()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   revalidatePath('/admin/sectors')
+  return data
 }

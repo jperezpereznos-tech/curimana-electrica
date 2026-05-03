@@ -10,16 +10,20 @@ export default async function SectorsPage() {
 
   let sectors: any[] = []
   let readers: any[] = []
+  let pageError: string | null = null
 
   try {
     sectors = await sectorService.getAllSectors()
-    const { data } = await supabase
+    const { data, error: readersError } = await supabase
       .from('profiles')
       .select('id, full_name, email, assigned_sector_id')
       .eq('role', 'meter_reader')
       .order('full_name', { ascending: true })
+    if (readersError) throw readersError
     readers = data ?? []
-  } catch {}
+  } catch (e: any) {
+    pageError = e?.message || e?.code || 'Error al cargar datos de sectores'
+  }
 
   return (
     <AdminLayout>
@@ -30,6 +34,12 @@ export default async function SectorsPage() {
         </div>
         <CreateSectorDialog />
       </div>
+
+      {pageError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg mb-4">
+          {pageError}
+        </div>
+      )}
 
       <SectorsList initialSectors={sectors} readers={readers} />
     </AdminLayout>
