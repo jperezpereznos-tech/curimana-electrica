@@ -21,6 +21,20 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
     return data
   }
 
+  async getSessionTotal(cashierId: string, from: string): Promise<{ total: number; count: number }> {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('amount')
+      .eq('cashier_id', cashierId)
+      .gte('created_at', from)
+      .neq('status', 'voided')
+
+    if (error) throw error
+    const payments = data ?? []
+    const total = payments.reduce((sum, p) => sum + p.amount, 0)
+    return { total, count: payments.length }
+  }
+
   async close(id: string, data: {
     closed_at: string, total_collected: number, total_receipts: number
   }) {

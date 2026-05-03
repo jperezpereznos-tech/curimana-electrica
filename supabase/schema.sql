@@ -297,6 +297,60 @@ RETURN QUERY SELECT true, p_period_id::uuid;
 END;
 $$;
 
+-- Actualización atómica de deuda de cliente
+CREATE OR REPLACE FUNCTION public.adjust_customer_debt(
+  p_customer_id UUID,
+  p_amount NUMERIC
+) RETURNS NUMERIC
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_new_debt NUMERIC;
+BEGIN
+  UPDATE customers
+  SET current_debt = GREATEST(0, COALESCE(current_debt, 0) + p_amount),
+      updated_at = now()
+  WHERE id = p_customer_id
+  RETURNING current_debt INTO v_new_debt;
+
+  RETURN v_new_debt;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.adjust_customer_debt(UUID, NUMERIC) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.adjust_customer_debt(UUID, NUMERIC) TO authenticated;
+
+-- Recalcular deuda total del cliente sumando todos los recibos pendientes
+CREATE OR REPLACE FUNCTION public.recalculate_customer_debt(
+  p_customer_id UUID
+) RETURNS NUMERIC
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_total_debt NUMERIC;
+BEGIN
+  SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+  INTO v_total_debt
+  FROM receipts
+  WHERE customer_id = p_customer_id
+  AND status NOT IN ('cancelled', 'paid');
+
+  UPDATE customers
+  SET current_debt = v_total_debt,
+      updated_at = now()
+  WHERE id = p_customer_id;
+
+  RETURN v_total_debt;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) TO authenticated;
+
 -- ============================================================================
 -- 4. TRIGGER: Auto-crear perfil cuando se registra un usuario
 -- ============================================================================
@@ -565,10 +619,12 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('reading-photos', 'reading-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Authenticated upload reading photos" ON storage.objects;
 CREATE POLICY "Authenticated upload reading photos" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'reading-photos' AND auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Public read reading photos" ON storage.objects;
 CREATE POLICY "Public read reading photos" ON storage.objects
 FOR SELECT TO public
 USING (bucket_id = 'reading-photos');

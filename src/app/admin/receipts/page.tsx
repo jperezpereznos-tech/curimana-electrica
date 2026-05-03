@@ -13,12 +13,19 @@ export default async function ReceiptsPage({
   const supabase = await createClient()
   const receiptService = getReceiptService(supabase)
   const periodService = getPeriodService(supabase)
-  const receipts = await receiptService.getAllReceipts({
-    periodId: params.period,
-    status: params.status,
-    supplyNumber: params.q
-  })
-  const periods = await periodService.getAllPeriods()
+
+  let receipts: any[] = []
+  let periods: any[] = []
+
+  try {
+    receipts = await receiptService.getAllReceipts({
+      periodId: params.period,
+      status: params.status,
+      supplyNumber: params.q
+    })
+  } catch { }
+
+  try { periods = await periodService.getAllPeriods() } catch { }
 
   return (
     <AdminLayout>

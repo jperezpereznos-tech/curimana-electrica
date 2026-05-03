@@ -19,6 +19,10 @@ export class CashClosureService {
     return await this.cashClosureRepo.getActiveClosure(userId)
   }
 
+  async getSessionSummary(cashierId: string, from: string) {
+    return await this.cashClosureRepo.getSessionTotal(cashierId, from)
+  }
+
   async openClosure(userId: string, initialAmount: number) {
     const existing = await this.cashClosureRepo.getActiveClosure(userId)
     if (existing) {
@@ -60,17 +64,15 @@ export class CashClosureService {
       throw new Error('El cierre no tiene cajero asociado')
     }
 
-    const payments = await this.paymentRepo.getPaymentsByCashier(closure.cashier_id, {
-      from: closure.created_at ?? undefined,
-      to: new Date().toISOString()
-    })
-    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0)
-    const receiptsCount = new Set(payments.map(p => p.receipt_id)).size
+    const summary = await this.cashClosureRepo.getSessionTotal(
+      closure.cashier_id,
+      closure.created_at ?? new Date().toISOString()
+    )
 
     const result = await this.cashClosureRepo.close(id, {
       closed_at: new Date().toISOString(),
-      total_collected: totalCollected,
-      total_receipts: receiptsCount
+      total_collected: summary.total,
+      total_receipts: summary.count
     })
 
     if (userId) {
@@ -79,7 +81,7 @@ export class CashClosureService {
           table_name: 'cash_closures',
           record_id: id,
           action: 'UPDATE',
-          new_data: { status: 'closed', total_collected: totalCollected, total_receipts: receiptsCount },
+          new_data: { status: 'closed', total_collected: summary.total, total_receipts: summary.count },
           user_id: userId
         })
       } catch {}

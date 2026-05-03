@@ -11,9 +11,14 @@ import { DownloadReports } from './download-reports'
 export default async function AdminDashboard() {
   const supabase = await createClient()
   const dashboardService = getDashboardService(supabase)
-  const kpis = await dashboardService.getSummaryKPIs()
-  const revenueHistory = await dashboardService.getRevenueHistory()
-  const sectorData = await dashboardService.getConsumptionBySector()
+
+  let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
+  let revenueHistory: any[] = []
+  let sectorData: any[] = []
+
+  try { kpis = await dashboardService.getSummaryKPIs() } catch { }
+  try { revenueHistory = await dashboardService.getRevenueHistory() } catch { }
+  try { sectorData = await dashboardService.getConsumptionBySector() } catch { }
 
   return (
     <AdminLayout>
@@ -26,7 +31,6 @@ export default async function AdminDashboard() {
           <DownloadReports />
         </div>
 
-        {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Recaudación del Mes"
@@ -54,13 +58,11 @@ export default async function AdminDashboard() {
           />
         </div>
 
-        {/* Gráficos */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           <RevenueChart data={revenueHistory} />
           <SectorConsumptionChart data={sectorData} />
         </div>
 
-        {/* Tablas Rápidas */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           <TopDebtors />
           <LatestReadings />

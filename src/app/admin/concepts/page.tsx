@@ -9,10 +9,16 @@ export default async function ConceptsPage() {
   const supabase = await createClient()
   const conceptService = getConceptService(supabase)
   const tariffService = getTariffService(supabase)
-  const [concepts, tariffs] = await Promise.all([
-    conceptService.getAllConcepts(),
-    tariffService.getAllTariffs()
-  ])
+
+  let concepts: any[] = []
+  let tariffs: any[] = []
+
+  try {
+    [concepts, tariffs] = await Promise.all([
+      conceptService.getAllConcepts(),
+      tariffService.getAllTariffs()
+    ])
+  } catch { }
 
   return (
     <AdminLayout>

@@ -3,13 +3,22 @@ import { ReceiptService } from '@/services/receipt-service'
 import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { CustomerRepository } from '@/repositories/customer-repository'
 import { AuditService } from '@/services/audit-service'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '@/types/database'
 
 vi.mock('@/repositories/receipt-repository')
 vi.mock('@/repositories/customer-repository')
 vi.mock('@/services/audit-service')
 
+function createMockSupabase() {
+  return {
+    rpc: vi.fn().mockResolvedValue({ data: 0, error: null })
+  } as unknown as SupabaseClient<Database>
+}
+
 describe('ReceiptService - calculateBreakdown', () => {
-  const service = new ReceiptService()
+  const mockSupabase = createMockSupabase()
+  const service = new ReceiptService(mockSupabase)
 
   const mockTiers = [
     { min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
@@ -65,26 +74,28 @@ describe('ReceiptService - calculateBreakdown', () => {
 })
 
 describe('ReceiptService - cancelReceipt', () => {
-  const service = new ReceiptService()
+  const mockSupabase = createMockSupabase()
+  const service = new ReceiptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: 0, error: null })
   })
 
-  it('debería anular el recibo sin pagos y revertir la deuda del cliente', async () => {
+  it('debería anular el recibo sin pagos y recalcular la deuda del cliente via RPC', async () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
-    const mockCustomer = { id: 'c1', current_debt: 100 }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
+    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1', current_debt: 100 } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
-    vi.spyOn(CustomerRepository.prototype, 'update').mockResolvedValue({} as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     await service.cancelReceipt('r1', 'Anulación', 'user1')
 
     expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', { status: 'cancelled' })
-    expect(CustomerRepository.prototype.update).toHaveBeenCalledWith('c1', { current_debt: 0 })
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('recalculate_customer_debt', {
+      p_customer_id: 'c1'
+    })
     expect(AuditService.prototype.log).toHaveBeenCalled()
   })
 
@@ -116,12 +127,10 @@ describe('ReceiptService - cancelReceipt', () => {
 
   it('no debería registrar auditoría si no se pasa userId', async () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
-    const mockCustomer = { id: 'c1', current_debt: 100 }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(mockCustomer as any)
+    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1', current_debt: 100 } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
-    vi.spyOn(CustomerRepository.prototype, 'update').mockResolvedValue({} as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     await service.cancelReceipt('r1', 'razón')

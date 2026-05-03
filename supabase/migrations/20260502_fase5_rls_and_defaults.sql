@@ -179,6 +179,62 @@ USING (get_user_role() IN ('admin', 'meter_reader') AND meter_reader_id = auth.u
 WITH CHECK (get_user_role() IN ('admin', 'meter_reader'));
 
 -- ============================================================================
+-- 12. ATOMIC DEBT FUNCTIONS: Evitar race condition en current_debt
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.adjust_customer_debt(
+  p_customer_id UUID,
+  p_amount NUMERIC
+) RETURNS NUMERIC
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_new_debt NUMERIC;
+BEGIN
+  UPDATE customers
+  SET current_debt = GREATEST(0, COALESCE(current_debt, 0) + p_amount),
+      updated_at = now()
+  WHERE id = p_customer_id
+  RETURNING current_debt INTO v_new_debt;
+
+  RETURN v_new_debt;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.adjust_customer_debt(UUID, NUMERIC) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.adjust_customer_debt(UUID, NUMERIC) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.recalculate_customer_debt(
+  p_customer_id UUID
+) RETURNS NUMERIC
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_total_debt NUMERIC;
+BEGIN
+  SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
+  INTO v_total_debt
+  FROM receipts
+  WHERE customer_id = p_customer_id
+  AND status NOT IN ('cancelled', 'paid');
+
+  UPDATE customers
+  SET current_debt = v_total_debt,
+      updated_at = now()
+  WHERE id = p_customer_id;
+
+  RETURN v_total_debt;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) TO authenticated;
+
+-- ============================================================================
 -- 11. RECEIPTS: Drop orphan payment_id column (no FK, never used)
 -- ============================================================================
 

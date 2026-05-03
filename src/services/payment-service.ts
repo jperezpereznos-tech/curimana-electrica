@@ -3,6 +3,7 @@ import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { CustomerRepository } from '@/repositories/customer-repository'
 import { CashClosureRepository } from '@/repositories/cash-closure-repository'
 import { AuditService } from '@/services/audit-service'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -12,6 +13,7 @@ export class PaymentService {
   private customerRepo: CustomerRepository
   private cashClosureRepo: CashClosureRepository
   private auditSvc: AuditService
+  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.paymentRepo = new PaymentRepository(supabaseClient)
@@ -19,6 +21,7 @@ export class PaymentService {
     this.customerRepo = new CustomerRepository(supabaseClient)
     this.cashClosureRepo = new CashClosureRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
+    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
   async processPayment(data: {
@@ -62,13 +65,10 @@ export class PaymentService {
       status: isFullyPaid ? 'paid' : 'partial'
     })
 
-    const customer = await this.customerRepo.getById(customerId)
-    if (customer) {
-      const newDebt = Math.max(0, (customer.current_debt || 0) - amount)
-      await this.customerRepo.update(customerId, {
-        current_debt: newDebt
-      })
-    }
+    await this.supabase.rpc('adjust_customer_debt', {
+      p_customer_id: customerId,
+      p_amount: -amount
+    })
 
     try {
       await this.auditSvc.log({
@@ -113,13 +113,10 @@ export class PaymentService {
         status: newStatus,
       })
 
-      const customer = await this.customerRepo.getById(receipt.customer_id)
-      if (customer) {
-        const newDebt = (customer.current_debt || 0) + payment.amount
-        await this.customerRepo.update(receipt.customer_id, {
-          current_debt: newDebt,
-        })
-      }
+      await this.supabase.rpc('adjust_customer_debt', {
+        p_customer_id: receipt.customer_id,
+        p_amount: payment.amount
+      })
     }
 
     if (userId) {

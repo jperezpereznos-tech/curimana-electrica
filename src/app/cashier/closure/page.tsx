@@ -4,9 +4,9 @@ import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Unlock, 
-  DollarSign, 
+import {
+  Unlock,
+  DollarSign,
   History
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -37,11 +37,15 @@ export default async function CashClosurePage() {
   const activeClosure = await cashClosureSvc.getActiveClosure(userId)
 
   let payments: SessionPayment[] = []
+  let totalCollected = 0
   if (activeClosure) {
-    payments = await paymentSvc.getPaymentsByCashier(userId, { from: activeClosure.created_at ?? undefined })
+    const [sessionPayments, summary] = await Promise.all([
+      paymentSvc.getPaymentsByCashier(userId, { from: activeClosure.created_at ?? undefined }),
+      cashClosureSvc.getSessionSummary(userId, activeClosure.created_at ?? new Date().toISOString())
+    ])
+    payments = sessionPayments
+    totalCollected = summary.total
   }
-
-  const totalCollected = payments.reduce((sum: number, p) => sum + p.amount, 0)
 
   return (
     <CashierLayout>

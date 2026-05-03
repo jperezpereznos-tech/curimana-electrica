@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CashClosureService } from '@/services/cash-closure-service'
 import { CashClosureRepository } from '@/repositories/cash-closure-repository'
-import { PaymentRepository } from '@/repositories/payment-repository'
 
 vi.mock('@/repositories/cash-closure-repository')
 vi.mock('@/repositories/payment-repository')
@@ -34,23 +33,16 @@ describe('CashClosureService', () => {
   })
 
   describe('closeClosure', () => {
-    it('debería calcular totales y cerrar el cierre', async () => {
+    it('debería calcular totales via getSessionTotal y cerrar el cierre', async () => {
       const mockClosure = { id: 'cl1', cashier_id: 'user1', status: 'open', created_at: '2026-05-01T00:00:00Z' }
-      const mockPayments = [
-        { amount: 50, receipt_id: 'r1' },
-        { amount: 30, receipt_id: 'r2' },
-        { amount: 20, receipt_id: 'r1' },
-      ]
 
       vi.spyOn(CashClosureRepository.prototype, 'getById').mockResolvedValue(mockClosure as any)
-      vi.spyOn(PaymentRepository.prototype, 'getPaymentsByCashier').mockResolvedValue(mockPayments as any)
+      vi.spyOn(CashClosureRepository.prototype, 'getSessionTotal').mockResolvedValue({ total: 100, count: 2 })
       vi.spyOn(CashClosureRepository.prototype, 'close').mockResolvedValue({ id: 'cl1', status: 'closed' } as any)
 
       await service.closeClosure('cl1')
 
-      expect(PaymentRepository.prototype.getPaymentsByCashier).toHaveBeenCalledWith('user1', expect.objectContaining({
-        from: '2026-05-01T00:00:00Z'
-      }))
+      expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', '2026-05-01T00:00:00Z')
       expect(CashClosureRepository.prototype.close).toHaveBeenCalledWith('cl1', expect.objectContaining({
         total_collected: 100,
         total_receipts: 2

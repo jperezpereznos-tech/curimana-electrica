@@ -7,7 +7,9 @@ import { CreatePeriodButton } from './create-period-button'
 export default async function PeriodsPage() {
   const supabase = await createClient()
   const periodService = getPeriodService(supabase)
-  const periods = await periodService.getAllPeriods()
+
+  let periods: any[] = []
+  try { periods = await periodService.getAllPeriods() } catch { }
 
   return (
     <AdminLayout>

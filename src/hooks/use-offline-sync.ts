@@ -23,20 +23,10 @@ export function useOfflineSync() {
   const syncCustomerCache = useCallback(async () => {
     if (!navigator.onLine) return
     try {
-      const customers = await customerService.searchCustomers('')
+      const customers = await customerService.getAllForCache()
       if (customers && customers.length > 0) {
         await db.customers_cache.clear()
-        await db.customers_cache.bulkPut(
-          customers.map((c: any) => ({
-            id: c.id,
-            supply_number: c.supply_number,
-            full_name: c.full_name,
-            address: c.address || '',
-            sector: c.sector || '',
-            tariff_id: c.tariff_id || '',
-            previous_reading: c.readings?.[0]?.current_reading || 0,
-          }))
-        )
+        await db.customers_cache.bulkPut(customers)
       }
     } catch (error) {
       console.error('Error syncing customer cache:', error)

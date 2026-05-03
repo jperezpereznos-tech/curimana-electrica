@@ -6,7 +6,9 @@ import { AuditList } from './audit-list'
 export default async function AuditPage() {
   const supabase = await createClient()
   const auditService = getAuditService(supabase)
-  const logs = await auditService.getAuditLogs()
+
+  let logs: any[] = []
+  try { logs = await auditService.getAuditLogs() } catch { }
 
   return (
     <AdminLayout>

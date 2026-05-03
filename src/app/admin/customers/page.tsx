@@ -14,8 +14,16 @@ export default async function CustomersPage({
   const supabase = await createClient()
   const customerService = getCustomerService(supabase)
   const tariffService = getTariffService(supabase)
-  const customers = await customerService.searchCustomers(q || '')
-  const tariffs = await tariffService.getAllTariffs()
+
+  let customers: any[] = []
+  let tariffs: any[] = []
+
+  try {
+    [customers, tariffs] = await Promise.all([
+      customerService.searchCustomers(q || ''),
+      tariffService.getAllTariffs()
+    ])
+  } catch { }
 
   return (
     <AdminLayout>

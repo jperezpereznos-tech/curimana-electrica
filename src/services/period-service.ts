@@ -220,6 +220,11 @@ export class PeriodService {
 
         await this.receiptRepo.create(receiptPayload)
 
+        await this.supabase.rpc('adjust_customer_debt', {
+          p_customer_id: customer.id,
+          p_amount: receipt.total_amount
+        })
+
         generatedCount++
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)

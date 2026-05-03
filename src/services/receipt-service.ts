@@ -2,6 +2,7 @@ import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { CustomerRepository } from '@/repositories/customer-repository'
 import { AuditService } from '@/services/audit-service'
 import { calculateEnergyAmount } from '@/lib/billing-utils'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -9,11 +10,13 @@ export class ReceiptService {
   private receiptRepo: ReceiptRepository
   private customerRepo: CustomerRepository
   private auditSvc: AuditService
+  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.receiptRepo = new ReceiptRepository(supabaseClient)
     this.customerRepo = new CustomerRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
+    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
   async getAllReceipts(filters?: { periodId?: string; status?: string; supplyNumber?: string }) {
@@ -72,9 +75,8 @@ export class ReceiptService {
     const updatedReceipt = await this.receiptRepo.update(id, { status: 'cancelled' })
 
     if (customer) {
-      const correctedDebt = Math.max(0, (customer.current_debt || 0) - (receipt.total_amount - (receipt.paid_amount || 0)))
-      await this.customerRepo.update(customerId, {
-        current_debt: correctedDebt
+      await this.supabase.rpc('recalculate_customer_debt', {
+        p_customer_id: customerId
       })
     }
 

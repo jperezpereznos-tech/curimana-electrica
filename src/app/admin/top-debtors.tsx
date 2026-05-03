@@ -39,7 +39,7 @@ export function TopDebtors() {
     return () => { cancelled = true }
   }, [])
 
-  if (loading) {
+if (loading) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -50,6 +50,22 @@ Mayores Deudores
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-muted-foreground">Cargando...</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            Top Deudores
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-muted-foreground text-sm">{error}</div>
         </CardContent>
       </Card>
     )

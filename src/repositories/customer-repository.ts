@@ -105,4 +105,31 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     if (error) throw error
     return data
   }
+
+  async getAllForCache() {
+    const { data, error } = await this.supabase
+      .from('customers')
+      .select('id, supply_number, full_name, address, sector, tariff_id, is_active, readings(current_reading, reading_date)')
+      .eq('is_active', true)
+      .order('full_name', { ascending: true })
+
+    if (error) throw error
+
+    const processed = (data as any[]).map((c: any) => {
+      const latestReading = c.readings?.sort((a: any, b: any) =>
+        new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
+      )[0]
+      return {
+        id: c.id,
+        supply_number: c.supply_number,
+        full_name: c.full_name,
+        address: c.address || '',
+        sector: c.sector || '',
+        tariff_id: c.tariff_id || '',
+        previous_reading: latestReading?.current_reading || 0,
+      }
+    })
+
+    return processed
+  }
 }

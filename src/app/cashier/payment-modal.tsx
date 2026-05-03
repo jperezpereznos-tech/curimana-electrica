@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -45,39 +45,45 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card'>('cash')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const submittingRef = useRef(false)
 
   const remaining = receipt.total_amount - (receipt.paid_amount || 0)
   const change = paymentMethod === 'cash' && Number(received) > amountToPay ? Number(received) - amountToPay : 0
 
   const handlePayment = async () => {
+    if (submittingRef.current) return
+
     setError(null)
     if (!amountToPay || amountToPay <= 0) {
       setError('El monto debe ser mayor a cero')
       return
     }
-    if (amountToPay > remaining) {
+    const rounded = Math.round(amountToPay * 100) / 100
+    if (rounded > remaining) {
       setError('El monto excede el saldo pendiente')
       return
     }
 
+    submittingRef.current = true
     setLoading(true)
     try {
     await processPaymentAction({
       receiptId: receipt.id,
       customerId: customer.id,
       cashClosureId: closureId,
-      amount: amountToPay,
+      amount: rounded,
       paymentMethod,
-      receivedAmount: Number(received) || amountToPay,
+      receivedAmount: Number(received) || rounded,
       changeAmount: change
     })
       
       setOpen(false)
       onSuccess()
-    } catch {
-      setError('Error al procesar el pago')
+    } catch (err: any) {
+      setError(err?.message || 'Error al procesar el pago')
     } finally {
       setLoading(false)
+      submittingRef.current = false
     }
   }
 

@@ -76,6 +76,10 @@ export class CustomerService {
   async getActiveCustomersWithReadings() {
     return await this.customerRepo.getActiveCustomersWithReadings()
   }
+
+  async getAllForCache() {
+    return await this.customerRepo.getAllForCache()
+  }
 }
 
 export const customerService = new CustomerService()

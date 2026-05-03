@@ -11,6 +11,8 @@ export async function closePeriodAction(id: string) {
   
   const result = await periodService.closePeriod(id, user?.id)
   revalidatePath('/admin/periods')
+  revalidatePath('/admin/receipts')
+  revalidatePath('/admin/customers')
   return result
 }
 

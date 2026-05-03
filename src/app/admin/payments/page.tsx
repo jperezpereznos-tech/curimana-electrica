@@ -11,11 +11,14 @@ export default async function PaymentsPage({
   const params = await searchParams
   const supabase = await createClient()
   const paymentService = getPaymentService(supabase)
-  const payments = await paymentService.getAllPayments({
-    cashierId: params.cashierId,
-    from: params.from,
-    to: params.to,
-  })
+  let payments: any[] = []
+  try {
+    payments = await paymentService.getAllPayments({
+      cashierId: params.cashierId,
+      from: params.from,
+      to: params.to,
+    })
+  } catch { }
 
   return (
     <AdminLayout>

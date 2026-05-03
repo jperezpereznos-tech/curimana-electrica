@@ -620,6 +620,14 @@ payments: {
       Args: { p_period_id: string }
       Returns: { success: boolean; period_id: string }[]
     }
+    adjust_customer_debt: {
+      Args: { p_customer_id: string; p_amount: number }
+      Returns: number
+    }
+    recalculate_customer_debt: {
+      Args: { p_customer_id: string }
+      Returns: number
+    }
   }
     Enums: {
       [_ in never]: never

@@ -7,7 +7,9 @@ import { CreateTariffDialog } from './create-tariff-dialog'
 export default async function TariffsPage() {
   const supabase = await createClient()
   const tariffService = getTariffService(supabase)
-  const tariffs = await tariffService.getAllTariffs()
+
+  let tariffs: any[] = []
+  try { tariffs = await tariffService.getAllTariffs() } catch { }
 
   return (
     <AdminLayout>
