@@ -129,9 +129,9 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
               <Label>Tarifa Asignada</Label>
               <Select
                 onValueChange={(val) => form.setValue('tariff_id', (val ?? '') as string)}
-                defaultValue={form.getValues('tariff_id')}
+                value={form.watch('tariff_id')}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,9 +145,9 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
               <Label>Tipo Conexión</Label>
               <Select
                 onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as any)}
-                defaultValue={form.getValues('connection_type')}
+                value={form.watch('connection_type')}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar" />
                 </SelectTrigger>
                 <SelectContent>
