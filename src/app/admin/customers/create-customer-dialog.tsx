@@ -132,7 +132,9 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
                 value={form.watch('tariff_id')}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar" />
+                  <SelectValue placeholder="Seleccionar">
+                    {tariffs.find(t => t.id === form.watch('tariff_id'))?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {tariffs.filter(t => t.is_active).map(t => (
@@ -148,7 +150,9 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
                 value={form.watch('connection_type')}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar" />
+                  <SelectValue placeholder="Seleccionar">
+                    {form.watch('connection_type') === 'monofásico' ? 'Monofásico' : 'Trifásico'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="monofásico">Monofásico</SelectItem>
