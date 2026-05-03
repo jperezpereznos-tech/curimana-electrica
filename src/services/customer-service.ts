@@ -25,12 +25,8 @@ export class CustomerService {
     return await this.customerRepo.getCustomerDetails(id)
   }
 
-  async registerCustomer(customerData: Omit<CustomerInsert, 'supply_number'>, userId?: string) {
-    const supply_number = await this.customerRepo.generateSupplyNumber()
-    const customer = await this.customerRepo.create({
-      ...customerData,
-      supply_number
-    })
+  async registerCustomer(customerData: CustomerInsert, userId?: string) {
+    const customer = await this.customerRepo.create(customerData)
 
     if (userId) {
       try {
@@ -38,7 +34,7 @@ export class CustomerService {
           table_name: 'customers',
           record_id: customer.id,
           action: 'INSERT',
-          new_data: { supply_number, full_name: customerData.full_name },
+          new_data: { supply_number: customerData.supply_number, full_name: customerData.full_name },
           user_id: userId
         })
       } catch {}

@@ -8,9 +8,10 @@ describe('Customer Management Integration Flow', () => {
   const service = new CustomerService()
   const proto = CustomerRepository.prototype
 
-  it('debería registrar un cliente con número de suministro generado automáticamente', async () => {
+  it('debería registrar un cliente con número de suministro proporcionado', async () => {
     const mockSupplyNumber = '202604001'
     const customerData = {
+      supply_number: mockSupplyNumber,
       full_name: 'Juan Perez',
       address: 'Calle Falsa 123',
       sector: 'Sector 1',
@@ -18,25 +19,20 @@ describe('Customer Management Integration Flow', () => {
       connection_type: 'monofásico' as const,
       document_number: '12345678',
       phone: '987654321',
-      is_active: true
+      is_active: true,
+      current_debt: 0,
     }
 
-    vi.spyOn(proto, 'generateSupplyNumber').mockResolvedValue(mockSupplyNumber)
     vi.spyOn(proto, 'create').mockImplementation(async (data: any) => ({
       id: 'new-uuid',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      current_debt: 0,
       ...data
     }))
 
-    const result = await service.registerCustomer(customerData)
+    const result = await service.registerCustomer(customerData as any)
 
-    expect(proto.generateSupplyNumber).toHaveBeenCalled()
-    expect(proto.create).toHaveBeenCalledWith({
-      ...customerData,
-      supply_number: mockSupplyNumber
-    })
+    expect(proto.create).toHaveBeenCalledWith(customerData)
     expect(result.supply_number).toBe(mockSupplyNumber)
     expect(result.full_name).toBe('Juan Perez')
   })

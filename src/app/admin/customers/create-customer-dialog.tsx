@@ -28,6 +28,7 @@ import {
 import { registerCustomerAction } from './actions'
 
 const customerSchema = z.object({
+  supply_number: z.string().min(1, 'Número de suministro requerido'),
   full_name: z.string().min(5, 'Nombre completo requerido'),
   document_number: z.string().min(8, 'DNI/RUC inválido'),
   address: z.string().min(5, 'Dirección requerida'),
@@ -47,6 +48,7 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
+      supply_number: '',
       full_name: '',
       document_number: '',
       address: '',
@@ -97,10 +99,15 @@ export function CreateCustomerDialog({ tariffs }: { tariffs: any[] }) {
           {serverError}
         </div>
       )}
-      <div className="space-y-2">
-            <Label htmlFor="full_name">Nombre Completo</Label>
-            <Input id="full_name" {...form.register('full_name')} />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="supply_number">N° de Suministro</Label>
+          <Input id="supply_number" placeholder="Ej: 123456789" {...form.register('supply_number')} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="full_name">Nombre Completo</Label>
+          <Input id="full_name" {...form.register('full_name')} />
+        </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

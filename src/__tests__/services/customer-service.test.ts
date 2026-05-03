@@ -24,11 +24,11 @@ describe('CustomerService', () => {
   })
 
   describe('registerCustomer', () => {
-    it('debería generar supply_number y crear el cliente', async () => {
-      vi.spyOn(CustomerRepository.prototype, 'generateSupplyNumber').mockResolvedValue('000000001')
-      vi.spyOn(CustomerRepository.prototype, 'create').mockResolvedValue({ id: 'c1', supply_number: '000000001' } as any)
+    it('debería crear el cliente con el supply_number proporcionado', async () => {
+      vi.spyOn(CustomerRepository.prototype, 'create').mockResolvedValue({ id: 'c1', supply_number: '123456789' } as any)
 
       await service.registerCustomer({
+        supply_number: '123456789',
         full_name: 'Juan Pérez',
         document_number: '12345678',
         address: 'Av. Principal 123',
@@ -37,11 +37,10 @@ describe('CustomerService', () => {
         connection_type: 'monofásico',
         is_active: true,
         current_debt: 0,
-      })
+      } as any)
 
-      expect(CustomerRepository.prototype.generateSupplyNumber).toHaveBeenCalled()
       expect(CustomerRepository.prototype.create).toHaveBeenCalledWith(
-        expect.objectContaining({ supply_number: '000000001', full_name: 'Juan Pérez' })
+        expect.objectContaining({ supply_number: '123456789', full_name: 'Juan Pérez' })
       )
     })
   })
