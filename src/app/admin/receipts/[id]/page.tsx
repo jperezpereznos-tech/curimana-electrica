@@ -4,13 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { 
-  FileText, 
-  Download, 
-  Printer, 
-  XCircle, 
-  ArrowLeft, 
-  User, 
+import {
+  FileText,
+  ArrowLeft,
+  User,
   Calendar,
   Zap
 } from 'lucide-react'

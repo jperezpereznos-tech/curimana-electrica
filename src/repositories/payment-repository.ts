@@ -50,4 +50,16 @@ export class PaymentRepository extends BaseRepository<'payments'> {
     if (error) throw error
     return data
   }
+
+  async getPaymentsByCustomer(customerId: string) {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*, receipts(receipt_number, billing_periods(name))')
+      .eq('customer_id', customerId)
+      .neq('status', 'voided')
+      .order('payment_date', { ascending: false })
+
+    if (error) throw error
+    return data
+  }
 }

@@ -192,6 +192,10 @@ export class PaymentService {
   async getAllPayments(filters?: { cashierId?: string; from?: string; to?: string }) {
     return await this.paymentRepo.getAllPayments(filters)
   }
+
+  async getPaymentsByCustomer(customerId: string) {
+    return await this.paymentRepo.getPaymentsByCustomer(customerId)
+  }
 }
 
 export const paymentService = new PaymentService()

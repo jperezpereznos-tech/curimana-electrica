@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
 import { pdfService } from '@/services/pdf-service'
+import { ReceiptRowPayment } from './receipt-row-payment'
 
 const PAGE_SIZE = 25
 
@@ -124,13 +125,14 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
               <TableHead>Periodo</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              <TableHead>Cobrar</TableHead>
+        <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {initialReceipts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No se encontraron recibos con estos filtros.
                 </TableCell>
               </TableRow>
@@ -157,7 +159,10 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
           receipt.status}
         </Badge>
       </TableCell>
-      <TableCell className="text-right flex justify-end gap-2">
+              <TableCell>
+                <ReceiptRowPayment receipt={receipt} onPaymentSuccess={() => router.refresh()} />
+              </TableCell>
+              <TableCell className="text-right flex justify-end gap-2">
         <Button variant="ghost" size="icon" render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
         <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)}>
           <Download className="h-4 w-4" />

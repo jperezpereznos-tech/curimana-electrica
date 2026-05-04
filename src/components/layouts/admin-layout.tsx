@@ -15,7 +15,8 @@ import {
   ClipboardList,
   MapPin,
   Shield,
-  BookOpen
+  BookOpen,
+  HandCoins
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -36,6 +37,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
     { name: 'Recibos', href: '/admin/receipts', icon: Receipt },
     { name: 'Pagos', href: '/admin/payments', icon: Wallet },
+    { name: 'Cobros', href: '/cashier', icon: HandCoins },
     { name: 'Periodos', href: '/admin/periods', icon: Calendar },
     { name: 'Conceptos', href: '/admin/concepts', icon: Tag },
     { name: 'Auditoria', href: '/admin/audit', icon: ClipboardList },

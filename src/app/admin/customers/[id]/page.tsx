@@ -1,20 +1,17 @@
 import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getCustomerService } from '@/services/customer-service'
+import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { MapPin, Phone, User, CreditCard, Activity } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { CustomerReceiptsTab } from './customer-receipts-tab'
 
 export default async function CustomerDetailsPage({
   params,
@@ -31,6 +28,13 @@ export default async function CustomerDetailsPage({
   }
 
   const { customer, readings, receipts } = data
+
+  let payments: any[] = []
+  try {
+    const paymentService = getPaymentService(supabase)
+    const allPayments = await paymentService.getPaymentsByCustomer(customer.id)
+    payments = allPayments || []
+  } catch {}
 
   return (
     <AdminLayout>
@@ -135,48 +139,52 @@ export default async function CustomerDetailsPage({
             </Card>
           </TabsContent>
 
-          <TabsContent value="receipts" className="mt-4">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>N° Recibo</TableHead>
-                    <TableHead>Periodo</TableHead>
-                    <TableHead>Vencimiento</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {receipts.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center">No hay registros</TableCell></TableRow>
-                  ) : (
-                    receipts.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono">{r.receipt_number}</TableCell>
-                        <TableCell>{r.billing_periods?.name}</TableCell>
-                        <TableCell>{formatDate(r.due_date)}</TableCell>
-                        <TableCell className="font-bold">{formatCurrency(r.total_amount)}</TableCell>
-                        <TableCell>
-                          <Badge variant={r.status === 'paid' ? 'default' : 'destructive'}>
-                            {r.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+    <TabsContent value="receipts" className="mt-4">
+      <Card className="p-4">
+        <CustomerReceiptsTab
+          receipts={receipts}
+          customer={{ id: customer.id, full_name: customer.full_name }}
+          onRefresh={() => {}}
+        />
+      </Card>
+    </TabsContent>
 
-          <TabsContent value="payments" className="mt-4">
-            <Card>
-              <div className="p-8 text-center text-muted-foreground">
-                El historial detallado de pagos se implementará en la Fase 6.
-              </div>
-            </Card>
-          </TabsContent>
+    <TabsContent value="payments" className="mt-4">
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>N° Recibo</TableHead>
+              <TableHead>Periodo</TableHead>
+              <TableHead>Fecha Pago</TableHead>
+              <TableHead>Monto</TableHead>
+              <TableHead>Método</TableHead>
+              <TableHead>Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {payments.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center">No hay pagos registrados</TableCell></TableRow>
+            ) : (
+              payments.map((p: any) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
+                  <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
+                  <TableCell>{formatDate(p.payment_date)}</TableCell>
+                  <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
+                  <TableCell className="capitalize">{p.method}</TableCell>
+                  <TableCell>
+                    <Badge variant={p.status === 'completed' ? 'default' : 'destructive'}>
+                      {p.status === 'completed' ? 'Completado' : p.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>
