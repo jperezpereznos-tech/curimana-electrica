@@ -12,6 +12,15 @@ async function requireAuth() {
   return { supabase, userId: user.id }
 }
 
+async function getAssignedSectorId(userId: string, supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('assigned_sector_id')
+    .eq('id', userId)
+    .single()
+  return profile?.assigned_sector_id || null
+}
+
 export async function getReaderAssignedSectorAction() {
   const { supabase, userId } = await requireAuth()
   const { data: profile, error } = await supabase
@@ -24,10 +33,16 @@ export async function getReaderAssignedSectorAction() {
   return profile as any
 }
 
+export async function getReaderAssignedSectorIdAction() {
+  const { supabase, userId } = await requireAuth()
+  return await getAssignedSectorId(userId, supabase)
+}
+
 export async function getReaderDashboardDataAction() {
-  const { supabase } = await requireAuth()
+  const { supabase, userId } = await requireAuth()
   const readingService = getReadingService(supabase)
   const periodService = getPeriodService(supabase)
+  const sectorId = await getAssignedSectorId(userId, supabase)
 
   const [syncedCount, activeCustomers, period] = await Promise.all([
     readingService.getTodayReadingsCount(),
@@ -41,14 +56,16 @@ export async function getReaderDashboardDataAction() {
     period: period ? {
       name: period.name,
       endDate: period.end_date
-    } : null
+    } : null,
+    sectorId
   }
 }
 
 export async function searchReaderCustomersAction(query: string) {
-  const { supabase } = await requireAuth()
+  const { supabase, userId } = await requireAuth()
+  const sectorId = await getAssignedSectorId(userId, supabase)
   const customerService = getCustomerService(supabase)
-  return await customerService.searchCustomers(query)
+  return await customerService.searchCustomers(query, sectorId || undefined)
 }
 
 export async function getLatestReadingAction(customerId: string) {

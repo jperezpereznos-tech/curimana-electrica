@@ -543,9 +543,22 @@ FOR ALL TO authenticated
 USING ((SELECT public.get_user_role()) = 'admin')
 WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
-CREATE POLICY "Users read customers" ON customers
+CREATE POLICY "Cashier read customers" ON customers
 FOR SELECT TO authenticated
-USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+USING ((SELECT public.get_user_role()) = 'cashier');
+
+CREATE POLICY "Reader read assigned sector customers" ON customers
+FOR SELECT TO authenticated
+USING (
+  (SELECT public.get_user_role()) = 'meter_reader'
+  AND (
+    SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()
+  ) IS NULL
+  OR (
+    (SELECT public.get_user_role()) = 'meter_reader'
+    AND sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
+  )
+);
 
 -- ── billing_periods ──
 CREATE POLICY "Admin CRUD billing_periods" ON billing_periods
@@ -565,7 +578,20 @@ WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Reader insert readings" ON readings
 FOR INSERT TO authenticated
-WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
+WITH CHECK (
+  (SELECT public.get_user_role()) = 'admin'
+  OR (
+    (SELECT public.get_user_role()) = 'meter_reader'
+    AND (
+      (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()) IS NULL
+      OR EXISTS (
+        SELECT 1 FROM customers c
+        WHERE c.id = readings.customer_id
+        AND c.sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
+      )
+    )
+  )
+);
 
 CREATE POLICY "Reader update own readings" ON readings
 FOR UPDATE TO authenticated
@@ -573,8 +599,21 @@ USING ((SELECT public.get_user_role()) IN ('admin', 'meter_reader') AND meter_re
 WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
 
 CREATE POLICY "Users read readings" ON readings
-  FOR SELECT TO authenticated
-  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+FOR SELECT TO authenticated
+USING (
+  (SELECT public.get_user_role()) IN ('admin', 'cashier')
+  OR (
+    (SELECT public.get_user_role()) = 'meter_reader'
+    AND (
+      (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()) IS NULL
+      OR EXISTS (
+        SELECT 1 FROM customers c
+        WHERE c.id = readings.customer_id
+        AND c.sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
+      )
+    )
+  )
+);
 
 -- ── receipts ──
 CREATE POLICY "Admin CRUD receipts" ON receipts

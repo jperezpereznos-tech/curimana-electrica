@@ -11,7 +11,7 @@ import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check, Loader2 } from '
 import { CameraCapture } from '@/components/camera-capture'
 import { db } from '@/lib/db/dexie'
 import { customerService } from '@/services/customer-service'
-import { getLatestReadingAction } from '../actions'
+import { getLatestReadingAction, getReaderAssignedSectorIdAction } from '../actions'
 import Link from 'next/link'
 
 export default function NewReadingPage() {
@@ -36,6 +36,13 @@ function NewReadingContent() {
   const [notFound, setNotFound] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [assignedSectorId, setAssignedSectorId] = useState<string | null>(null)
+
+  useEffect(() => {
+    getReaderAssignedSectorIdAction()
+      .then(sectorId => setAssignedSectorId(sectorId))
+      .catch(() => {})
+  }, [])
 
   const handleSearch = useCallback(async (supply: string) => {
     if (!supply) return
@@ -51,15 +58,22 @@ function NewReadingContent() {
         .first()
 
       if (cachedCustomer) {
+        if (assignedSectorId && cachedCustomer.sector_id && cachedCustomer.sector_id !== assignedSectorId) {
+          setSaveError('Este suministro no pertenece a su sector asignado')
+          setNotFound(true)
+        } else {
+          setSaveError(null)
           setCustomer({
             id: cachedCustomer.id,
             full_name: cachedCustomer.full_name,
             address: cachedCustomer.address,
             sector: cachedCustomer.sector,
+            sector_id: cachedCustomer.sector_id,
             previous_reading: cachedCustomer.previous_reading,
           })
+        }
       } else if (navigator.onLine) {
-        const results = await customerService.searchCustomers(supply)
+        const results = await customerService.searchCustomers(supply, assignedSectorId || undefined)
         const found = results?.find((c: any) => c.supply_number === supply)
         if (found) {
           let previousReading = 0
@@ -69,35 +83,37 @@ function NewReadingContent() {
               previousReading = Number(latestReading.current_reading) || 0
             }
           } catch {}
-        await db.customers_cache.put({
-          id: found.id,
-          supply_number: found.supply_number,
-          full_name: found.full_name,
-          address: found.address || '',
-          sector: found.sector || '',
-          sector_id: found.sector_id || '',
-          tariff_id: found.tariff_id || '',
-          previous_reading: previousReading,
-        })
-            setCustomer({
-              id: found.id,
-              full_name: found.full_name,
-              address: found.address,
-              sector: found.sector,
-              previous_reading: previousReading,
-            })
+          await db.customers_cache.put({
+            id: found.id,
+            supply_number: found.supply_number,
+            full_name: found.full_name,
+            address: found.address || '',
+            sector: found.sector || '',
+            sector_id: found.sector_id || '',
+            tariff_id: found.tariff_id || '',
+            previous_reading: previousReading,
+          })
+          setSaveError(null)
+          setCustomer({
+            id: found.id,
+            full_name: found.full_name,
+            address: found.address,
+            sector: found.sector,
+            sector_id: found.sector_id,
+            previous_reading: previousReading,
+          })
         } else {
           setNotFound(true)
         }
       } else {
         setNotFound(true)
       }
-  } catch {
-    setNotFound(true)
+    } catch {
+      setNotFound(true)
     } finally {
       setIsSearching(false)
     }
-  }, [])
+  }, [assignedSectorId])
 
   useEffect(() => {
     if (supplyNumber.length >= 2) {
@@ -112,6 +128,11 @@ function NewReadingContent() {
     if (!customer || !currentReading) return
     setSaveError(null)
     setSaveSuccess(false)
+
+    if (assignedSectorId && customer.sector_id && customer.sector_id !== assignedSectorId) {
+      setSaveError('No puede registrar lecturas de suministros fuera de su sector asignado')
+      return
+    }
 
     const reading = Number(currentReading)
     if (isNaN(reading) || reading < 0) {
@@ -135,6 +156,7 @@ function NewReadingContent() {
         full_name: customer.full_name,
         address: customer.address || '',
         sector: customer.sector || '',
+        sector_id: customer.sector_id || '',
         previous_reading: previous,
         current_reading: reading,
         reading_date: new Date().toISOString().split('T')[0],

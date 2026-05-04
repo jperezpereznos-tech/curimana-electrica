@@ -7,6 +7,7 @@ export interface PendingReading {
   full_name: string
   address?: string
   sector?: string
+  sector_id?: string
   previous_reading: number
   current_reading: number
   reading_date: string
@@ -39,6 +40,15 @@ export class CurimanaDB extends Dexie {
     this.version(1).stores({
       pending_readings: '++id, customer_id, supply_number, status',
       customers_cache: 'id, supply_number, sector, sector_id'
+    })
+
+    this.version(2).stores({
+      pending_readings: '++id, customer_id, supply_number, status, sector_id',
+      customers_cache: 'id, supply_number, sector, sector_id'
+    }).upgrade(tx => {
+      return tx.table('pending_readings').toCollection().modify(reading => {
+        if (!reading.sector_id) reading.sector_id = ''
+      })
     })
   }
 }

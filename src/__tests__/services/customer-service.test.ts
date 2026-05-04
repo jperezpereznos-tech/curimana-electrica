@@ -18,7 +18,7 @@ describe('CustomerService', () => {
 
       const result = await service.searchCustomers('  juan  ')
 
-      expect(CustomerRepository.prototype.searchCustomers).toHaveBeenCalledWith('juan')
+        expect(CustomerRepository.prototype.searchCustomers).toHaveBeenCalledWith('juan', undefined)
       expect(result).toEqual(mockResults)
     })
   })

@@ -22,10 +22,10 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
   useEffect(() => {
     let cancelled = false
 
-    customerService.getActiveCustomersWithReadings()
+    customerService.getActiveCustomersWithReadings(assignedSector?.id || undefined)
       .then((data) => {
         if (cancelled) return
-        let formatted = data?.map((c: any) => ({
+        const formatted = data?.map((c: any) => ({
           id: c.id,
           supply_number: c.supply_number,
           full_name: c.full_name,
@@ -37,10 +37,6 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
             ? c.readings[c.readings.length - 1].reading_date
             : null
         })) || []
-
-        if (assignedSector) {
-          formatted = formatted.filter(c => c.sector_id === assignedSector.id)
-        }
 
         setCustomers(formatted)
       })

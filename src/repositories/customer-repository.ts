@@ -9,10 +9,14 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     super('customers', supabaseClient)
   }
 
-  async searchCustomers(query: string): Promise<Customer[]> {
+  async searchCustomers(query: string, sectorId?: string): Promise<Customer[]> {
     let queryBuilder = this.supabase
       .from('customers')
       .select('*, tariffs(name, tariff_tiers(*)), sectors(id, name, code), readings(current_reading, reading_date)')
+
+    if (sectorId) {
+      queryBuilder = queryBuilder.eq('sector_id', sectorId)
+    }
 
     if (query && query.length >= 2) {
       queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,supply_number.ilike.%${query}%,document_number.ilike.%${query}%`)
@@ -94,11 +98,17 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     return data
   }
 
-  async getActiveCustomersWithReadings() {
-    const { data, error } = await this.supabase
+  async getActiveCustomersWithReadings(sectorId?: string) {
+    let query = this.supabase
       .from('customers')
       .select('id, supply_number, full_name, address, sector, sector_id, is_active, readings(id, reading_date), sectors(id, name, code)')
       .eq('is_active', true)
+
+    if (sectorId) {
+      query = query.eq('sector_id', sectorId)
+    }
+
+    const { data, error } = await query
       .order('sector', { ascending: true })
       .order('full_name', { ascending: true })
 
@@ -106,11 +116,17 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     return data
   }
 
-  async getAllForCache() {
-    const { data, error } = await this.supabase
+  async getAllForCache(sectorId?: string) {
+    let query = this.supabase
       .from('customers')
       .select('id, supply_number, full_name, address, sector, sector_id, tariff_id, is_active, readings(current_reading, reading_date)')
       .eq('is_active', true)
+
+    if (sectorId) {
+      query = query.eq('sector_id', sectorId)
+    }
+
+    const { data, error } = await query
       .order('full_name', { ascending: true })
 
     if (error) throw error

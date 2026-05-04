@@ -49,7 +49,7 @@ describe('Customer Management Integration Flow', () => {
 
     const results = await service.searchCustomers('202604999')
 
-    expect(proto.searchCustomers).toHaveBeenCalledWith('202604999')
+      expect(proto.searchCustomers).toHaveBeenCalledWith('202604999', undefined)
     expect(results).toHaveLength(1)
     expect(results[0].supply_number).toBe('202604999')
   })

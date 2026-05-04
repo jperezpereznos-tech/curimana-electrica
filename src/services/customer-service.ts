@@ -17,8 +17,8 @@ export class CustomerService {
     this.supabase = supabaseClient ?? createBrowserClient()
   }
 
-  async searchCustomers(query: string) {
-    return await this.customerRepo.searchCustomers(query.trim())
+  async searchCustomers(query: string, sectorId?: string) {
+    return await this.customerRepo.searchCustomers(query.trim(), sectorId)
   }
 
   async getCustomerDetails(id: string) {
@@ -69,12 +69,12 @@ export class CustomerService {
     return await this.customerRepo.getTopDebtors(1000)
   }
 
-  async getActiveCustomersWithReadings() {
-    return await this.customerRepo.getActiveCustomersWithReadings()
+  async getActiveCustomersWithReadings(sectorId?: string) {
+    return await this.customerRepo.getActiveCustomersWithReadings(sectorId)
   }
 
-  async getAllForCache() {
-    return await this.customerRepo.getAllForCache()
+  async getAllForCache(sectorId?: string) {
+    return await this.customerRepo.getAllForCache(sectorId)
   }
 }
 

@@ -32,6 +32,7 @@ export function useOfflineSync() {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
   const { user } = useAuth()
   const syncingRef = useRef(false)
+  const assignedSectorIdRef = useRef<string | null>(null)
 
   const updateCounter = useCallback(async () => {
     const pending = await db.pending_readings
@@ -42,8 +43,18 @@ export function useOfflineSync() {
   const syncCustomerCache = useCallback(async () => {
     if (!navigator.onLine) return
     try {
+      const supabase = createClient()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('assigned_sector_id')
+        .eq('id', user!.id)
+        .maybeSingle()
+
+      const sectorId = profile?.assigned_sector_id || null
+      assignedSectorIdRef.current = sectorId
+
       const customers = await withTimeout(
-        customerService.getAllForCache(),
+        customerService.getAllForCache(sectorId || undefined),
         CACHE_SYNC_TIMEOUT_MS
       )
       if (customers && customers.length > 0) {
@@ -53,7 +64,7 @@ export function useOfflineSync() {
     } catch (error) {
       console.error('Error syncing customer cache:', error)
     }
-  }, [])
+  }, [user?.id])
 
   const refreshSession = useCallback(async () => {
     try {
@@ -132,6 +143,17 @@ export function useOfflineSync() {
 
   for (const reading of pending) {
       try {
+        if (assignedSectorIdRef.current && reading.sector_id && reading.sector_id !== assignedSectorIdRef.current) {
+          console.error(`Skipping reading for customer outside assigned sector (supply: ${reading.supply_number}, sector: ${reading.sector_id}, assigned: ${assignedSectorIdRef.current})`)
+          await db.pending_readings.update(reading.id!, {
+            status: 'failed',
+            retry_count: MAX_RETRIES,
+            last_attempt_time: Date.now()
+          })
+          hasError = true
+          continue
+        }
+
         await db.pending_readings.update(reading.id!, {
           status: 'syncing',
           last_attempt_time: Date.now()
