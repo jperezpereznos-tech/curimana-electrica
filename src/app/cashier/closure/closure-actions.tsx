@@ -16,7 +16,7 @@ import {
 import { Lock, Unlock, PlayCircle, Loader2 } from 'lucide-react'
 import { openClosureAction, closeClosureAction } from '../actions'
 
-export function ClosureActions({ action, closureId, userId }: { action: 'open' | 'close', closureId?: string, userId: string }) {
+export function ClosureActions({ action, closureId }: { action: 'open' | 'close', closureId?: string }) {
   const [open, setOpen] = useState(false)
   const [initialAmount, setInitialAmount] = useState('0')
   const [loading, setLoading] = useState(false)
@@ -33,7 +33,7 @@ export function ClosureActions({ action, closureId, userId }: { action: 'open' |
 
     setLoading(true)
     try {
-      await openClosureAction(userId, amount)
+      await openClosureAction(amount)
       setOpen(false)
       router.refresh()
     } catch {

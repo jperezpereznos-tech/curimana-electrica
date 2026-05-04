@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getCustomerService } from '@/services/customer-service'
 import { getTariffService } from '@/services/tariff-service'
 import { getSectorService } from '@/services/sector-service'
@@ -30,16 +29,16 @@ export default async function CustomersPage({
   } catch { }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Gestión de Clientes</h2>
-          <p className="text-muted-foreground">Administra el padrón de suministros eléctricos.</p>
+          <h2 className="text-3xl font-bold tracking-tight">Gestion de Clientes</h2>
+          <p className="text-muted-foreground">Administra el padron de suministros electricos.</p>
         </div>
         <CreateCustomerDialog tariffs={tariffs} sectors={sectors} />
       </div>
 
       <CustomersList initialCustomers={customers} query={q || ''} tariffs={tariffs} sectors={sectors} />
-    </AdminLayout>
+    </>
   )
 }

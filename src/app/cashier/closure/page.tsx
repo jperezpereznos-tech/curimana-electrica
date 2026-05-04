@@ -63,7 +63,7 @@ export default async function CashClosurePage() {
               <p className="text-muted-foreground max-w-xs mb-6">
                 No tienes una sesión de caja abierta. Debes iniciar una nueva sesión para empezar a cobrar.
               </p>
-              <ClosureActions action="open" userId={userId} />
+              <ClosureActions action="open" />
             </CardContent>
           </Card>
         ) : (
@@ -130,7 +130,7 @@ export default async function CashClosurePage() {
                 </div>
               </CardContent>
               <CardFooter className="bg-muted/10 justify-center border-t py-6">
-                <ClosureActions action="close" closureId={activeClosure.id} userId={userId} />
+                <ClosureActions action="close" closureId={activeClosure.id} />
               </CardFooter>
             </Card>
           </div>

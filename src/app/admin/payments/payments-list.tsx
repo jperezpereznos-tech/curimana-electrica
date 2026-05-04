@@ -19,6 +19,14 @@ import { voidPaymentAction } from './actions'
 
 const PAGE_SIZE = 25
 
+function escapeCsvField(value: string): string {
+  const str = String(value ?? '')
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return '"' + str.replace(/"/g, '""') + '"'
+  }
+  return str
+}
+
 export function PaymentsList({ initialPayments, currentFilters }: any) {
   const router = useRouter()
   const [dateFrom, setDateFrom] = useState(currentFilters.from || '')
@@ -43,7 +51,7 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
     .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
 
   const handleVoid = async (paymentId: string) => {
-    if (!confirm('¿Estás seguro de anular este pago? Se revertirá el monto en el recibo y la deuda del cliente.')) return
+    if (!confirm('Estas seguro de anular este pago? Se revertira el monto en el recibo y la deuda del cliente.')) return
     setVoidError(null)
     try {
       await voidPaymentAction(paymentId)
@@ -66,8 +74,9 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
       p.status || 'completed',
     ])
 
-    const csv = [headers.join(','), ...rows.map((r: string[]) => r.map((c: string) => `"${c}"`).join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const csv = [headers.join(','), ...rows.map((r: string[]) => r.map(escapeCsvField).join(','))].join('\n')
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

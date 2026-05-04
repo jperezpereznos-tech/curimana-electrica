@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getConceptService } from '@/services/concept-service'
 import { getTariffService } from '@/services/tariff-service'
 import { createClient } from '@/lib/supabase/server'
@@ -21,7 +20,7 @@ export default async function ConceptsPage() {
   } catch { }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Conceptos de Cobro</h2>
@@ -31,6 +30,6 @@ export default async function ConceptsPage() {
       </div>
 
       <ConceptsList initialConcepts={concepts} tariffs={tariffs} />
-    </AdminLayout>
+    </>
   )
 }

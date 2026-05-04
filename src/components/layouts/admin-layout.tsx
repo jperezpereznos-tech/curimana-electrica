@@ -29,7 +29,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   const navItems = [
-    { name: 'Panel', href: '/admin', icon: LayoutDashboard },
+    { name: 'Panel', href: '/admin', icon: LayoutDashboard, exact: true },
     { name: 'Usuarios', href: '/admin/users', icon: Shield },
     { name: 'Clientes', href: '/admin/customers', icon: Users },
     { name: 'Sectores', href: '/admin/sectors', icon: MapPin },
@@ -42,6 +42,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: 'Conceptos', href: '/admin/concepts', icon: Tag },
     { name: 'Auditoria', href: '/admin/audit', icon: ClipboardList },
   ]
+
+  const isActive = (item: { href: string; exact?: boolean }) => {
+    if (item.exact) return pathname === item.href
+    return pathname === item.href || pathname.startsWith(item.href + '/')
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -60,7 +65,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={cn(
                 "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors",
-                pathname === item.href ? "bg-white/20" : "hover:bg-white/10"
+                isActive(item) ? "bg-white/20" : "hover:bg-white/10"
               )}
             >
               <item.icon size={20} />
@@ -69,13 +74,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="absolute bottom-8 w-64 px-8">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-start text-white hover:bg-white/10 hover:text-white"
             onClick={() => signOut()}
           >
             <LogOut size={20} className="mr-3" />
-            Cerrar Sesión
+            Cerrar Sesion
           </Button>
         </div>
       </aside>
@@ -83,7 +88,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 border-b flex items-center justify-between px-8 bg-white">
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle menú">
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle menu">
             <Menu size={24} />
           </Button>
           <div className="flex items-center space-x-4">

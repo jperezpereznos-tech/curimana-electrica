@@ -12,9 +12,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Select,
-} from '@/components/ui/select'
-import {
   AlertTriangle, Camera, Search, ChevronLeft, ChevronRight, Eye, Pencil,
   AlertCircle, CheckCircle2, User, MapPin,
 } from 'lucide-react'
@@ -126,7 +123,7 @@ export function ReadingsList({
           className="gap-1"
         >
           <AlertCircle className="h-3 w-3" />
-          {showReviewOnly ? 'Mostrando revisiones' : 'Solo revisión'}
+          {showReviewOnly ? 'Mostrando revisiones' : 'Solo revision'}
         </Button>
 
         <div className="flex-1" />

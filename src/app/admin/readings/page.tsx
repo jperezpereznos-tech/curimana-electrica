@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { createClient } from '@/lib/supabase/server'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
@@ -18,21 +17,19 @@ export default async function ReadingsPage() {
   try { reviewCount = await readingService.getReviewCount() } catch {}
 
   return (
-    <AdminLayout>
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Lecturas</h2>
-          <p className="text-muted-foreground">
-            Registro de lecturas de medidores por período. Revisa lecturas marcadas para verificación.
-          </p>
-        </div>
-
-        <ReadingsList
-          initialReadings={readings}
-          periods={periods}
-          initialReviewCount={reviewCount}
-        />
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Lecturas</h2>
+        <p className="text-muted-foreground">
+          Registro de lecturas de medidores por periodo. Revisa lecturas marcadas para verificacion.
+        </p>
       </div>
-    </AdminLayout>
+
+      <ReadingsList
+        initialReadings={readings}
+        periods={periods}
+        initialReviewCount={reviewCount}
+      />
+    </div>
   )
 }

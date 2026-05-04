@@ -1,19 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { db } from '@/lib/db/dexie'
-import { readingService } from '@/services/reading-service'
 import { periodService } from '@/services/period-service'
 import { storageService } from '@/services/storage-service'
 import { customerService } from '@/services/customer-service'
 import { useAuth } from '@/hooks/use-auth'
 import { createClient } from '@/lib/supabase/client'
+import { registerReadingAction } from '@/app/reader/actions'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
 const MAX_RETRIES = 5
+const BASE_SYNC_INTERVAL_MS = 30_000
+const MAX_SYNC_INTERVAL_MS = 300_000
 const PHOTO_UPLOAD_TIMEOUT_MS = 20_000
 const READING_INSERT_TIMEOUT_MS = 15_000
 const CACHE_SYNC_TIMEOUT_MS = 10_000
 const PERIOD_FETCH_TIMEOUT_MS = 10_000
+
+function getBackoffDelay(retryCount: number): number {
+  return Math.min(BASE_SYNC_INTERVAL_MS * Math.pow(2, retryCount), MAX_SYNC_INTERVAL_MS)
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -141,8 +147,12 @@ export function useOfflineSync() {
 
       let hasError = false
 
-  for (const reading of pending) {
-      try {
+      for (const reading of pending) {
+        if (!isManual && (reading.retry_count || 0) >= MAX_RETRIES) {
+          continue
+        }
+
+        try {
         if (assignedSectorIdRef.current && reading.sector_id && reading.sector_id !== assignedSectorIdRef.current) {
           console.error(`Skipping reading for customer outside assigned sector (supply: ${reading.supply_number}, sector: ${reading.sector_id}, assigned: ${assignedSectorIdRef.current})`)
           await db.pending_readings.update(reading.id!, {
@@ -161,7 +171,6 @@ export function useOfflineSync() {
 
         const previousReading = Number(reading.previous_reading) || 0
         const currentReading = Number(reading.current_reading) || 0
-        const currentUserId = user?.id
 
         await withTimeout(
           (async () => {
@@ -178,18 +187,18 @@ export function useOfflineSync() {
               }
             }
 
-            await withTimeout(
-              readingService.registerReading({
-                customer_id: reading.customer_id,
-                billing_period_id: periodId!,
-                previous_reading: previousReading,
-                current_reading: currentReading,
-                reading_date: reading.reading_date,
-                notes: reading.notes,
-                photo_url: photoUrl
-              }, currentUserId),
-              READING_INSERT_TIMEOUT_MS
-            )
+        await withTimeout(
+          registerReadingAction({
+            customer_id: reading.customer_id,
+            billing_period_id: periodId!,
+            previous_reading: previousReading,
+            current_reading: currentReading,
+            reading_date: reading.reading_date,
+            notes: reading.notes,
+            photo_url: photoUrl
+          }),
+          READING_INSERT_TIMEOUT_MS
+        )
           })(),
           PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
         )
@@ -222,7 +231,7 @@ export function useOfflineSync() {
       await updateCounter()
     } finally {
       syncingRef.current = false
-      setTimeout(() => setSyncStatus('idle'), 3000)
+      setTimeout(() => setSyncStatus('idle'), 10000)
     }
   }, [isOnline, updateCounter, syncCustomerCache, refreshSession, user?.id])
 
@@ -245,10 +254,26 @@ export function useOfflineSync() {
   }, [updateCounter])
 
   useEffect(() => {
-    if (isOnline) {
-      const interval = setInterval(() => { void syncNow(false) }, 30000)
-      return () => clearInterval(interval)
+    if (!isOnline) return
+
+    let timeoutId: ReturnType<typeof setTimeout>
+    let cancelled = false
+
+    const scheduleNext = async () => {
+      const failed = await db.pending_readings
+        .where('status').equals('failed')
+        .sortBy('retry_count')
+      const maxRetry = failed.length > 0 ? (failed[failed.length - 1].retry_count || 0) : 0
+      const delay = failed.length > 0 ? getBackoffDelay(maxRetry) : BASE_SYNC_INTERVAL_MS
+
+      if (cancelled) return
+      timeoutId = setTimeout(() => {
+        if (!cancelled) void syncNow(false).then(scheduleNext)
+      }, delay)
     }
+
+    void syncNow(false).then(scheduleNext)
+    return () => { cancelled = true; clearTimeout(timeoutId) }
   }, [isOnline, syncNow])
 
   return {

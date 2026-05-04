@@ -7,7 +7,10 @@ export class PdfService {
    * Genera el PDF del recibo eléctrico.
    */
   generateReceiptPdf(data: any) {
-    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, igv, previous_debt } = data
+    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, igv, previous_debt, municipality_config } = data
+
+    const ruc = municipality_config?.ruc || '20123456789'
+    const municipalityName = municipality_config?.name || 'MUNICIPALIDAD DE CURIMANA'
     
     const doc = new jsPDF()
     const primaryColor = [0, 102, 204] // Azul municipal
@@ -18,10 +21,10 @@ export class PdfService {
     
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(22)
-    doc.text('MUNICIPALIDAD DE CURIMANA', 15, 20)
-    doc.setFontSize(10)
-    doc.text('SISTEMA ELÉCTRICO MUNICIPAL', 15, 28)
-    doc.text('RUC: 20123456789', 15, 34)
+  doc.text(municipalityName, 15, 20)
+  doc.setFontSize(10)
+  doc.text('SISTEMA ELÉCTRICO MUNICIPAL', 15, 28)
+  doc.text(`RUC: ${ruc}`, 15, 34)
 
     doc.setFontSize(16)
     doc.text(`RECIBO N° ${receipt_number}`, 140, 25)

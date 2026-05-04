@@ -1,5 +1,4 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
-import { getCustomerService } from '@/services/customer-service'
+﻿import { getCustomerService } from '@/services/customer-service'
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
@@ -37,156 +36,154 @@ export default async function CustomerDetailsPage({
   } catch {}
 
   return (
-    <AdminLayout>
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">{customer.full_name}</h2>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Badge variant="outline" className="font-mono">{customer.supply_number}</Badge>
-                <span>•</span>
-                <span>{customer.document_number}</span>
-              </div>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">{customer.full_name}</h2>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Badge variant="outline" className="font-mono">{customer.supply_number}</Badge>
+              <span>.</span>
+              <span>{customer.document_number}</span>
             </div>
           </div>
-          <Badge className="text-lg px-4 py-1" variant={customer.is_active ? 'default' : 'secondary'}>
-            {customer.is_active ? 'Suministro Activo' : 'Suministro Inactivo'}
-          </Badge>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> Ubicación y Contacto
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2">
-              <p><strong>Dirección:</strong> {customer.address}</p>
-              <p><strong>Sector:</strong> {customer.sector}</p>
-              <p className="flex items-center gap-1">
-                <Phone className="h-3 w-3" /> {customer.phone || 'No registrado'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Activity className="h-4 w-4" /> Configuración de Servicio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2">
-              <p><strong>Tarifa:</strong> {customer.tariffs?.name}</p>
-              <p className="capitalize"><strong>Conexión:</strong> {customer.connection_type}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <CreditCard className="h-4 w-4" /> Estado de Cuenta
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">
-                {formatCurrency(customer.current_debt)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Deuda total acumulada a la fecha</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="readings" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="readings">Lecturas</TabsTrigger>
-            <TabsTrigger value="receipts">Recibos</TabsTrigger>
-            <TabsTrigger value="payments">Pagos</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="readings" className="mt-4">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Periodo</TableHead>
-                    <TableHead>Anterior</TableHead>
-                    <TableHead>Actual</TableHead>
-                    <TableHead>Consumo (kWh)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {readings.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center">No hay registros</TableCell></TableRow>
-                  ) : (
-                    readings.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell>{formatDate(r.reading_date)}</TableCell>
-                        <TableCell>{r.billing_periods?.name}</TableCell>
-                        <TableCell>{r.previous_reading}</TableCell>
-                        <TableCell>{r.current_reading}</TableCell>
-                        <TableCell className="font-bold">{r.consumption}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-
-    <TabsContent value="receipts" className="mt-4">
-      <Card className="p-4">
-        <CustomerReceiptsTab
-          receipts={receipts}
-          customer={{ id: customer.id, full_name: customer.full_name }}
-          onRefresh={() => {}}
-        />
-      </Card>
-    </TabsContent>
-
-    <TabsContent value="payments" className="mt-4">
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>N° Recibo</TableHead>
-              <TableHead>Periodo</TableHead>
-              <TableHead>Fecha Pago</TableHead>
-              <TableHead>Monto</TableHead>
-              <TableHead>Método</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center">No hay pagos registrados</TableCell></TableRow>
-            ) : (
-              payments.map((p: any) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
-                  <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
-                  <TableCell>{formatDate(p.payment_date)}</TableCell>
-                  <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
-                  <TableCell className="capitalize">{p.method}</TableCell>
-                  <TableCell>
-                    <Badge variant={p.status === 'completed' ? 'default' : 'destructive'}>
-                      {p.status === 'completed' ? 'Completado' : p.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-    </TabsContent>
-        </Tabs>
+        <Badge className="text-lg px-4 py-1" variant={customer.is_active ? 'default' : 'secondary'}>
+          {customer.is_active ? 'Suministro Activo' : 'Suministro Inactivo'}
+        </Badge>
       </div>
-    </AdminLayout>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <MapPin className="h-4 w-4" /> Ubicacion y Contacto
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <p><strong>Direccion:</strong> {customer.address}</p>
+            <p><strong>Sector:</strong> {customer.sector}</p>
+            <p className="flex items-center gap-1">
+              <Phone className="h-3 w-3" /> {customer.phone || 'No registrado'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Activity className="h-4 w-4" /> Configuracion de Servicio
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <p><strong>Tarifa:</strong> {customer.tariffs?.name}</p>
+            <p className="capitalize"><strong>Conexion:</strong> {customer.connection_type}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CreditCard className="h-4 w-4" /> Estado de Cuenta
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {formatCurrency(customer.current_debt)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Deuda total acumulada a la fecha</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="readings" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="readings">Lecturas</TabsTrigger>
+          <TabsTrigger value="receipts">Recibos</TabsTrigger>
+          <TabsTrigger value="payments">Pagos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="readings" className="mt-4">
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Periodo</TableHead>
+                  <TableHead>Anterior</TableHead>
+                  <TableHead>Actual</TableHead>
+                  <TableHead>Consumo (kWh)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {readings.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center">No hay registros</TableCell></TableRow>
+                ) : (
+                  readings.map((r: any) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{formatDate(r.reading_date)}</TableCell>
+                      <TableCell>{r.billing_periods?.name}</TableCell>
+                      <TableCell>{r.previous_reading}</TableCell>
+                      <TableCell>{r.current_reading}</TableCell>
+                      <TableCell className="font-bold">{r.consumption}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="receipts" className="mt-4">
+          <Card className="p-4">
+            <CustomerReceiptsTab
+              receipts={receipts}
+              customer={{ id: customer.id, full_name: customer.full_name }}
+              onRefresh={() => {}}
+            />
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-4">
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>N Recibo</TableHead>
+                  <TableHead>Periodo</TableHead>
+                  <TableHead>Fecha Pago</TableHead>
+                  <TableHead>Monto</TableHead>
+                  <TableHead>Metodo</TableHead>
+                  <TableHead>Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center">No hay pagos registrados</TableCell></TableRow>
+                ) : (
+                  payments.map((p: any) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
+                      <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
+                      <TableCell>{formatDate(p.payment_date)}</TableCell>
+                      <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
+                      <TableCell className="capitalize">{p.method}</TableCell>
+                      <TableCell>
+                        <Badge variant={p.status === 'completed' ? 'default' : 'destructive'}>
+                          {p.status === 'completed' ? 'Completado' : p.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

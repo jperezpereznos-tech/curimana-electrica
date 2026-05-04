@@ -1,18 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getPaymentService } from '@/services/payment-service'
 import { getCashClosureService } from '@/services/cash-closure-service'
 import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
 import { revalidatePath } from 'next/cache'
-
-async function requireAuth() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  return { supabase, userId: user.id }
-}
 
 export async function adminProcessPaymentAction(data: {
   receiptId: string
@@ -24,7 +17,7 @@ export async function adminProcessPaymentAction(data: {
   changeAmount: number
   reference?: string
 }) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireAdminAuth()
   const paymentService = getPaymentService(supabase)
 
   const result = await paymentService.processPayment({ ...data, cashierUserId: userId })
@@ -43,7 +36,7 @@ export async function adminProcessBatchPaymentAction(data: {
   changeAmount?: number
   reference?: string
 }) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireAdminAuth()
   const paymentService = getPaymentService(supabase)
 
   const result = await paymentService.processBatchPayment({ ...data, cashierUserId: userId })
@@ -54,13 +47,13 @@ export async function adminProcessBatchPaymentAction(data: {
 }
 
 export async function adminGetActiveClosureAction() {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireAdminAuth()
   const cashClosureService = getCashClosureService(supabase)
   return await cashClosureService.getActiveClosure(userId)
 }
 
 export async function adminOpenClosureAction(initialAmount: number) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireAdminAuth()
   const cashClosureService = getCashClosureService(supabase)
 
   const result = await cashClosureService.openClosure(userId, initialAmount)
@@ -69,7 +62,7 @@ export async function adminOpenClosureAction(initialAmount: number) {
 }
 
 export async function adminSearchCustomerReceiptsAction(query: string) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireAdminAuth()
   const customerService = getCustomerService(supabase)
   const receiptService = getReceiptService(supabase)
 
@@ -90,7 +83,7 @@ export async function adminSearchCustomerReceiptsAction(query: string) {
 }
 
 export async function voidPaymentAction(paymentId: string) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireAdminAuth()
   const paymentService = getPaymentService(supabase)
 
   const result = await paymentService.voidPayment(paymentId, userId)

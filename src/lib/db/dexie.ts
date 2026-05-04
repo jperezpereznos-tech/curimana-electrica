@@ -42,14 +42,19 @@ export class CurimanaDB extends Dexie {
       customers_cache: 'id, supply_number, sector, sector_id'
     })
 
-    this.version(2).stores({
-      pending_readings: '++id, customer_id, supply_number, status, sector_id',
-      customers_cache: 'id, supply_number, sector, sector_id'
-    }).upgrade(tx => {
-      return tx.table('pending_readings').toCollection().modify(reading => {
-        if (!reading.sector_id) reading.sector_id = ''
-      })
+  this.version(2).stores({
+    pending_readings: '++id, customer_id, supply_number, status, sector_id',
+    customers_cache: 'id, supply_number, sector, sector_id'
+  }).upgrade(tx => {
+    return tx.table('pending_readings').toCollection().modify(reading => {
+      if (!reading.sector_id) reading.sector_id = ''
     })
+  })
+
+  this.version(3).stores({
+    pending_readings: '++id, customer_id, supply_number, status, sector_id, reading_date',
+    customers_cache: 'id, supply_number, sector, sector_id'
+  })
   }
 }
 

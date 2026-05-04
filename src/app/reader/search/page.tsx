@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, Zap, ChevronRight } from 'lucide-react'
+import { Search, MapPin, Zap, ChevronRight, WifiOff } from 'lucide-react'
 import { searchReaderCustomersAction } from '../actions'
+import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 
 export default function SearchPage() {
@@ -23,9 +24,25 @@ export default function SearchPage() {
     setLoading(true)
     setSearched(true)
     try {
-      const customers = await searchReaderCustomersAction(searchTerm)
-      setResults(customers)
+      if (navigator.onLine) {
+        const customers = await searchReaderCustomersAction(searchTerm)
+        setResults(customers || [])
+      } else {
+        const cached = await db.customers_cache
+          .where('supply_number')
+          .startsWithIgnoreCase(searchTerm)
+          .toArray()
+        if (cached.length === 0) {
+          const byName = await db.customers_cache
+            .filter(c => c.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+            .toArray()
+          setResults(byName)
+        } else {
+          setResults(cached)
+        }
+      }
     } catch {
+      setResults([])
     } finally {
       setLoading(false)
     }
@@ -33,8 +50,15 @@ export default function SearchPage() {
 
   return (
     <ReaderLayout>
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-bold">Buscar Suministro</h2>
+    <div className="flex flex-col gap-4">
+      <h2 className="text-xl font-bold">Buscar Suministro</h2>
+
+      {!navigator.onLine && (
+        <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg text-sm">
+          <WifiOff className="h-4 w-4" />
+          Modo offline — buscando en caché local
+        </div>
+      )}
 
         <form onSubmit={handleSearch}>
           <Card>

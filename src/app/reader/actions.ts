@@ -74,3 +74,29 @@ export async function getLatestReadingAction(customerId: string) {
   const reading = await readingService.getLatestReading(customerId)
   return reading
 }
+
+export async function registerReadingAction(data: {
+  customer_id: string
+  billing_period_id: string
+  previous_reading: number
+  current_reading: number
+  reading_date: string
+  notes?: string
+  photo_url?: string
+}) {
+  const { supabase, userId } = await requireAuth()
+  const sectorId = await getAssignedSectorId(userId, supabase)
+
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('sector_id')
+    .eq('id', data.customer_id)
+    .single()
+
+  if (sectorId && customer?.sector_id && customer.sector_id !== sectorId) {
+    throw new Error('No puede registrar lecturas de suministros fuera de su sector asignado')
+  }
+
+  const readingService = getReadingService(supabase)
+  return await readingService.registerReading(data, userId)
+}

@@ -1,11 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getSectorService } from '@/services/sector-service'
 import { revalidatePath } from 'next/cache'
 
 export async function createSectorAction(data: { name: string; code: string; description?: string }) {
-  const supabase = await createClient()
+  const { supabase } = await requireAdminAuth()
   const sectorService = getSectorService(supabase)
 
   const result = await sectorService.createSector(data)
@@ -14,7 +14,7 @@ export async function createSectorAction(data: { name: string; code: string; des
 }
 
 export async function updateSectorAction(id: string, data: { name?: string; code?: string; description?: string; is_active?: boolean }) {
-  const supabase = await createClient()
+  const { supabase } = await requireAdminAuth()
   const sectorService = getSectorService(supabase)
 
   const result = await sectorService.updateSector(id, data)
@@ -23,7 +23,7 @@ export async function updateSectorAction(id: string, data: { name?: string; code
 }
 
 export async function deleteSectorAction(id: string) {
-  const supabase = await createClient()
+  const { supabase } = await requireAdminAuth()
   const sectorService = getSectorService(supabase)
 
   const result = await sectorService.deleteSector(id)
@@ -32,7 +32,7 @@ export async function deleteSectorAction(id: string) {
 }
 
 export async function assignReaderToSectorAction(readerId: string, sectorId: string | null) {
-  const supabase = await createClient()
+  const { supabase } = await requireAdminAuth()
   const { data, error } = await supabase
     .from('profiles')
     .update({ assigned_sector_id: sectorId })

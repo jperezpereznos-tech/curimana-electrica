@@ -1,11 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
 
 export async function getReadingsAdminAction(periodId?: string, needsReviewOnly?: boolean) {
-  const supabase = await createClient()
+  const { supabase } = await requireAdminAuth()
   const readingService = getReadingService(supabase)
 
   try {
@@ -17,7 +17,7 @@ export async function getReadingsAdminAction(periodId?: string, needsReviewOnly?
 }
 
 export async function getPeriodsForFilterAction() {
-  const supabase = await createClient()
+  const { supabase } = await requireAdminAuth()
   const periodService = getPeriodService(supabase)
 
   try {
@@ -34,13 +34,11 @@ export async function updateReadingAction(readingId: string, data: {
   needs_review?: boolean
   notes?: string
 }) {
-  const supabase = await createClient()
+  const { supabase, userId } = await requireAdminAuth()
   const readingService = getReadingService(supabase)
 
-  const { data: { user } } = await supabase.auth.getUser()
-
   try {
-    const updated = await readingService.updateReading(readingId, data, user?.id)
+    const updated = await readingService.updateReading(readingId, data, userId)
     return { data: updated, error: null }
   } catch (error: any) {
     return { data: null, error: error.message }

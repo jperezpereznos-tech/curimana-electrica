@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getPeriodService } from '@/services/period-service'
 import { createClient } from '@/lib/supabase/server'
 import { PeriodsList } from './periods-list'
@@ -12,16 +11,16 @@ export default async function PeriodsPage() {
   try { periods = await periodService.getAllPeriods() } catch { }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Periodos de Facturación</h2>
-          <p className="text-muted-foreground">Control de ciclos mensuales y cierre de facturación.</p>
+          <h2 className="text-3xl font-bold tracking-tight">Periodos de Facturacion</h2>
+          <p className="text-muted-foreground">Control de ciclos mensuales y cierre de facturacion.</p>
         </div>
         <CreatePeriodButton />
       </div>
 
       <PeriodsList initialPeriods={periods} />
-    </AdminLayout>
+    </>
   )
 }

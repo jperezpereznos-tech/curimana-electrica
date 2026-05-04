@@ -1,15 +1,14 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getPeriodService } from '@/services/period-service'
 import { revalidatePath } from 'next/cache'
 
 export async function closePeriodAction(id: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, userId } = await requireAdminAuth()
   const periodService = getPeriodService(supabase)
-  
-  const result = await periodService.closePeriod(id, user?.id)
+
+  const result = await periodService.closePeriod(id, userId)
   revalidatePath('/admin/periods')
   revalidatePath('/admin/receipts')
   revalidatePath('/admin/customers')
@@ -17,11 +16,10 @@ export async function closePeriodAction(id: string) {
 }
 
 export async function openNextPeriodAction() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, userId } = await requireAdminAuth()
   const periodService = getPeriodService(supabase)
 
-  const result = await periodService.createNextPeriod(user?.id)
+  const result = await periodService.createNextPeriod(userId)
   revalidatePath('/admin/periods')
   return result
 }

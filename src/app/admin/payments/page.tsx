@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentsList } from './payments-list'
@@ -21,7 +20,7 @@ export default async function PaymentsPage({
   } catch { }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Pagos Registrados</h2>
@@ -30,6 +29,6 @@ export default async function PaymentsPage({
       </div>
 
       <PaymentsList initialPayments={payments || []} currentFilters={params} />
-    </AdminLayout>
+    </>
   )
 }

@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getSectorService } from '@/services/sector-service'
 import { createClient } from '@/lib/supabase/server'
 import { SectorsList } from './sectors-list'
@@ -26,11 +25,11 @@ export default async function SectorsPage() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Sectores</h2>
-          <p className="text-muted-foreground">Gestión de sectores y asignación de lecturadores.</p>
+          <p className="text-muted-foreground">Gestion de sectores y asignacion de lecturadores.</p>
         </div>
         <CreateSectorDialog />
       </div>
@@ -42,6 +41,6 @@ export default async function SectorsPage() {
       )}
 
       <SectorsList initialSectors={sectors} readers={readers} />
-    </AdminLayout>
+    </>
   )
 }

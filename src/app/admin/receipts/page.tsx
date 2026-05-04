@@ -1,4 +1,3 @@
-import { AdminLayout } from '@/components/layouts/admin-layout'
 import { getReceiptService } from '@/services/receipt-service'
 import { getPeriodService } from '@/services/period-service'
 import { createClient } from '@/lib/supabase/server'
@@ -28,19 +27,19 @@ export default async function ReceiptsPage({
   try { periods = await periodService.getAllPeriods() } catch { }
 
   return (
-    <AdminLayout>
+    <>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Recibos Emitidos</h2>
-          <p className="text-muted-foreground">Consulta y gestión de la facturación histórica.</p>
+          <p className="text-muted-foreground">Consulta y gestion de la facturacion historica.</p>
         </div>
       </div>
 
-      <ReceiptsList 
-        initialReceipts={receipts || []} 
-        periods={periods} 
+      <ReceiptsList
+        initialReceipts={receipts || []}
+        periods={periods}
         currentFilters={params}
       />
-    </AdminLayout>
+    </>
   )
 }

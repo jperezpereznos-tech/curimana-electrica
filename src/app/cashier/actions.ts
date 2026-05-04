@@ -49,8 +49,8 @@ export async function processBatchPaymentAction(data: {
   return result
 }
 
-export async function openClosureAction(userId: string, amount: number) {
-  const { supabase } = await requireAuth()
+export async function openClosureAction(amount: number) {
+  const { supabase, userId } = await requireAuth()
   const cashClosureService = getCashClosureService(supabase)
 
   const result = await cashClosureService.openClosure(userId, amount)
@@ -93,14 +93,14 @@ export async function getPaymentsByCashierAction(userId: string, dateFilterParam
   const paymentService = getPaymentService(supabase)
 
   const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
-  return data?.map((p: any) => ({
-    id: p.id,
-    receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
-    customer_name: p.receipts?.customers?.full_name || 'Desconocido',
-    supply_number: p.receipts?.customers?.supply_number || 'N/A',
-    amount: p.amount,
-    payment_date: p.payment_date,
-    status: 'completed',
-    reference: p.reference
-  })) || []
+    return data?.map((p: any) => ({
+      id: p.id,
+      receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
+      customer_name: p.receipts?.customers?.full_name || 'Desconocido',
+      supply_number: p.receipts?.customers?.supply_number || 'N/A',
+      amount: p.amount,
+      payment_date: p.payment_date,
+      status: p.status || 'completed',
+      reference: p.reference
+    })) || []
 }
