@@ -37,6 +37,8 @@ export async function processBatchPaymentAction(data: {
   customerId: string
   cashClosureId: string
   paymentMethod: 'cash' | 'transfer' | 'card'
+  receivedAmount?: number
+  changeAmount?: number
   reference?: string
 }) {
   const { supabase, userId } = await requireAuth()

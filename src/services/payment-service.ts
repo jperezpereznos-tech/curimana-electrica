@@ -36,8 +36,10 @@ export class PaymentService {
     reference?: string
   }) {
     const { receiptId, customerId, amount, cashClosureId } = data
+
     const closure = await this.cashClosureRepo.getById(cashClosureId)
     if (!closure?.cashier_id) throw new Error('Caja no valida para registrar pago')
+    if (closure.status !== 'open') throw new Error('La caja está cerrada. No se pueden registrar pagos.')
 
     const receipt = await this.receiptRepo.getById(receiptId)
     if (!receipt) throw new Error('Recibo no encontrado')
@@ -55,13 +57,16 @@ export class PaymentService {
       amount: amount,
       method: data.paymentMethod,
       reference: data.reference || `PAY-${Date.now()}`,
-      cashier_id: closure.cashier_id
+      cashier_id: closure.cashier_id,
+      cash_closure_id: cashClosureId,
+      received_amount: data.receivedAmount,
+      change_amount: data.changeAmount,
     })
 
     const newPaidAmount = (receipt.paid_amount || 0) + amount
     const isFullyPaid = newPaidAmount >= receipt.total_amount
 
-    const receiptUpdate: Record<string, any> = {
+    const receiptUpdate: Partial<Database['public']['Tables']['receipts']['Update']> = {
       paid_amount: newPaidAmount,
       status: isFullyPaid ? 'paid' : 'partial',
     }
@@ -94,28 +99,41 @@ export class PaymentService {
     customerId: string
     cashClosureId: string
     paymentMethod: 'cash' | 'transfer' | 'card'
+    receivedAmount?: number
+    changeAmount?: number
     reference?: string
     cashierUserId?: string
   }) {
     const closure = await this.cashClosureRepo.getById(data.cashClosureId)
     if (!closure?.cashier_id) throw new Error('Caja no valida para registrar pagos')
+    if (closure.status !== 'open') throw new Error('La caja está cerrada. No se pueden registrar pagos.')
 
-    const results = []
-    for (const item of data.payments) {
-      const result = await this.processPayment({
-        receiptId: item.receiptId,
-        customerId: data.customerId,
-        cashClosureId: data.cashClosureId,
-        amount: item.amount,
-        paymentMethod: data.paymentMethod,
-        receivedAmount: item.amount,
-        changeAmount: 0,
-        cashierUserId: data.cashierUserId,
-        reference: data.reference,
-      })
-      results.push(result)
+    const completedPayments: { id: string; receiptId: string; amount: number }[] = []
+
+    try {
+      for (const item of data.payments) {
+        const result = await this.processPayment({
+          receiptId: item.receiptId,
+          customerId: data.customerId,
+          cashClosureId: data.cashClosureId,
+          amount: item.amount,
+          paymentMethod: data.paymentMethod,
+          receivedAmount: data.receivedAmount ?? data.payments.reduce((s, p) => s + p.amount, 0),
+          changeAmount: data.changeAmount ?? 0,
+          cashierUserId: data.cashierUserId,
+          reference: data.reference,
+        })
+        completedPayments.push({ id: result.id, receiptId: item.receiptId, amount: item.amount })
+      }
+      return completedPayments
+    } catch (batchError) {
+      for (const completed of completedPayments) {
+        try {
+          await this.voidPayment(completed.id, data.cashierUserId)
+        } catch {}
+      }
+      throw batchError
     }
-    return results
   }
 
   async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {
@@ -143,10 +161,13 @@ export class PaymentService {
       const newPaidAmount = Math.max(0, (receipt.paid_amount || 0) - payment.amount)
       const newStatus = newPaidAmount <= 0 ? 'pending' : 'partial'
 
-      await this.receiptRepo.update(receipt.id, {
+      const receiptUpdate: Partial<Database['public']['Tables']['receipts']['Update']> = {
         paid_amount: newPaidAmount,
         status: newStatus,
-      })
+        paid_at: null,
+      }
+
+      await this.receiptRepo.update(receipt.id, receiptUpdate)
 
       await this.supabase.rpc('adjust_customer_debt', {
         p_customer_id: receipt.customer_id,

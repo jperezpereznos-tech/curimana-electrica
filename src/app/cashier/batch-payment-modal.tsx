@@ -72,6 +72,8 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
         customerId: customer.id,
         cashClosureId: closureId,
         paymentMethod,
+        receivedAmount: Number(received) || totalDebt,
+        changeAmount: change,
         reference: reference.trim() || undefined,
       })
 

@@ -194,17 +194,20 @@ CREATE TABLE IF NOT EXISTS receipts (
 
 -- Pagos registrados
 CREATE TABLE IF NOT EXISTS payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  receipt_id UUID REFERENCES receipts(id),
-  customer_id UUID REFERENCES customers(id),
-  amount NUMERIC NOT NULL,
-  method TEXT DEFAULT 'cash',
-  reference TEXT,
-  cashier_id UUID REFERENCES profiles(id),
-  payment_date DATE DEFAULT CURRENT_DATE,
-  status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'voided')),
-  voided_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+receipt_id UUID REFERENCES receipts(id),
+customer_id UUID REFERENCES customers(id),
+amount NUMERIC NOT NULL,
+method TEXT DEFAULT 'cash' CHECK (method IN ('cash', 'transfer', 'card')),
+reference TEXT,
+cashier_id UUID REFERENCES profiles(id),
+cash_closure_id UUID REFERENCES cash_closures(id),
+received_amount NUMERIC DEFAULT 0,
+change_amount NUMERIC DEFAULT 0,
+payment_date DATE DEFAULT CURRENT_DATE,
+status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'voided')),
+voided_at TIMESTAMPTZ,
+created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Cierre de caja
