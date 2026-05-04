@@ -56,17 +56,20 @@ export function useOfflineSync() {
 
   const refreshSession = useCallback(async () => {
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.getSession()
-      if (error) {
-        const { error: refreshError } = await supabase.auth.refreshSession()
-        if (refreshError) {
-          console.error('Session refresh failed:', refreshError)
-          return false
+      return await withTimeout((async () => {
+        const supabase = createClient()
+        const { data, error } = await supabase.auth.getSession()
+        if (error || !data.session) {
+          const { error: refreshError } = await supabase.auth.refreshSession()
+          if (refreshError) {
+            console.error('Session refresh failed:', refreshError)
+            return false
+          }
         }
-      }
-      return true
-    } catch {
+        return true
+      })(), 8000)
+    } catch (error) {
+      console.error('Session refresh timed out or failed:', error)
       return false
     }
   }, [])
