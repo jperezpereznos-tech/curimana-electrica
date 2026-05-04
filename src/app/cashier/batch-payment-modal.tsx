@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { processPaymentAction } from './actions'
+import { processBatchPaymentAction } from './actions'
 import { Database } from '@/types/database'
 import {
   Select,
@@ -31,40 +31,29 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
   } | null
 }
 
-type PaymentModalProps = {
-  receipt: ReceiptWithPeriod
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id'>
+type BatchPaymentModalProps = {
+  receipts: ReceiptWithPeriod[]
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name'>
   closureId: string
+  totalDebt: number
   onSuccess: () => void
 }
 
-export function PaymentModal({ receipt, customer, closureId, onSuccess }: PaymentModalProps) {
+export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, onSuccess }: BatchPaymentModalProps) {
   const [open, setOpen] = useState(false)
-  const remaining = receipt.total_amount - (receipt.paid_amount || 0)
-  const [amountToPay, setAmountToPay] = useState(remaining)
-  const [received, setReceived] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card'>('cash')
+  const [received, setReceived] = useState('')
   const [reference, setReference] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submittingRef = useRef(false)
 
-  const isFullPayment = Math.abs(amountToPay - remaining) < 0.01
-  const change = paymentMethod === 'cash' && Number(received) > amountToPay ? Number(received) - amountToPay : 0
+  const change = paymentMethod === 'cash' && Number(received) > totalDebt ? Number(received) - totalDebt : 0
 
   const handlePayment = async () => {
     if (submittingRef.current) return
 
     setError(null)
-    if (!amountToPay || amountToPay <= 0) {
-      setError('El monto debe ser mayor a cero')
-      return
-    }
-    const rounded = Math.round(amountToPay * 100) / 100
-    if (rounded > remaining) {
-      setError('El monto excede el saldo pendiente')
-      return
-    }
     if (paymentMethod !== 'cash' && !reference.trim()) {
       setError('Ingrese el número de referencia / operación')
       return
@@ -73,14 +62,16 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
     submittingRef.current = true
     setLoading(true)
     try {
-      await processPaymentAction({
-        receiptId: receipt.id,
+      const payments = receipts.map(r => ({
+        receiptId: r.id,
+        amount: Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100,
+      }))
+
+      await processBatchPaymentAction({
+        payments,
         customerId: customer.id,
         cashClosureId: closureId,
-        amount: rounded,
         paymentMethod,
-        receivedAmount: Number(received) || rounded,
-        changeAmount: change,
         reference: reference.trim() || undefined,
       })
 
@@ -99,15 +90,15 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={
-        <Button variant="outline" size="sm">
-          Registrar Pago
+        <Button className="w-full gap-2 mt-2">
+          <Wallet className="h-4 w-4" /> Pagar Todo
         </Button>
       } />
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Registrar Pago</DialogTitle>
+          <DialogTitle>Pagar Deuda Completa</DialogTitle>
           <DialogDescription>
-            Recibo {receipt.receipt_number} - {receipt.billing_periods?.name ?? 'Periodo no disponible'}
+            {customer.full_name} — {receipts.length} recibo(s)
           </DialogDescription>
         </DialogHeader>
 
@@ -117,28 +108,20 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
               {error}
             </div>
           )}
+
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Total Recibo:</span>
-              <span>{formatCurrency(receipt.total_amount)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Pagado anteriormente:</span>
-              <span>{formatCurrency(receipt.paid_amount || 0)}</span>
-            </div>
+            {receipts.map(r => (
+              <div key={r.id} className="flex justify-between text-sm">
+                <span>Recibo {r.receipt_number}</span>
+                <span>{formatCurrency(r.total_amount - (r.paid_amount || 0))}</span>
+              </div>
+            ))}
             <div className="flex justify-between font-bold border-t pt-2">
-              <span>Saldo Pendiente:</span>
-              <span className="text-destructive">{formatCurrency(remaining)}</span>
+              <span>Total a Pagar:</span>
+              <span className="text-destructive">{formatCurrency(totalDebt)}</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
-            <Input id="amount" type="number" className="text-2xl font-bold" value={amountToPay} onChange={(e) => setAmountToPay(Number(e.target.value))} />
-            <p className={`text-xs font-medium ${isFullPayment ? 'text-success' : 'text-amber-600'}`}>
-              {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(remaining - amountToPay)}`}
-            </p>
-          </div>
           <div className="space-y-2">
             <Label>Método de Pago</Label>
             <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as 'cash' | 'transfer' | 'card')}>
@@ -152,33 +135,31 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
               </SelectContent>
             </Select>
           </div>
-          {paymentMethod === 'cash' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
-                <Input
-                  id="received"
-                  type="number"
-                  placeholder="0.00"
-                  value={received}
-                  onChange={(e) => setReceived(e.target.value)}
-                />
-              </div>
 
+          {paymentMethod === 'cash' && (
+            <div className="space-y-2">
+              <Label htmlFor="batch-received">Monto Recibido (Efectivo)</Label>
+              <Input
+                id="batch-received"
+                type="number"
+                placeholder="0.00"
+                value={received}
+                onChange={(e) => setReceived(e.target.value)}
+              />
               {Number(received) > 0 && (
                 <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
                   <span className="font-medium">Vuelto:</span>
                   <span className="text-2xl font-black">{formatCurrency(change)}</span>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {paymentMethod !== 'cash' && (
             <div className="space-y-2">
-              <Label htmlFor="reference">N° Referencia / Operación</Label>
+              <Label htmlFor="batch-reference">N° Referencia / Operación</Label>
               <Input
-                id="reference"
+                id="batch-reference"
                 placeholder="Ej: OP-123456"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
@@ -190,10 +171,10 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess }: Paymen
             <Button
               className="w-full h-12 text-lg gap-2"
               onClick={handlePayment}
-              disabled={loading || !amountToPay}
+              disabled={loading}
             >
               {loading ? 'Procesando...' : (
-                <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
+                <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(totalDebt)}</>
               )}
             </Button>
           </DialogFooter>

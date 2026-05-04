@@ -14,11 +14,35 @@ async function requireAuth() {
   return { supabase, userId: user.id }
 }
 
-export async function processPaymentAction(data: { receiptId: string; customerId: string; cashClosureId: string; amount: number; paymentMethod: 'cash' | 'transfer' | 'card'; receivedAmount: number; changeAmount: number }) {
+export async function processPaymentAction(data: {
+  receiptId: string
+  customerId: string
+  cashClosureId: string
+  amount: number
+  paymentMethod: 'cash' | 'transfer' | 'card'
+  receivedAmount: number
+  changeAmount: number
+  reference?: string
+}) {
   const { supabase, userId } = await requireAuth()
   const paymentService = getPaymentService(supabase)
 
   const result = await paymentService.processPayment({ ...data, cashierUserId: userId })
+  revalidatePath('/cashier')
+  return result
+}
+
+export async function processBatchPaymentAction(data: {
+  payments: { receiptId: string; amount: number }[]
+  customerId: string
+  cashClosureId: string
+  paymentMethod: 'cash' | 'transfer' | 'card'
+  reference?: string
+}) {
+  const { supabase, userId } = await requireAuth()
+  const paymentService = getPaymentService(supabase)
+
+  const result = await paymentService.processBatchPayment({ ...data, cashierUserId: userId })
   revalidatePath('/cashier')
   return result
 }

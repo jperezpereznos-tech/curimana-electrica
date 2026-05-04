@@ -48,10 +48,10 @@ describe('PaymentService - processPayment', () => {
       changeAmount: 0
     })
 
-    expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', {
-      paid_amount: 100,
-      status: 'paid'
-    })
+    const updateCall = (ReceiptRepository.prototype.update as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(updateCall[0]).toBe('r1')
+    expect(updateCall[1]).toMatchObject({ paid_amount: 100, status: 'paid' })
+    expect(updateCall[1].paid_at).toBeDefined()
     expect(mockSupabase.rpc).toHaveBeenCalledWith('adjust_customer_debt', {
       p_customer_id: 'c1',
       p_amount: -100

@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Search, User, MapPin, AlertCircle, Receipt } from 'lucide-react'
 import { searchCashierCustomerAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentModal } from './payment-modal'
+import { BatchPaymentModal } from './batch-payment-modal'
 import { Database } from '@/types/database'
 
 type Customer = Database['public']['Tables']['customers']['Row']
@@ -15,6 +17,14 @@ type ReceiptItem = Database['public']['Tables']['receipts']['Row'] & {
   billing_periods: {
     name: string
   } | null
+}
+
+const statusLabel: Record<string, { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  pending: { text: 'Pendiente', variant: 'outline' },
+  partial: { text: 'Parcial', variant: 'secondary' },
+  overdue: { text: 'Vencido', variant: 'destructive' },
+  paid: { text: 'Pagado', variant: 'default' },
+  cancelled: { text: 'Anulado', variant: 'outline' },
 }
 
 export function CashierSearch({ closureId }: { closureId: string }) {
@@ -52,13 +62,18 @@ export function CashierSearch({ closureId }: { closureId: string }) {
     }
   }, [q])
 
+  const totalDebt = useMemo(() =>
+    receipts.reduce((sum, r) => sum + (r.total_amount - (r.paid_amount || 0)), 0),
+    [receipts]
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex gap-2 max-w-xl">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-          <Input 
-            placeholder="N° Suministro (9 dígitos)" 
+          <Input
+            placeholder="N° Suministro (9 dígitos)"
             className="pl-10 text-lg h-12"
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -67,16 +82,16 @@ export function CashierSearch({ closureId }: { closureId: string }) {
         </div>
         <Button size="lg" className="h-12 px-8" onClick={handleSearch} disabled={loading}>
           {loading ? 'Buscando...' : 'Buscar'}
-    </Button>
-    </div>
-
-    {notFound && (
-      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg max-w-xl">
-        Suministro no encontrado
+        </Button>
       </div>
-    )}
 
-    {customer && (
+      {notFound && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg max-w-xl">
+          Suministro no encontrado
+        </div>
+      )}
+
+      {customer && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
           {/* Info Cliente */}
           <Card className="md:col-span-1">
@@ -98,9 +113,24 @@ export function CashierSearch({ closureId }: { closureId: string }) {
                 <MapPin className="h-3 w-3 mt-1 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">{customer.address} - {customer.sector}</p>
               </div>
-              <div className="pt-4 border-t">
-                <p className="text-xs text-muted-foreground uppercase font-semibold">Deuda Total Exigible</p>
-                <p className="text-3xl font-black text-destructive">{formatCurrency(customer.current_debt)}</p>
+              <div className="pt-4 border-t space-y-2">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-semibold">Recibos Pendientes</p>
+                  <p className="text-lg font-bold">{receipts.length}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-semibold">Deuda Total Exigible</p>
+                  <p className="text-3xl font-black text-destructive">{formatCurrency(totalDebt)}</p>
+                </div>
+                {receipts.length > 1 && (
+                  <BatchPaymentModal
+                    receipts={receipts}
+                    customer={customer}
+                    closureId={closureId}
+                    totalDebt={totalDebt}
+                    onSuccess={handleSearch}
+                  />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -120,26 +150,40 @@ export function CashierSearch({ closureId }: { closureId: string }) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {receipts.map((receipt) => (
-                    <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div>
-                        <p className="font-bold font-mono">RECIBO {receipt.receipt_number}</p>
-                        <p className="text-sm text-muted-foreground">{receipt.billing_periods?.name ?? 'Periodo no disponible'}</p>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground uppercase">Pendiente</p>
-                          <p className="text-xl font-bold">{formatCurrency(receipt.total_amount - (receipt.paid_amount || 0))}</p>
+                  {receipts.map((receipt) => {
+                    const pending = receipt.total_amount - (receipt.paid_amount || 0)
+                    const st = statusLabel[receipt.status || 'pending'] || statusLabel.pending
+                    return (
+                      <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold font-mono">RECIBO {receipt.receipt_number}</p>
+                              <Badge variant={st.variant}>{st.text}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{receipt.billing_periods?.name ?? 'Periodo no disponible'}</p>
+                          </div>
                         </div>
-                        <PaymentModal 
-                          receipt={receipt} 
-                          customer={customer} 
-                          closureId={closureId}
-                          onSuccess={handleSearch}
-                        />
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            {receipt.status === 'partial' && (
+                              <p className="text-xs text-muted-foreground">
+                                Pagado: {formatCurrency(receipt.paid_amount || 0)} / {formatCurrency(receipt.total_amount)}
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground uppercase">Pendiente</p>
+                            <p className="text-xl font-bold">{formatCurrency(pending)}</p>
+                          </div>
+                          <PaymentModal
+                            receipt={receipt}
+                            customer={customer}
+                            closureId={closureId}
+                            onSuccess={handleSearch}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </CardContent>

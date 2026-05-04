@@ -25,14 +25,15 @@ export class PaymentService {
   }
 
   async processPayment(data: {
-  receiptId: string
-  customerId: string
-  cashClosureId: string
-  amount: number
-  paymentMethod: 'cash' | 'transfer' | 'card'
-  receivedAmount: number
-  changeAmount: number
-  cashierUserId?: string
+    receiptId: string
+    customerId: string
+    cashClosureId: string
+    amount: number
+    paymentMethod: 'cash' | 'transfer' | 'card'
+    receivedAmount: number
+    changeAmount: number
+    cashierUserId?: string
+    reference?: string
   }) {
     const { receiptId, customerId, amount, cashClosureId } = data
     const closure = await this.cashClosureRepo.getById(cashClosureId)
@@ -53,17 +54,22 @@ export class PaymentService {
       customer_id: customerId,
       amount: amount,
       method: data.paymentMethod,
-      reference: `PAY-${Date.now()}`,
+      reference: data.reference || `PAY-${Date.now()}`,
       cashier_id: closure.cashier_id
     })
 
     const newPaidAmount = (receipt.paid_amount || 0) + amount
     const isFullyPaid = newPaidAmount >= receipt.total_amount
 
-    await this.receiptRepo.update(receiptId, {
+    const receiptUpdate: Record<string, any> = {
       paid_amount: newPaidAmount,
-      status: isFullyPaid ? 'paid' : 'partial'
-    })
+      status: isFullyPaid ? 'paid' : 'partial',
+    }
+    if (isFullyPaid) {
+      receiptUpdate.paid_at = new Date().toISOString()
+    }
+
+    await this.receiptRepo.update(receiptId, receiptUpdate)
 
     await this.supabase.rpc('adjust_customer_debt', {
       p_customer_id: customerId,
@@ -81,6 +87,35 @@ export class PaymentService {
     } catch {}
 
     return payment
+  }
+
+  async processBatchPayment(data: {
+    payments: { receiptId: string; amount: number }[]
+    customerId: string
+    cashClosureId: string
+    paymentMethod: 'cash' | 'transfer' | 'card'
+    reference?: string
+    cashierUserId?: string
+  }) {
+    const closure = await this.cashClosureRepo.getById(data.cashClosureId)
+    if (!closure?.cashier_id) throw new Error('Caja no valida para registrar pagos')
+
+    const results = []
+    for (const item of data.payments) {
+      const result = await this.processPayment({
+        receiptId: item.receiptId,
+        customerId: data.customerId,
+        cashClosureId: data.cashClosureId,
+        amount: item.amount,
+        paymentMethod: data.paymentMethod,
+        receivedAmount: item.amount,
+        changeAmount: 0,
+        cashierUserId: data.cashierUserId,
+        reference: data.reference,
+      })
+      results.push(result)
+    }
+    return results
   }
 
   async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {
