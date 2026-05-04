@@ -98,7 +98,7 @@ export async function LatestReadings() {
           ))
         )}
 
-        <Button variant="ghost" className="w-full text-sm" render={<Link href="/admin/audit">Ver todas <ChevronRight className="h-4 w-4 ml-1" /></Link>} />
+        <Button variant="ghost" className="w-full text-sm" render={<Link href="/admin/readings">Ver todas <ChevronRight className="h-4 w-4 ml-1" /></Link>} />
       </CardContent>
     </Card>
   )

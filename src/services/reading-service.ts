@@ -6,6 +6,7 @@ import { storageService } from './storage-service'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type ReadingInsert = Database['public']['Tables']['readings']['Insert']
+type ReadingUpdate = Database['public']['Tables']['readings']['Update']
 
 export class ReadingService {
   private readingRepo: ReadingRepository
@@ -60,6 +61,10 @@ export class ReadingService {
     return await this.readingRepo.getReadingsByPeriod(periodId)
   }
 
+  async getAllForAdmin(periodId?: string, needsReviewOnly?: boolean) {
+    return await this.readingRepo.getAllForAdmin(periodId, needsReviewOnly)
+  }
+
   async getLatestReadings() {
     return await this.readingRepo.getLatestReadings()
   }
@@ -70,6 +75,38 @@ export class ReadingService {
 
   async getActiveCustomersCount() {
     return await this.readingRepo.getActiveCustomersCount()
+  }
+
+  async getReviewCount() {
+    return await this.readingRepo.getReviewCount()
+  }
+
+  async updateReading(readingId: string, data: ReadingUpdate, userId?: string) {
+    const previous = Number(data.previous_reading ?? 0)
+    const current = Number(data.current_reading ?? 0)
+    const isMeterReset = current < previous
+    const consumption = isMeterReset ? 0 : current - previous
+
+    const updated = await this.readingRepo.update(readingId, {
+      ...data,
+      consumption,
+      needs_review: isMeterReset || (data.needs_review as boolean),
+    })
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'readings',
+          record_id: readingId,
+          action: 'UPDATE',
+          new_data: { current_reading: current, previous_reading: previous, consumption, needs_review: isMeterReset },
+          user_id: userId,
+          user_role: 'admin'
+        })
+      } catch {}
+    }
+
+    return updated
   }
 
   async uploadReadingPhoto(file: File, supplyNumber: string): Promise<string> {

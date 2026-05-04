@@ -33,6 +33,25 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     return data
   }
 
+  async getAllForAdmin(periodId?: string, needsReviewOnly?: boolean) {
+    let query = this.supabase
+      .from('readings')
+      .select('*, customers(full_name, supply_number, sector_id, sectors(id, name, code)), profiles!readings_meter_reader_id_fkey(id, full_name)')
+      .order('reading_date', { ascending: false })
+
+    if (periodId) {
+      query = query.eq('billing_period_id', periodId)
+    }
+    if (needsReviewOnly) {
+      query = query.eq('needs_review', true)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+    return data
+  }
+
   async getPendingReadingsCount(periodId: string): Promise<number> {
     const { count, error } = await this.supabase
       .from('customers')
@@ -71,6 +90,16 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .from('customers')
       .select('id', { count: 'exact', head: true })
       .eq('is_active', true)
+
+    if (error) throw error
+    return count || 0
+  }
+
+  async getReviewCount(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from('readings')
+      .select('id', { count: 'exact', head: true })
+      .eq('needs_review', true)
 
     if (error) throw error
     return count || 0

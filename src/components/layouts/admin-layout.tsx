@@ -14,7 +14,8 @@ import {
   Tag,
   ClipboardList,
   MapPin,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -28,10 +29,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { name: 'Panel', href: '/admin', icon: LayoutDashboard },
-  { name: 'Usuarios', href: '/admin/users', icon: Shield },
-  { name: 'Clientes', href: '/admin/customers', icon: Users },
-  { name: 'Sectores', href: '/admin/sectors', icon: MapPin },
-  { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
+    { name: 'Usuarios', href: '/admin/users', icon: Shield },
+    { name: 'Clientes', href: '/admin/customers', icon: Users },
+    { name: 'Sectores', href: '/admin/sectors', icon: MapPin },
+    { name: 'Lecturas', href: '/admin/readings', icon: BookOpen },
+    { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
     { name: 'Recibos', href: '/admin/receipts', icon: Receipt },
     { name: 'Pagos', href: '/admin/payments', icon: Wallet },
     { name: 'Periodos', href: '/admin/periods', icon: Calendar },
