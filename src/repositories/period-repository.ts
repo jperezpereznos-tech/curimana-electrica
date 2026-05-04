@@ -13,7 +13,7 @@ export class PeriodRepository extends BaseRepository<'billing_periods'> {
     const { data, error } = await this.supabase
       .from('billing_periods')
       .select('*')
-      .eq('is_closed', false)
+      .or('is_closed.is.null,is_closed.eq.false')
       .order('year', { ascending: false })
       .order('month', { ascending: false })
       .limit(1)

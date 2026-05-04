@@ -5,10 +5,24 @@ import { periodService } from '@/services/period-service'
 import { storageService } from '@/services/storage-service'
 import { customerService } from '@/services/customer-service'
 import { useAuth } from '@/hooks/use-auth'
+import { createClient } from '@/lib/supabase/client'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
 const MAX_RETRIES = 5
+const PER_READING_TIMEOUT_MS = 15_000
+const CACHE_SYNC_TIMEOUT_MS = 10_000
+const PERIOD_FETCH_TIMEOUT_MS = 10_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
+    promise.then(
+      val => { clearTimeout(timer); resolve(val) },
+      err => { clearTimeout(timer); reject(err) }
+    )
+  })
+}
 
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
@@ -27,13 +41,33 @@ export function useOfflineSync() {
   const syncCustomerCache = useCallback(async () => {
     if (!navigator.onLine) return
     try {
-      const customers = await customerService.getAllForCache()
+      const customers = await withTimeout(
+        customerService.getAllForCache(),
+        CACHE_SYNC_TIMEOUT_MS
+      )
       if (customers && customers.length > 0) {
         await db.customers_cache.clear()
         await db.customers_cache.bulkPut(customers)
       }
     } catch (error) {
       console.error('Error syncing customer cache:', error)
+    }
+  }, [])
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.getSession()
+      if (error) {
+        const { error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshError) {
+          console.error('Session refresh failed:', refreshError)
+          return false
+        }
+      }
+      return true
+    } catch {
+      return false
     }
   }, [])
 
@@ -44,6 +78,14 @@ export function useOfflineSync() {
     setSyncStatus('syncing')
 
     try {
+      const sessionOk = await refreshSession()
+      if (!sessionOk) {
+        setSyncStatus('error')
+        setLastSyncTime(new Date().toISOString())
+        await updateCounter()
+        return
+      }
+
       if (isManual) {
         const failedReadings = await db.pending_readings
           .where('status').equals('failed')
@@ -64,7 +106,10 @@ export function useOfflineSync() {
 
       let periodId: string | null = null
       try {
-        const currentPeriod = await periodService.getCurrentPeriod()
+        const currentPeriod = await withTimeout(
+          periodService.getCurrentPeriod(),
+          PERIOD_FETCH_TIMEOUT_MS
+        )
         if (currentPeriod) {
           periodId = currentPeriod.id
         }
@@ -88,25 +133,32 @@ export function useOfflineSync() {
             last_attempt_time: Date.now()
           })
 
-          let photoUrl: string | undefined = undefined
-          if (reading.photo_base64) {
-            try {
-              const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
-              photoUrl = await storageService.uploadReadingPhoto(reading.photo_base64, fileName)
-            } catch (photoError) {
-              console.error('Error uploading photo:', photoError)
-            }
-          }
+          const currentUserId = user?.id
 
-          await readingService.registerReading({
-            customer_id: reading.customer_id,
-            billing_period_id: periodId,
-            previous_reading: reading.previous_reading,
-            current_reading: reading.current_reading,
-            reading_date: reading.reading_date,
-            notes: reading.notes,
-            photo_url: photoUrl
-          }, user?.id)
+          await withTimeout(
+            (async () => {
+              let photoUrl: string | undefined = undefined
+              if (reading.photo_base64) {
+                try {
+                  const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
+                  photoUrl = await storageService.uploadReadingPhoto(reading.photo_base64, fileName)
+                } catch (photoError) {
+                  console.error('Error uploading photo:', photoError)
+                }
+              }
+
+              await readingService.registerReading({
+                customer_id: reading.customer_id,
+                billing_period_id: periodId!,
+                previous_reading: reading.previous_reading,
+                current_reading: reading.current_reading,
+                reading_date: reading.reading_date,
+                notes: reading.notes,
+                photo_url: photoUrl
+              }, currentUserId)
+            })(),
+            PER_READING_TIMEOUT_MS
+          )
 
           await db.pending_readings.delete(reading.id!)
         } catch (error) {
@@ -133,7 +185,7 @@ export function useOfflineSync() {
       syncingRef.current = false
       setTimeout(() => setSyncStatus('idle'), 3000)
     }
-  }, [isOnline, updateCounter, syncCustomerCache, user?.id])
+  }, [isOnline, updateCounter, syncCustomerCache, refreshSession, user?.id])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
