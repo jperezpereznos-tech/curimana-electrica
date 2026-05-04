@@ -10,7 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
 const MAX_RETRIES = 5
-const PER_READING_TIMEOUT_MS = 15_000
+const PHOTO_UPLOAD_TIMEOUT_MS = 20_000
+const READING_INSERT_TIMEOUT_MS = 15_000
 const CACHE_SYNC_TIMEOUT_MS = 10_000
 const PERIOD_FETCH_TIMEOUT_MS = 10_000
 
@@ -116,11 +117,12 @@ export function useOfflineSync() {
         if (currentPeriod) {
           periodId = currentPeriod.id
         }
-      } catch (error) {
-        console.error('Error getting current period:', error)
+      } catch (error: any) {
+        console.error('Error getting current period:', error?.message || error)
       }
 
       if (!periodId) {
+        console.error('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
         setSyncStatus('error')
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
@@ -129,44 +131,57 @@ export function useOfflineSync() {
 
       let hasError = false
 
-      for (const reading of pending) {
-        try {
-          await db.pending_readings.update(reading.id!, {
-            status: 'syncing',
-            last_attempt_time: Date.now()
-          })
+  for (const reading of pending) {
+      try {
+        await db.pending_readings.update(reading.id!, {
+          status: 'syncing',
+          last_attempt_time: Date.now()
+        })
 
-          const currentUserId = user?.id
+        const previousReading = Number(reading.previous_reading) || 0
+        const currentReading = Number(reading.current_reading) || 0
+        const currentUserId = user?.id
 
-          await withTimeout(
-            (async () => {
-              let photoUrl: string | undefined = undefined
-              if (reading.photo_base64) {
-                try {
-                  const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
-                  photoUrl = await storageService.uploadReadingPhoto(reading.photo_base64, fileName)
-                } catch (photoError) {
-                  console.error('Error uploading photo:', photoError)
-                }
+        await withTimeout(
+          (async () => {
+            let photoUrl: string | undefined = undefined
+            if (reading.photo_base64) {
+              try {
+                const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
+                photoUrl = await withTimeout(
+                  storageService.uploadReadingPhoto(reading.photo_base64, fileName),
+                  PHOTO_UPLOAD_TIMEOUT_MS
+                )
+              } catch (photoError) {
+                console.error('Error uploading photo:', photoError)
               }
+            }
 
-              await readingService.registerReading({
+            await withTimeout(
+              readingService.registerReading({
                 customer_id: reading.customer_id,
                 billing_period_id: periodId!,
-                previous_reading: reading.previous_reading,
-                current_reading: reading.current_reading,
+                previous_reading: previousReading,
+                current_reading: currentReading,
                 reading_date: reading.reading_date,
                 notes: reading.notes,
                 photo_url: photoUrl
-              }, currentUserId)
-            })(),
-            PER_READING_TIMEOUT_MS
-          )
+              }, currentUserId),
+              READING_INSERT_TIMEOUT_MS
+            )
+          })(),
+          PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
+        )
 
           await db.pending_readings.delete(reading.id!)
-        } catch (error) {
-          console.error('Error syncing reading:', error)
-          const retryCount = (reading.retry_count || 0) + 1
+    } catch (error: any) {
+      const errMsg = error?.message || error?.code || String(error)
+      const hint = error?.code === '23503' ? 'FK constraint: customer_id or billing_period_id not found'
+        : error?.code === '42501' ? 'RLS policy denied: session may be expired'
+        : error?.code === '23505' ? 'Duplicate reading already exists'
+        : ''
+      console.error(`Error syncing reading (customer: ${reading.customer_id}, supply: ${reading.supply_number}):`, errMsg, hint ? `| ${hint}` : '')
+      const retryCount = (reading.retry_count || 0) + 1
           await db.pending_readings.update(reading.id!, {
             status: 'failed',
             retry_count: retryCount,

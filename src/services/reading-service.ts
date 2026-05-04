@@ -20,8 +20,8 @@ export class ReadingService {
   }
 
   async registerReading(data: Omit<ReadingInsert, 'consumption' | 'created_at' | 'needs_review'>, userId?: string) {
-    const previous = Number(data.previous_reading)
-    const current = Number(data.current_reading)
+    const previous = Number(data.previous_reading) || 0
+    const current = Number(data.current_reading) || 0
 
     const isMeterReset = current < previous
     const consumption = isMeterReset ? 0 : current - previous
@@ -32,6 +32,8 @@ export class ReadingService {
 
     const reading = await this.readingRepo.create({
       ...data,
+      previous_reading: previous,
+      current_reading: current,
       consumption,
       needs_review: isMeterReset,
       ...(userId ? { meter_reader_id: userId } : {}),
@@ -82,8 +84,8 @@ export class ReadingService {
   }
 
   async updateReading(readingId: string, data: ReadingUpdate, userId?: string) {
-    const previous = Number(data.previous_reading ?? 0)
-    const current = Number(data.current_reading ?? 0)
+    const previous = Number(data.previous_reading ?? 0) || 0
+    const current = Number(data.current_reading ?? 0) || 0
     const isMeterReset = current < previous
     const consumption = isMeterReset ? 0 : current - previous
 
