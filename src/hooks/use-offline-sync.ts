@@ -93,7 +93,6 @@ export function useOfflineSync() {
       if (isManual) {
         const failedReadings = await db.pending_readings
           .where('status').equals('failed')
-          .filter(r => (r.retry_count || 0) < MAX_RETRIES)
           .toArray()
         if (failedReadings.length > 0) {
           await db.pending_readings
