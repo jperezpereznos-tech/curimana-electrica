@@ -1,17 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { ReaderLayout } from '@/components/layouts/reader-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  RefreshCcw, 
-  Cloud, 
-  CloudOff, 
-  CheckCircle2, 
+import {
+  RefreshCcw,
+  CheckCircle2,
   AlertTriangle,
   Database,
   Upload,
@@ -21,48 +17,19 @@ import {
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 
 export default function SyncPage() {
-  const { 
-    isOnline, 
-    pendingSyncCount, 
-    syncStatus, 
+  const {
+    isOnline,
+    pendingSyncCount,
+    syncStatus,
     lastSyncTime,
-    syncNow 
+    syncNow
   } = useOfflineSync()
-  
-  const [syncProgress, setSyncProgress] = useState(0)
-  const [isSyncing, setIsSyncing] = useState(false)
 
-  const handleSync = async () => {
-    if (!isOnline || isSyncing) return
-    
-    setIsSyncing(true)
-    setSyncProgress(0)
-    
-    try {
-      // Simular progreso
-      const interval = setInterval(() => {
-        setSyncProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval)
-            return 90
-          }
-          return prev + 10
-        })
-      }, 300)
-      
-      await syncNow()
-      
-      clearInterval(interval)
-      setSyncProgress(100)
-      
-      setTimeout(() => {
-        setIsSyncing(false)
-        setSyncProgress(0)
-      }, 500)
-    } catch (error) {
-      setIsSyncing(false)
-      setSyncProgress(0)
-    }
+  const isSyncing = syncStatus === 'syncing'
+
+  const handleSync = () => {
+    if (!isOnline || isSyncing || pendingSyncCount === 0) return
+    void syncNow()
   }
 
   const formatLastSync = () => {
@@ -81,7 +48,6 @@ export default function SyncPage() {
       <div className="flex flex-col gap-4">
         <h2 className="text-xl font-bold">Sincronización</h2>
 
-        {/* Estado de Conexión */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -107,7 +73,6 @@ export default function SyncPage() {
           </CardContent>
         </Card>
 
-        {/* Resumen de Datos */}
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4">
@@ -122,7 +87,7 @@ export default function SyncPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -138,20 +103,16 @@ export default function SyncPage() {
           </Card>
         </div>
 
-        {/* Botón de Sincronización */}
         <Card>
           <CardContent className="p-4 space-y-4">
             {isSyncing && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Sincronizando...</span>
-                  <span>{syncProgress}%</span>
-                </div>
-                <Progress value={syncProgress} />
+              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                <RefreshCcw className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">Sincronizando lecturas...</span>
               </div>
             )}
-            
-            <Button 
+
+            <Button
               className="w-full h-14 text-lg gap-3"
               onClick={handleSync}
               disabled={!isOnline || isSyncing || pendingSyncCount === 0}
@@ -184,25 +145,28 @@ export default function SyncPage() {
           </CardContent>
         </Card>
 
-        {/* Estado de Sync */}
-        {syncStatus && syncStatus !== 'idle' && (
-          <Card>
+        {syncStatus === 'error' && (
+          <Card className="border-destructive">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                {syncStatus === 'error' ? (
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                ) : syncStatus === 'syncing' ? (
-                  <RefreshCcw className="h-5 w-5 animate-spin text-primary" />
-                ) : (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                )}
+                <AlertTriangle className="h-5 w-5 text-destructive" />
                 <div>
-                  <p className="font-medium">
-                    {syncStatus === 'error' ? 'Error de sincronización' : 
-                     syncStatus === 'syncing' ? 'Sincronizando...' : 
-                     'Sincronización completa'}
+                  <p className="font-medium text-destructive">Error de sincronización</p>
+                  <p className="text-sm text-muted-foreground">
+                    Algunas lecturas no se pudieron sincronizar. Se reintentarán automáticamente.
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {syncStatus === 'success' && (
+          <Card className="border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <p className="font-medium text-green-700">Sincronización completa</p>
               </div>
             </CardContent>
           </Card>
