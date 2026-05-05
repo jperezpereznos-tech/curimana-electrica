@@ -117,10 +117,16 @@ export class PaymentService {
       }
       return completedPayments
     } catch (batchError) {
+      const voidErrors: string[] = []
       for (const completed of completedPayments) {
         try {
           await this.voidPayment(completed.id, data.cashierUserId)
-        } catch {}
+        } catch (voidErr: any) {
+          voidErrors.push(`Pago ${completed.id}: ${voidErr?.message || voidErr}`)
+        }
+      }
+      if (voidErrors.length > 0) {
+        console.error('Batch rollback partial failure — voided payments could not be reversed:', voidErrors)
       }
       throw batchError
     }

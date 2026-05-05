@@ -107,16 +107,25 @@ export function useOfflineSync() {
         return
       }
 
-      if (isManual) {
-        const failedReadings = await db.pending_readings
-          .where('status').equals('failed')
-          .toArray()
-        if (failedReadings.length > 0) {
-          await db.pending_readings
-            .where('id').anyOf(failedReadings.map(r => r.id!))
-            .modify({ status: 'pending' })
-        }
+    const stuckSyncing = await db.pending_readings
+      .where('status').equals('syncing')
+      .toArray()
+    if (stuckSyncing.length > 0) {
+      await db.pending_readings
+        .where('id').anyOf(stuckSyncing.map(r => r.id!))
+        .modify({ status: 'pending' })
+    }
+
+    if (isManual) {
+      const failedReadings = await db.pending_readings
+        .where('status').equals('failed')
+        .toArray()
+      if (failedReadings.length > 0) {
+        await db.pending_readings
+          .where('id').anyOf(failedReadings.map(r => r.id!))
+          .modify({ status: 'pending', retry_count: 0 })
       }
+    }
 
       await syncCustomerCache()
 

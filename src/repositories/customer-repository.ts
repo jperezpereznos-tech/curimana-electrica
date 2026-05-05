@@ -19,7 +19,8 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     }
 
     if (query && query.length >= 2) {
-      queryBuilder = queryBuilder.or(`full_name.ilike.%${query}%,supply_number.ilike.%${query}%,document_number.ilike.%${query}%`)
+      const escaped = query.replace(/[%_\\]/g, '\\$&')
+      queryBuilder = queryBuilder.or(`full_name.ilike.%${escaped}%,supply_number.ilike.%${escaped}%,document_number.ilike.%${escaped}%`)
     }
 
     const { data, error } = await queryBuilder

@@ -20,7 +20,8 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
     if (filters?.periodId) query = query.eq('billing_period_id', filters.periodId)
     if (filters?.status) query = query.eq('status', filters.status)
     if (filters?.supplyNumber) {
-      query = query.filter('customers.supply_number', 'ilike', `%${filters.supplyNumber}%`)
+      const escaped = filters.supplyNumber.replace(/[%_\\]/g, '\\$&')
+      query = query.filter('customers.supply_number', 'ilike', `%${escaped}%`)
     }
 
     const { data, error } = await query

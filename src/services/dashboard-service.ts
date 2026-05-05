@@ -16,6 +16,7 @@ export class DashboardService {
     const { data: payments } = await this.supabase
       .from('payments')
       .select('amount')
+      .eq('status', 'completed')
       .gte('created_at', startOfMonth.toISOString())
 
     const totalCollected = payments?.reduce((sum, p) => sum + p.amount, 0) || 0

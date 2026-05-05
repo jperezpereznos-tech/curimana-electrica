@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CashierLayout } from '@/components/layouts/cashier-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -58,6 +57,8 @@ export default function CashierHistoryPage() {
     if (!user) return
     let cancelled = false
 
+    setCurrentPage(1)
+
     const dateFilterParams = getDateFilterParams(dateFilter)
 
     getPaymentsByCashierAction(user.id, dateFilterParams)
@@ -87,6 +88,13 @@ export default function CashierHistoryPage() {
   const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0)
 
   const handleExport = () => {
+    function escapeCsvField(value: string): string {
+      const str = String(value ?? '')
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"'
+      }
+      return str
+    }
     const headers = ['Recibo', 'Cliente', 'Suministro', 'Monto', 'Fecha', 'Referencia']
     const rows = filteredPayments.map(p => [
       p.receipt_number,
@@ -96,8 +104,9 @@ export default function CashierHistoryPage() {
       formatDate(p.payment_date),
       p.reference || '',
     ])
-    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const csv = [headers.join(','), ...rows.map(r => r.map(escapeCsvField).join(','))].join('\n')
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -107,8 +116,7 @@ export default function CashierHistoryPage() {
   }
 
   return (
-    <CashierLayout>
-      <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Historial de Cobros</h2>
@@ -289,8 +297,7 @@ export default function CashierHistoryPage() {
               </Button>
             </div>
           </div>
-        )}
+)}
       </div>
-    </CashierLayout>
-  )
-}
+    )
+  }

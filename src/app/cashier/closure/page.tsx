@@ -1,4 +1,3 @@
-import { CashierLayout } from '@/components/layouts/cashier-layout'
 import { getCashClosureService } from '@/services/cash-closure-service'
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
@@ -48,8 +47,7 @@ export default async function CashClosurePage() {
   }
 
   return (
-    <CashierLayout>
-      <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Cierre de Caja</h2>
           <p className="text-muted-foreground">Monitoreo de recaudación y finalización de turno.</p>
@@ -136,6 +134,5 @@ export default async function CashClosurePage() {
           </div>
         )}
       </div>
-    </CashierLayout>
   )
 }
