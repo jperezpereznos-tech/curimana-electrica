@@ -168,7 +168,7 @@ export default async function CustomerDetailsPage({
                     <TableRow key={p.id}>
                       <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
                       <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
-                      <TableCell>{formatDate(p.payment_date)}</TableCell>
+                      <TableCell>{formatDate(p.payment_date, { includeTime: true })}</TableCell>
                       <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
                       <TableCell className="capitalize">{p.method}</TableCell>
                       <TableCell>

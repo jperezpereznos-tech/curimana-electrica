@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, CheckCircle2, Circle, AlertTriangle, Loader2 } from 'lucide-react'
+import { Search, MapPin, CheckCircle2, Circle, AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
+import { useOfflineSync } from '@/hooks/use-offline-sync'
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Circle; className: string }> = {
   pending: { label: 'Pendiente', variant: 'secondary', icon: Circle, className: '' },
@@ -17,9 +18,11 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 }
 
 export default function PendingReadingsPage() {
+  const { syncNow } = useOfflineSync()
   const [pendingReadings, setPendingReadings] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
 
   const loadReadings = useCallback(async () => {
     const readings = await db.pending_readings.toArray()
@@ -37,7 +40,6 @@ export default function PendingReadingsPage() {
 
   useEffect(() => {
     let cancelled = false
-    let intervalId: ReturnType<typeof setInterval>
 
     const refresh = async () => {
       const formatted = await loadReadings()
@@ -48,7 +50,7 @@ export default function PendingReadingsPage() {
       if (!cancelled) setLoading(false)
     })
 
-    intervalId = setInterval(refresh, 5000)
+    const intervalId = setInterval(refresh, 5000)
 
     const onFocus = () => { void refresh() }
     window.addEventListener('focus', onFocus)
@@ -59,6 +61,18 @@ export default function PendingReadingsPage() {
       window.removeEventListener('focus', onFocus)
     }
   }, [loadReadings])
+
+  const handleRetry = useCallback(async (readingId: string) => {
+    setRetryingId(readingId)
+    try {
+      await db.pending_readings.update(Number(readingId), { status: 'pending', retry_count: 0, last_attempt_time: undefined })
+      const formatted = await loadReadings()
+      setPendingReadings(formatted)
+      syncNow()
+    } catch {} finally {
+      setRetryingId(null)
+    }
+  }, [loadReadings, syncNow])
 
   const filteredReadings = pendingReadings.filter(r =>
     r.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -144,11 +158,25 @@ export default function PendingReadingsPage() {
                               </Badge>
                             )}
                           </div>
+                        <div className="flex items-center gap-1">
+                          {reading.status === 'failed' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-destructive hover:text-destructive"
+                              disabled={retryingId === reading.id}
+                              onClick={() => handleRetry(reading.id)}
+                            >
+                              {retryingId === reading.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                              Reintentar
+                            </Button>
+                          )}
                           <Link href={`/reader/new?supply=${reading.supply_number}`}>
                             <Button variant="ghost" size="sm" className="h-7 text-xs">
                               {reading.has_photo ? 'Editar' : 'Tomar Lectura'}
                             </Button>
                           </Link>
+                        </div>
                         </div>
                       </div>
                     </div>

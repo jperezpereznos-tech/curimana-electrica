@@ -29,11 +29,10 @@ export class PaymentService {
     customerId: string
     cashClosureId: string
     amount: number
-    paymentMethod: 'cash' | 'transfer' | 'card'
+    paymentMethod: 'cash'
     receivedAmount: number
     changeAmount: number
     cashierUserId?: string
-    reference?: string
   }) {
     const { receiptId, customerId, amount, cashClosureId } = data
 
@@ -51,42 +50,27 @@ export class PaymentService {
       throw new Error('El recibo no permite nuevos pagos')
     }
 
-    const payment = await this.paymentRepo.create({
-      receipt_id: receiptId,
-      customer_id: customerId,
-      amount: amount,
-      method: data.paymentMethod,
-      reference: data.reference || `PAY-${Date.now()}`,
-      cashier_id: closure.cashier_id,
-      cash_closure_id: cashClosureId,
-      received_amount: data.receivedAmount,
-      change_amount: data.changeAmount,
-    })
-
-    const newPaidAmount = (receipt.paid_amount || 0) + amount
-    const isFullyPaid = newPaidAmount >= receipt.total_amount
-
-    const receiptUpdate: Partial<Database['public']['Tables']['receipts']['Update']> = {
-      paid_amount: newPaidAmount,
-      status: isFullyPaid ? 'paid' : 'partial',
-    }
-    if (isFullyPaid) {
-      receiptUpdate.paid_at = new Date().toISOString()
-    }
-
-    await this.receiptRepo.update(receiptId, receiptUpdate)
-
-    await this.supabase.rpc('adjust_customer_debt', {
+    const { data: paymentId, error: rpcError } = await this.supabase.rpc('process_payment', {
+      p_receipt_id: receiptId,
       p_customer_id: customerId,
-      p_amount: -amount
+      p_cash_closure_id: cashClosureId,
+      p_amount: amount,
+      p_received_amount: data.receivedAmount,
+      p_change_amount: data.changeAmount,
+      p_cashier_id: closure.cashier_id,
     })
+
+    if (rpcError) throw new Error(rpcError.message)
+    if (!paymentId) throw new Error('Error al procesar el pago')
+
+    const payment = await this.paymentRepo.getById(paymentId)
 
     try {
       await this.auditSvc.log({
         table_name: 'payments',
-        record_id: payment.id,
+        record_id: paymentId,
         action: 'INSERT',
-        new_data: payment,
+        new_data: { amount, method: 'cash', receipt_id: receiptId },
         user_id: data.cashierUserId || closure.cashier_id
       })
     } catch {}
@@ -98,10 +82,9 @@ export class PaymentService {
     payments: { receiptId: string; amount: number }[]
     customerId: string
     cashClosureId: string
-    paymentMethod: 'cash' | 'transfer' | 'card'
+    paymentMethod: 'cash'
     receivedAmount?: number
     changeAmount?: number
-    reference?: string
     cashierUserId?: string
   }) {
     const closure = await this.cashClosureRepo.getById(data.cashClosureId)
@@ -112,27 +95,24 @@ export class PaymentService {
 
     try {
       for (const item of data.payments) {
-      const batchTotal = data.payments.reduce((s, p) => s + p.amount, 0)
-      const itemReceivedAmount = data.receivedAmount != null
-        ? (data.paymentMethod === 'cash' && data.receivedAmount >= batchTotal
+        const batchTotal = data.payments.reduce((s, p) => s + p.amount, 0)
+        const itemReceivedAmount = data.receivedAmount != null && data.receivedAmount >= batchTotal
           ? (item.amount / batchTotal) * data.receivedAmount
-          : item.amount)
-        : item.amount
-      const itemChangeAmount = data.receivedAmount != null
-        ? Math.max(0, itemReceivedAmount - item.amount)
-        : 0
+          : item.amount
+        const itemChangeAmount = data.receivedAmount != null
+          ? Math.max(0, itemReceivedAmount - item.amount)
+          : 0
 
-      const result = await this.processPayment({
-        receiptId: item.receiptId,
-        customerId: data.customerId,
-        cashClosureId: data.cashClosureId,
-        amount: item.amount,
-        paymentMethod: data.paymentMethod,
-        receivedAmount: Math.round(itemReceivedAmount * 100) / 100,
-        changeAmount: Math.round(itemChangeAmount * 100) / 100,
-        cashierUserId: data.cashierUserId,
-        reference: data.reference,
-      })
+        const result = await this.processPayment({
+          receiptId: item.receiptId,
+          customerId: data.customerId,
+          cashClosureId: data.cashClosureId,
+          amount: item.amount,
+          paymentMethod: 'cash',
+          receivedAmount: Math.round(itemReceivedAmount * 100) / 100,
+          changeAmount: Math.round(itemChangeAmount * 100) / 100,
+          cashierUserId: data.cashierUserId,
+        })
         completedPayments.push({ id: result.id, receiptId: item.receiptId, amount: item.amount })
       }
       return completedPayments
@@ -151,36 +131,12 @@ export class PaymentService {
   }
 
   async voidPayment(paymentId: string, userId?: string) {
-    const payment = await this.paymentRepo.getPaymentWithReceipt(paymentId)
-    if (!payment) throw new Error('Pago no encontrado')
-    if (payment.status === 'voided') throw new Error('El pago ya esta anulado')
+    const { error: rpcError } = await this.supabase.rpc('void_payment', {
+      p_payment_id: paymentId,
+      p_user_id: userId || '',
+    })
 
-    const receipt = payment.receipts as { id: string, paid_amount: number, total_amount: number, status: string, customer_id: string | null }
-
-    await this.paymentRepo.update(paymentId, {
-      status: 'voided',
-      voided_at: new Date().toISOString(),
-    } as Database['public']['Tables']['payments']['Update'])
-
-    if (receipt && receipt.customer_id) {
-      const newPaidAmount = Math.max(0, (receipt.paid_amount || 0) - payment.amount)
-      const newStatus = newPaidAmount <= 0 ? 'pending' : 'partial'
-
-    const receiptUpdate: Partial<Database['public']['Tables']['receipts']['Update']> = {
-      paid_amount: newPaidAmount,
-      status: newStatus,
-    }
-    if (newStatus === 'pending') {
-      receiptUpdate.paid_at = null
-    }
-
-    await this.receiptRepo.update(receipt.id, receiptUpdate)
-
-      await this.supabase.rpc('adjust_customer_debt', {
-        p_customer_id: receipt.customer_id,
-        p_amount: payment.amount
-      })
-    }
+    if (rpcError) throw new Error(rpcError.message)
 
     if (userId) {
       try {
@@ -188,7 +144,7 @@ export class PaymentService {
           table_name: 'payments',
           record_id: paymentId,
           action: 'UPDATE',
-          old_data: { status: 'completed', amount: payment.amount },
+          old_data: { status: 'completed' },
           new_data: { status: 'voided' },
           user_id: userId,
         })

@@ -132,7 +132,7 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
               <TableHead>Cliente</TableHead>
               <TableHead>Suministro</TableHead>
               <TableHead>Monto</TableHead>
-              <TableHead>Fecha</TableHead>
+              <TableHead>Fecha/Hora</TableHead>
               <TableHead>Cajero</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -152,7 +152,7 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
                   <TableCell className="font-medium">{payment.receipts?.customers?.full_name || 'Desconocido'}</TableCell>
                   <TableCell className="font-mono text-xs">{payment.receipts?.customers?.supply_number || 'N/A'}</TableCell>
                   <TableCell className={payment.status === 'voided' ? 'line-through' : 'font-bold'}>{formatCurrency(payment.amount)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(payment.payment_date)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{formatDate(payment.payment_date, { includeTime: true })}</TableCell>
                   <TableCell>{(payment.cashier as any)?.full_name || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={payment.status === 'voided' ? 'destructive' : 'default'}>

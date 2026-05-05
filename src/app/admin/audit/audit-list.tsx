@@ -14,22 +14,9 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Shield, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
 
 const PAGE_SIZE = 25
-
-function formatDateTime(date: Date | string | null | undefined): string {
-  if (!date) return '-'
-  const d = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateTimeFormat('es-PE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(d)
-}
 
 export function AuditList({ initialLogs }: { initialLogs: any[] }) {
   const [filter, setFilter] = useState('')
@@ -90,7 +77,7 @@ export function AuditList({ initialLogs }: { initialLogs: any[] }) {
               paginated.map((log) => (
                 <TableRow key={log.id}>
                   <TableCell className="font-mono text-xs">
-                    {formatDateTime(log.created_at || '')}
+                    {formatDate(log.created_at || '', { includeTime: true })}
                   </TableCell>
                   <TableCell>
                     <Badge

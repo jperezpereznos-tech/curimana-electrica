@@ -44,10 +44,15 @@ export async function getReaderDashboardDataAction() {
   const periodService = getPeriodService(supabase)
   const sectorId = await getAssignedSectorId(userId, supabase)
 
-  const [syncedCount, activeCustomers, period] = await Promise.all([
+  const [syncedCount, activeCustomers, period, sectorProfile] = await Promise.all([
     readingService.getTodayReadingsCount(),
     readingService.getActiveCustomersCount(),
-    periodService.getCurrentPeriod()
+    periodService.getCurrentPeriod(),
+    supabase
+      .from('profiles')
+      .select('assigned_sector_id, sectors:assigned_sector_id(id, name, code)')
+      .eq('id', userId)
+      .single()
   ])
 
   return {
@@ -57,7 +62,8 @@ export async function getReaderDashboardDataAction() {
       name: period.name,
       endDate: period.end_date
     } : null,
-    sectorId
+    sectorId,
+    sectorName: (sectorProfile.data as any)?.sectors?.name || null
   }
 }
 

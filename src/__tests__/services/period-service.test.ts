@@ -9,7 +9,12 @@ import { AuditService } from '@/services/audit-service'
 const { mockRpc, mockFrom } = vi.hoisted(() => {
   const mockFromFn = vi.fn()
   return {
-    mockRpc: vi.fn().mockResolvedValue({ data: [{ success: true, period_id: 'p1' }], error: null }),
+    mockRpc: vi.fn().mockImplementation((fnName: string) => {
+      if (fnName === 'generate_period_receipts') {
+        return Promise.resolve({ data: [{ generated_count: 1, skipped_count: 0 }], error: null })
+      }
+      return Promise.resolve({ data: [{ success: true, period_id: 'p1' }], error: null })
+    }),
     mockFrom: mockFromFn
   }
 })
@@ -66,7 +71,12 @@ describe('PeriodService - closePeriod', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRpc.mockResolvedValue({ data: [{ success: true, period_id: 'p1' }], error: null })
+    mockRpc.mockImplementation((fnName: string) => {
+      if (fnName === 'generate_period_receipts') {
+        return Promise.resolve({ data: [{ generated_count: 1, skipped_count: 0 }], error: null })
+      }
+      return Promise.resolve({ data: [{ success: true, period_id: 'p1' }], error: null })
+    })
     service = new PeriodService()
   })
 
@@ -97,14 +107,13 @@ describe('PeriodService - closePeriod', () => {
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue(mockReadings as any)
-    vi.spyOn(ReceiptRepository.prototype, 'create').mockResolvedValue({ id: 'rc1' } as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     const result = await service.closePeriod('p1', 'user1') as any
 
     expect(result.receiptsGenerated).toBe(1)
-    expect(ReceiptRepository.prototype.create).toHaveBeenCalledTimes(1)
+    expect(mockRpc).toHaveBeenCalledWith('generate_period_receipts', expect.objectContaining({ p_period_id: 'p1' }))
     expect(mockRpc).toHaveBeenCalledWith('close_billing_period', { p_period_id: 'p1' })
     expect(AuditService.prototype.log).toHaveBeenCalled()
   })
@@ -128,14 +137,20 @@ describe('PeriodService - closePeriod', () => {
       return createAwaitableChain({ data: null, error: null })
     })
 
+    mockRpc.mockImplementation((fnName: string) => {
+      if (fnName === 'generate_period_receipts') {
+        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0 }], error: null })
+      }
+      return Promise.resolve({ data: [{ success: true, period_id: 'p1' }], error: null })
+    })
+
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue(mockReadings as any)
-    vi.spyOn(ReceiptRepository.prototype, 'create').mockResolvedValue({} as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
     const result = await service.closePeriod('p1') as any
 
     expect(result.receiptsGenerated).toBe(0)
-    expect(ReceiptRepository.prototype.create).not.toHaveBeenCalled()
+    expect(mockRpc).toHaveBeenCalledWith('generate_period_receipts', expect.objectContaining({ p_period_id: 'p1' }))
   })
 })

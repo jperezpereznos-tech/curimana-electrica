@@ -672,18 +672,38 @@ tariff_tiers: {
       Args: Record<PropertyKey, never>
       Returns: string
     }
-    close_billing_period: {
-      Args: { p_period_id: string }
-      Returns: { success: boolean; period_id: string }[]
+  close_billing_period: {
+    Args: { p_period_id: string }
+    Returns: { success: boolean; period_id: string }[]
+  }
+  adjust_customer_debt: {
+    Args: { p_customer_id: string; p_amount: number }
+    Returns: number
+  }
+  recalculate_customer_debt: {
+    Args: { p_customer_id: string }
+    Returns: number
+  }
+  process_payment: {
+    Args: {
+      p_receipt_id: string
+      p_customer_id: string
+      p_cash_closure_id: string
+      p_amount: number
+      p_received_amount: number
+      p_change_amount: number
+      p_cashier_id: string
     }
-    adjust_customer_debt: {
-      Args: { p_customer_id: string; p_amount: number }
-      Returns: number
-    }
-    recalculate_customer_debt: {
-      Args: { p_customer_id: string }
-      Returns: number
-    }
+    Returns: string
+  }
+  void_payment: {
+    Args: { p_payment_id: string; p_user_id: string }
+    Returns: undefined
+  }
+  generate_period_receipts: {
+    Args: { p_period_id: string; p_receipts: Json }
+    Returns: { generated_count: number; skipped_count: number }[]
+  }
   }
     Enums: {
       [_ in never]: never

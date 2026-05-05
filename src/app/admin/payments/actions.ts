@@ -12,10 +12,9 @@ export async function adminProcessPaymentAction(data: {
   customerId: string
   cashClosureId: string
   amount: number
-  paymentMethod: 'cash' | 'transfer' | 'card'
+  paymentMethod: 'cash'
   receivedAmount: number
   changeAmount: number
-  reference?: string
 }) {
   const { supabase, userId } = await requireAdminAuth()
   const paymentService = getPaymentService(supabase)
@@ -31,10 +30,9 @@ export async function adminProcessBatchPaymentAction(data: {
   payments: { receiptId: string; amount: number }[]
   customerId: string
   cashClosureId: string
-  paymentMethod: 'cash' | 'transfer' | 'card'
+  paymentMethod: 'cash'
   receivedAmount?: number
   changeAmount?: number
-  reference?: string
 }) {
   const { supabase, userId } = await requireAdminAuth()
   const paymentService = getPaymentService(supabase)

@@ -139,7 +139,7 @@ export class PeriodService {
     const activeConcepts = await this.conceptRepo.getAllActive()
     const allReadings = await this.readingRepo.getReadingsByPeriod(id)
 
-    let generatedCount = 0
+    const receiptPayloads: any[] = []
     const skippedCustomers: string[] = []
     const errors: string[] = []
 
@@ -158,79 +158,78 @@ export class PeriodService {
         const tariff = customer.tariffs
         const tiers = tariff?.tariff_tiers || []
 
-    let fixedCharges = 0
-      let percentageBase = 0
+        let fixedCharges = 0
+        let percentageBase = 0
 
-      for (const concept of activeConcepts) {
-        if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
-          continue
+        for (const concept of activeConcepts) {
+          if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
+            continue
+          }
+
+          if (concept.type === 'fixed') {
+            fixedCharges += concept.amount
+          } else if (concept.type === 'per_kwh') {
+            fixedCharges += consumption * concept.amount
+          }
         }
 
-        if (concept.type === 'fixed') {
-          fixedCharges += concept.amount
-        } else if (concept.type === 'per_kwh') {
-          fixedCharges += consumption * concept.amount
-        }
-      }
+        const sortedTiers = tiers.length > 0
+          ? [...tiers].sort((a: any, b: any) => a.min_kwh - b.min_kwh)
+          : []
 
-      const sortedTiers = tiers.length > 0
-        ? [...tiers].sort((a: any, b: any) => a.min_kwh - b.min_kwh)
-        : []
+        percentageBase = (sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges
 
-      percentageBase = (sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges
+        for (const concept of activeConcepts) {
+          if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
+            continue
+          }
 
-      for (const concept of activeConcepts) {
-        if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
-          continue
+          if (concept.type === 'percentage') {
+            fixedCharges += (percentageBase * concept.amount) / 100
+          }
         }
 
-        if (concept.type === 'percentage') {
-          fixedCharges += (percentageBase * concept.amount) / 100
-        }
-      }
+        fixedCharges = Math.round(fixedCharges * 100) / 100
+        const previousDebt = customer.current_debt || 0
 
-      fixedCharges = Math.round(fixedCharges * 100) / 100
-      const previousDebt = customer.current_debt || 0
+        const receipt = calculateTotalReceipt(consumption, sortedTiers, fixedCharges, previousDebt)
 
-      const receipt = calculateTotalReceipt(consumption, sortedTiers, fixedCharges, previousDebt)
+        const dueDate = new Date()
+        dueDate.setDate(dueDate.getDate() + graceDays)
 
-      const dueDate = new Date()
-      dueDate.setDate(dueDate.getDate() + graceDays)
-
-      const receiptPayload: Database['public']['Tables']['receipts']['Insert'] = {
-        customer_id: customer.id,
-        billing_period_id: id,
-        reading_id: customerReading.id,
-        previous_reading: customerReading.previous_reading || 0,
-        current_reading: customerReading.current_reading || 0,
-        consumption_kwh: consumption,
-        period_start: period.start_date,
-        period_end: period.end_date,
-        energy_amount: receipt.energy_amount,
-        fixed_charges: receipt.fixed_charges,
-        subtotal: receipt.subtotal,
-        igv: receipt.igv,
-        previous_debt: previousDebt,
-        total_amount: receipt.total_amount,
-        paid_amount: 0,
-        status: 'pending',
-        issue_date: new Date().toISOString().split('T')[0],
-        due_date: dueDate.toISOString().split('T')[0],
-      }
-
-        await this.receiptRepo.create(receiptPayload)
-
-        await this.supabase.rpc('adjust_customer_debt', {
-          p_customer_id: customer.id,
-          p_amount: receipt.total_amount
+        receiptPayloads.push({
+          customer_id: customer.id,
+          reading_id: customerReading.id,
+          previous_reading: customerReading.previous_reading || 0,
+          current_reading: customerReading.current_reading || 0,
+          consumption_kwh: consumption,
+          period_start: period.start_date,
+          period_end: period.end_date,
+          energy_amount: receipt.energy_amount,
+          fixed_charges: receipt.fixed_charges,
+          subtotal: receipt.subtotal,
+          igv: receipt.igv,
+          previous_debt: previousDebt,
+          total_amount: receipt.total_amount,
+          issue_date: new Date().toISOString().split('T')[0],
+          due_date: dueDate.toISOString().split('T')[0],
         })
-
-        generatedCount++
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         errors.push(`Cliente ${customer.id}: ${msg}`)
       }
     }
+
+    const { data: rpcResult, error: rpcError } = await this.supabase
+      .rpc('generate_period_receipts', {
+        p_period_id: id,
+        p_receipts: receiptPayloads,
+      })
+
+    if (rpcError) throw rpcError
+
+    const generatedCount = rpcResult?.[0]?.generated_count ?? 0
+    const skippedCount = (rpcResult?.[0]?.skipped_count ?? 0) + skippedCustomers.length
 
     const { data: closeResult, error: closeError } = await this.supabase
       .rpc('close_billing_period', { p_period_id: id })
@@ -244,7 +243,7 @@ export class PeriodService {
           table_name: 'billing_periods',
           record_id: id,
           action: 'UPDATE',
-          new_data: { is_closed: true, receipts_generated: generatedCount, skipped: skippedCustomers.length, errors },
+          new_data: { is_closed: true, receipts_generated: generatedCount, skipped: skippedCount, errors },
           user_id: userId
         })
       } catch (e) {
@@ -252,7 +251,7 @@ export class PeriodService {
       }
     }
 
-    return { period_id: id, receiptsGenerated: generatedCount, skipped: skippedCustomers.length, errors }
+    return { period_id: id, receiptsGenerated: generatedCount, skipped: skippedCount, errors }
   }
 }
 

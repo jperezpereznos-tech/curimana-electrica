@@ -16,13 +16,6 @@ import { Label } from '@/components/ui/label'
 import { Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { Database } from '@/types/database'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
   billing_periods: {
@@ -40,10 +33,9 @@ type PaymentModalProps = {
     customerId: string
     cashClosureId: string
     amount: number
-    paymentMethod: 'cash' | 'transfer' | 'card'
+    paymentMethod: 'cash'
     receivedAmount: number
     changeAmount: number
-    reference?: string
   }) => Promise<unknown>
 }
 
@@ -52,14 +44,12 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
   const remaining = receipt.total_amount - (receipt.paid_amount || 0)
   const [amountToPay, setAmountToPay] = useState(remaining)
   const [received, setReceived] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card'>('cash')
-  const [reference, setReference] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submittingRef = useRef(false)
 
   const isFullPayment = Math.abs(amountToPay - remaining) < 0.01
-  const change = paymentMethod === 'cash' && Number(received) > amountToPay ? Number(received) - amountToPay : 0
+  const change = Number(received) > amountToPay ? Number(received) - amountToPay : 0
 
   const handlePayment = async () => {
     if (submittingRef.current) return
@@ -74,10 +64,6 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
       setError('El monto excede el saldo pendiente')
       return
     }
-    if (paymentMethod !== 'cash' && !reference.trim()) {
-      setError('Ingrese el número de referencia / operación')
-      return
-    }
 
     submittingRef.current = true
     setLoading(true)
@@ -87,14 +73,12 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
         customerId: customer.id,
         cashClosureId: closureId,
         amount: rounded,
-        paymentMethod,
+        paymentMethod: 'cash',
         receivedAmount: Number(received) || rounded,
         changeAmount: change,
-        reference: reference.trim() || undefined,
       })
 
       setOpen(false)
-      setReference('')
       setReceived('')
       onSuccess()
     } catch (err: unknown) {
@@ -148,50 +132,22 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
               {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(remaining - amountToPay)}`}
             </p>
           </div>
+
           <div className="space-y-2">
-            <Label>Método de Pago</Label>
-            <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as 'cash' | 'transfer' | 'card')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Efectivo</SelectItem>
-                <SelectItem value="transfer">Transferencia</SelectItem>
-                <SelectItem value="card">Tarjeta</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
+            <Input
+              id="received"
+              type="number"
+              placeholder="0.00"
+              value={received}
+              onChange={(e) => setReceived(e.target.value)}
+            />
           </div>
-          {paymentMethod === 'cash' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
-                <Input
-                  id="received"
-                  type="number"
-                  placeholder="0.00"
-                  value={received}
-                  onChange={(e) => setReceived(e.target.value)}
-                />
-              </div>
 
-              {Number(received) > 0 && (
-                <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
-                  <span className="font-medium">Vuelto:</span>
-                  <span className="text-2xl font-black">{formatCurrency(change)}</span>
-                </div>
-              )}
-            </>
-          )}
-
-          {paymentMethod !== 'cash' && (
-            <div className="space-y-2">
-              <Label htmlFor="reference">N° Referencia / Operación</Label>
-              <Input
-                id="reference"
-                placeholder="Ej: OP-123456"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-              />
+          {Number(received) > 0 && (
+            <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
+              <span className="font-medium">Vuelto:</span>
+              <span className="text-2xl font-black">{formatCurrency(change)}</span>
             </div>
           )}
 

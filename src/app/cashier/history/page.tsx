@@ -243,7 +243,7 @@ export default function CashierHistoryPage() {
                         {formatCurrency(payment.amount)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(payment.payment_date)}
+                        {formatDate(payment.payment_date, { includeTime: true })}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         {payment.reference}

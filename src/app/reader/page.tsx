@@ -6,7 +6,7 @@ import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Wifi, WifiOff, RefreshCcw, Camera, Search, List } from 'lucide-react'
+import { Wifi, WifiOff, RefreshCcw, Camera, Search, List, MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { db } from '@/lib/db/dexie'
 import { getReaderDashboardDataAction } from './actions'
@@ -17,6 +17,7 @@ export default function ReaderDashboard() {
   const [syncedCount, setSyncedCount] = useState(0)
   const [activeCustomers, setActiveCustomers] = useState(0)
   const [periodInfo, setPeriodInfo] = useState<{ name: string; endDate: string } | null>(null)
+  const [sectorName, setSectorName] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -36,6 +37,7 @@ export default function ReaderDashboard() {
             setSyncedCount(data.syncedCount)
             setActiveCustomers(data.activeCustomers)
             setPeriodInfo(data.period)
+            setSectorName(data.sectorName)
           }
         })
         .catch(() => {})
@@ -46,8 +48,14 @@ export default function ReaderDashboard() {
 
   return (
     <ReaderLayout>
-      <div className="flex flex-col gap-4">
-        <div className={`p-3 rounded-lg flex items-center justify-between ${isOnline ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+  <div className="flex flex-col gap-4">
+      {sectorName && (
+        <div className="p-3 rounded-lg bg-muni-blue/10 text-muni-blue flex items-center gap-2 font-medium">
+          <MapPin className="h-5 w-5" />
+          Sector: {sectorName}
+        </div>
+      )}
+      <div className={`p-3 rounded-lg flex items-center justify-between ${isOnline ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
           <div className="flex items-center gap-2 font-medium">
             {isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
             {isOnline ? 'En línea' : 'Sin conexión'}

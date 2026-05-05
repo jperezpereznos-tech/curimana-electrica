@@ -15,7 +15,7 @@ vi.mock('@/services/audit-service')
 
 function createMockSupabase() {
   return {
-    rpc: vi.fn().mockResolvedValue({ data: 0, error: null })
+    rpc: vi.fn().mockResolvedValue({ data: 'payment-id-1', error: null })
   } as unknown as SupabaseClient<Database>
 }
 
@@ -24,14 +24,13 @@ describe('PaymentService - processPayment', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: 0, error: null })
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: 'payment-id-1', error: null })
   })
 
-  it('deberia marcar el recibo como PAGADO si el monto cubre el total', async () => {
+  it('deberia llamar a process_payment RPC con los parametros correctos', async () => {
     vi.spyOn(CashClosureRepository.prototype, 'getById').mockResolvedValue({ id: 'cl1', cashier_id: 'user1', status: 'open' } as any)
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', total_amount: 100, paid_amount: 0, status: 'pending' } as any)
-    vi.spyOn(PaymentRepository.prototype, 'create').mockResolvedValue({ id: 'p1' } as any)
-    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(PaymentRepository.prototype, 'getById').mockResolvedValue({ id: 'payment-id-1' } as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     const service = new PaymentService(mockSupabase)
@@ -41,41 +40,19 @@ describe('PaymentService - processPayment', () => {
       cashClosureId: 'cl1',
       amount: 100,
       paymentMethod: 'cash',
-      receivedAmount: 100,
-      changeAmount: 0
+      receivedAmount: 150,
+      changeAmount: 50,
+      cashierUserId: 'user1',
     })
 
-    const updateCall = (ReceiptRepository.prototype.update as ReturnType<typeof vi.fn>).mock.calls[0]
-    expect(updateCall[0]).toBe('r1')
-    expect(updateCall[1]).toMatchObject({ paid_amount: 100, status: 'paid' })
-    expect(updateCall[1].paid_at).toBeDefined()
-    expect(mockSupabase.rpc).toHaveBeenCalledWith('adjust_customer_debt', {
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('process_payment', {
+      p_receipt_id: 'r1',
       p_customer_id: 'c1',
-      p_amount: -100
-    })
-  })
-
-  it('deberia mantener el recibo como PARCIAL si el pago es parcial', async () => {
-    vi.spyOn(CashClosureRepository.prototype, 'getById').mockResolvedValue({ id: 'cl1', cashier_id: 'user1', status: 'open' } as any)
-    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', total_amount: 100, paid_amount: 0, status: 'pending' } as any)
-    vi.spyOn(PaymentRepository.prototype, 'create').mockResolvedValue({ id: 'p1' } as any)
-    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
-    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
-
-    const service = new PaymentService(mockSupabase)
-    await service.processPayment({
-      receiptId: 'r1',
-      customerId: 'c1',
-      cashClosureId: 'cl1',
-      amount: 40,
-      paymentMethod: 'cash',
-      receivedAmount: 50,
-      changeAmount: 10
-    })
-
-    expect(ReceiptRepository.prototype.update).toHaveBeenCalledWith('r1', {
-      paid_amount: 40,
-      status: 'partial'
+      p_cash_closure_id: 'cl1',
+      p_amount: 100,
+      p_received_amount: 150,
+      p_change_amount: 50,
+      p_cashier_id: 'user1',
     })
   })
 
@@ -90,35 +67,25 @@ describe('PaymentService - processPayment', () => {
       amount: 100,
       paymentMethod: 'cash',
       receivedAmount: 100,
-      changeAmount: 0
+      changeAmount: 0,
     })).rejects.toThrow()
   })
 
-  it('deberia pasar receivedAmount y changeAmount y cashClosureId al crear el pago', async () => {
+  it('deberia lanzar error si la RPC falla', async () => {
     vi.spyOn(CashClosureRepository.prototype, 'getById').mockResolvedValue({ id: 'cl1', cashier_id: 'user1', status: 'open' } as any)
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', total_amount: 100, paid_amount: 0, status: 'pending' } as any)
-    const createSpy = vi.spyOn(PaymentRepository.prototype, 'create').mockResolvedValue({ id: 'p1' } as any)
-    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
-    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: { message: 'El monto excede el saldo pendiente' } })
 
     const service = new PaymentService(mockSupabase)
-    await service.processPayment({
+    await expect(service.processPayment({
       receiptId: 'r1',
       customerId: 'c1',
       cashClosureId: 'cl1',
-      amount: 100,
+      amount: 200,
       paymentMethod: 'cash',
-      receivedAmount: 150,
-      changeAmount: 50
-    })
-
-    expect(createSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cash_closure_id: 'cl1',
-        received_amount: 150,
-        change_amount: 50,
-      })
-    )
+      receivedAmount: 200,
+      changeAmount: 0,
+    })).rejects.toThrow('El monto excede el saldo pendiente')
   })
 })
 
@@ -127,28 +94,25 @@ describe('PaymentService - voidPayment', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: 0, error: null })
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: null })
   })
 
-  it('deberia limpiar paid_at al anular un pago que vuelve a pending', async () => {
-    const mockPayment = {
-      id: 'p1',
-      amount: 100,
-      status: 'completed',
-      receipts: { id: 'r1', paid_amount: 100, total_amount: 100, status: 'paid', customer_id: 'c1' }
-    }
-
-    vi.spyOn(PaymentRepository.prototype, 'getPaymentWithReceipt').mockResolvedValue(mockPayment as any)
-    vi.spyOn(PaymentRepository.prototype, 'update').mockResolvedValue({} as any)
-    const receiptUpdateSpy = vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
-
+  it('deberia llamar a void_payment RPC', async () => {
     const service = new PaymentService(mockSupabase)
 
     await service.voidPayment('p1', 'user1')
 
-    expect(receiptUpdateSpy).toHaveBeenCalledWith('r1',
-      expect.objectContaining({ paid_amount: 0, status: 'pending', paid_at: null })
-    )
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('void_payment', {
+      p_payment_id: 'p1',
+      p_user_id: 'user1',
+    })
+  })
+
+  it('deberia lanzar error si la RPC falla', async () => {
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: { message: 'El pago ya esta anulado' } })
+
+    const service = new PaymentService(mockSupabase)
+    await expect(service.voidPayment('p1', 'user1')).rejects.toThrow('El pago ya esta anulado')
   })
 })
 
@@ -157,29 +121,19 @@ describe('PaymentService - processBatchPayment', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: 0, error: null })
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: 'payment-id-1', error: null })
   })
 
   it('deberia hacer rollback de pagos completados si uno falla', async () => {
     vi.spyOn(CashClosureRepository.prototype, 'getById').mockResolvedValue({ id: 'cl1', cashier_id: 'user1', status: 'open' } as any)
-
-    vi.spyOn(ReceiptRepository.prototype, 'getById').mockImplementation(async (id: string) => {
-      if (id === 'r1') return { id: 'r1', total_amount: 50, paid_amount: 0, status: 'pending' } as any
-      throw new Error('El recibo no permite nuevos pagos')
-    })
-    vi.spyOn(PaymentRepository.prototype, 'create').mockResolvedValue({ id: 'p1' } as any)
-    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
+    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue({ id: 'r1', total_amount: 50, paid_amount: 0, status: 'pending' } as any)
+    vi.spyOn(PaymentRepository.prototype, 'getById').mockResolvedValue({ id: 'payment-id-1' } as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
-    const mockPaymentForVoid = {
-      id: 'p1',
-      amount: 50,
-      status: 'completed',
-      receipts: { id: 'r1', paid_amount: 50, total_amount: 50, status: 'paid', customer_id: 'c1' }
-    }
-
-    vi.spyOn(PaymentRepository.prototype, 'getPaymentWithReceipt').mockResolvedValue(mockPaymentForVoid as any)
-    vi.spyOn(PaymentRepository.prototype, 'update').mockResolvedValue({} as any)
+    ;(mockSupabase.rpc as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ data: 'payment-id-1', error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: 'El recibo no permite nuevos pagos' } })
+      .mockResolvedValueOnce({ data: null, error: null })
 
     const service = new PaymentService(mockSupabase)
 

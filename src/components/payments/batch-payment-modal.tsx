@@ -16,13 +16,6 @@ import { Label } from '@/components/ui/label'
 import { Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { Database } from '@/types/database'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
   billing_periods: {
@@ -40,32 +33,25 @@ type BatchPaymentModalProps = {
     payments: { receiptId: string; amount: number }[]
     customerId: string
     cashClosureId: string
-    paymentMethod: 'cash' | 'transfer' | 'card'
+    paymentMethod: 'cash'
     receivedAmount?: number
     changeAmount?: number
-    reference?: string
   }) => Promise<unknown>
 }
 
 export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, onSuccess, onProcessBatchPayment }: BatchPaymentModalProps) {
   const [open, setOpen] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card'>('cash')
   const [received, setReceived] = useState('')
-  const [reference, setReference] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const submittingRef = useRef(false)
 
-  const change = paymentMethod === 'cash' && Number(received) > totalDebt ? Number(received) - totalDebt : 0
+  const change = Number(received) > totalDebt ? Number(received) - totalDebt : 0
 
   const handlePayment = async () => {
     if (submittingRef.current) return
 
     setError(null)
-    if (paymentMethod !== 'cash' && !reference.trim()) {
-      setError('Ingrese el número de referencia / operación')
-      return
-    }
 
     submittingRef.current = true
     setLoading(true)
@@ -79,14 +65,12 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
         payments,
         customerId: customer.id,
         cashClosureId: closureId,
-        paymentMethod,
+        paymentMethod: 'cash',
         receivedAmount: Number(received) || totalDebt,
         changeAmount: change,
-        reference: reference.trim() || undefined,
       })
 
       setOpen(false)
-      setReference('')
       setReceived('')
       onSuccess()
     } catch (err: unknown) {
@@ -133,49 +117,21 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
           </div>
 
           <div className="space-y-2">
-            <Label>Método de Pago</Label>
-            <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as 'cash' | 'transfer' | 'card')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Efectivo</SelectItem>
-                <SelectItem value="transfer">Transferencia</SelectItem>
-                <SelectItem value="card">Tarjeta</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="batch-received">Monto Recibido (Efectivo)</Label>
+            <Input
+              id="batch-received"
+              type="number"
+              placeholder="0.00"
+              value={received}
+              onChange={(e) => setReceived(e.target.value)}
+            />
+            {Number(received) > 0 && (
+              <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
+                <span className="font-medium">Vuelto:</span>
+                <span className="text-2xl font-black">{formatCurrency(change)}</span>
+              </div>
+            )}
           </div>
-
-          {paymentMethod === 'cash' && (
-            <div className="space-y-2">
-              <Label htmlFor="batch-received">Monto Recibido (Efectivo)</Label>
-              <Input
-                id="batch-received"
-                type="number"
-                placeholder="0.00"
-                value={received}
-                onChange={(e) => setReceived(e.target.value)}
-              />
-              {Number(received) > 0 && (
-                <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
-                  <span className="font-medium">Vuelto:</span>
-                  <span className="text-2xl font-black">{formatCurrency(change)}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {paymentMethod !== 'cash' && (
-            <div className="space-y-2">
-              <Label htmlFor="batch-reference">N° Referencia / Operación</Label>
-              <Input
-                id="batch-reference"
-                placeholder="Ej: OP-123456"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-              />
-            </div>
-          )}
 
           <DialogFooter>
             <Button

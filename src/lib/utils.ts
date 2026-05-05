@@ -12,9 +12,18 @@ export function formatCurrency(amount: number | null | undefined): string {
   }).format(amount ?? 0)
 }
 
-export function formatDate(date: Date | string | null | undefined): string {
+export function formatDate(date: Date | string | null | undefined, options?: { includeTime?: boolean }): string {
   if (!date) return '-'
   const d = typeof date === 'string' ? new Date(date) : date
+  if (options?.includeTime) {
+    return new Intl.DateTimeFormat('es-PE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(d)
+  }
   return new Intl.DateTimeFormat('es-PE', {
     day: '2-digit',
     month: '2-digit',
