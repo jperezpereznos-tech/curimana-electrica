@@ -9,14 +9,14 @@ export class ProfileRepository extends BaseRepository<'profiles'> {
     super('profiles', supabaseClient)
   }
 
-  async getAllWithSector(): Promise<(Profile & { sectors: { id: string; name: string; code: string } | null })[]> {
+  async getAllWithSector() {
     const { data, error } = await this.supabase
       .from('profiles')
       .select('*, sectors:sectors!profiles_assigned_sector_id_fkey(id, name, code)')
       .order('full_name', { ascending: true })
 
     if (error) throw error
-    return data as any
+    return (data ?? []) as (Profile & { sectors: { id: string; name: string; code: string } | null })[]
   }
 
   async getReaders(): Promise<Profile[]> {

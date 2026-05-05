@@ -63,10 +63,13 @@ export function useOfflineSync() {
         customerService.getAllForCache(sectorId || undefined),
         CACHE_SYNC_TIMEOUT_MS
       )
-      if (customers && customers.length > 0) {
+    if (customers && customers.length > 0) {
+      const stamped = customers.map(c => ({ ...c, last_updated: Date.now() }))
+      await db.transaction('rw', db.customers_cache, async () => {
         await db.customers_cache.clear()
-        await db.customers_cache.bulkPut(customers)
-      }
+        await db.customers_cache.bulkPut(stamped)
+      })
+    }
     } catch (error) {
       console.error('Error syncing customer cache:', error)
     }

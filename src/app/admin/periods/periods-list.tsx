@@ -30,12 +30,17 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
     try {
       const result = await closePeriodAction(id) as any
       const generated = result?.receiptsGenerated ?? 0
+      const skipped = result?.skipped ?? 0
+      const perCustomerErrors: string[] = result?.errors ?? []
       setPeriods(prev =>
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
       )
       setCloseTargetId(null)
       router.refresh()
-      alert(`Periodo cerrado exitosamente. Se generaron ${generated} recibos.`)
+      let msg = `Periodo cerrado. Se generaron ${generated} recibos.`
+      if (skipped > 0) msg += ` ${skipped} clientes sin lectura.`
+      if (perCustomerErrors.length > 0) msg += ` Errores: ${perCustomerErrors.join('; ')}`
+      alert(msg)
     } catch {
       setError('Error al cerrar el periodo.')
     } finally {

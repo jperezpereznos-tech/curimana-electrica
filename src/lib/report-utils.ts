@@ -5,10 +5,18 @@
 export function downloadCSV(data: any[], filename: string) {
   if (data.length === 0) return
 
+  const sanitize = (val: unknown) => {
+    const str = String(val ?? '')
+    if (/^[=+\-@\t\r]/.test(str)) {
+      return `'${str.replace(/"/g, '""')}`
+    }
+    return str.replace(/"/g, '""')
+  }
+
   const headers = Object.keys(data[0]).join(',')
-  const rows = data.map(obj => 
+  const rows = data.map(obj =>
     Object.values(obj)
-      .map(val => `"${val}"`) // Envolver en comillas para evitar errores con comas
+      .map(val => `"${sanitize(val)}"`)
       .join(',')
   )
 

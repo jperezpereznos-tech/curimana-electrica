@@ -4,12 +4,18 @@ import { Database } from '@/types/database'
 
 type Customer = Database['public']['Tables']['customers']['Row']
 
+type CustomerWithRelations = Customer & {
+  tariffs: { name: string; tariff_tiers: { min_kwh: number; max_kwh: number | null; price_per_kwh: number }[] } | null
+  sectors: { id: string; name: string; code: string } | null
+  readings: { current_reading: number; reading_date: string }[]
+}
+
 export class CustomerRepository extends BaseRepository<'customers'> {
   constructor(supabaseClient?: SupabaseClient<Database>) {
     super('customers', supabaseClient)
   }
 
-  async searchCustomers(query: string, sectorId?: string): Promise<Customer[]> {
+  async searchCustomers(query: string, sectorId?: string): Promise<CustomerWithRelations[]> {
     let queryBuilder = this.supabase
       .from('customers')
       .select('*, tariffs(name, tariff_tiers(*)), sectors(id, name, code), readings(current_reading, reading_date)')
@@ -29,14 +35,14 @@ export class CustomerRepository extends BaseRepository<'customers'> {
 
     if (error) throw error
 
-    const processed = (data as any[]).map((c: any) => ({
+    const processed = (data as CustomerWithRelations[]).map((c) => ({
       ...c,
-      readings: c.readings?.sort((a: any, b: any) =>
+      readings: c.readings?.sort((a, b) =>
         new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
       ).slice(0, 1) || []
     }))
 
-    return processed as any
+    return processed
   }
 
   async getCustomerDetails(id: string) {
@@ -132,8 +138,8 @@ export class CustomerRepository extends BaseRepository<'customers'> {
 
     if (error) throw error
 
-    const processed = (data as any[]).map((c: any) => {
-      const latestReading = c.readings?.sort((a: any, b: any) =>
+    const processed = (data as (Customer & { readings: { current_reading: number; reading_date: string }[] })[]).map((c) => {
+      const latestReading = c.readings?.sort((a, b) =>
         new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
       )[0]
       return {

@@ -1,18 +1,13 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireReaderAuth } from '@/lib/auth/server-reader-auth'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
 import { getCustomerService } from '@/services/customer-service'
 
-async function requireAuth() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  return { supabase, userId: user.id }
-}
+type AuthedSupabase = Awaited<ReturnType<typeof requireReaderAuth>>['supabase']
 
-async function getAssignedSectorId(userId: string, supabase: Awaited<ReturnType<typeof createClient>>) {
+async function getAssignedSectorId(userId: string, supabase: AuthedSupabase) {
   const { data: profile } = await supabase
     .from('profiles')
     .select('assigned_sector_id')
@@ -21,8 +16,13 @@ async function getAssignedSectorId(userId: string, supabase: Awaited<ReturnType<
   return profile?.assigned_sector_id || null
 }
 
-export async function getReaderAssignedSectorAction() {
-  const { supabase, userId } = await requireAuth()
+type SectorProfile = {
+  assigned_sector_id: string | null
+  sectors: { id: string; name: string; code: string } | null
+}
+
+export async function getReaderAssignedSectorAction(): Promise<SectorProfile> {
+  const { supabase, userId } = await requireReaderAuth()
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('assigned_sector_id, sectors:id!profiles_assigned_sector_id_fkey(id, name, code)')
@@ -30,21 +30,21 @@ export async function getReaderAssignedSectorAction() {
     .single()
 
   if (error) throw error
-  return profile as any
+  return profile as unknown as SectorProfile
 }
 
 export async function getReaderAssignedSectorIdAction() {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireReaderAuth()
   return await getAssignedSectorId(userId, supabase)
 }
 
 export async function getReaderDashboardDataAction() {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireReaderAuth()
   const readingService = getReadingService(supabase)
   const periodService = getPeriodService(supabase)
   const sectorId = await getAssignedSectorId(userId, supabase)
 
-  const [syncedCount, activeCustomers, period, sectorProfile] = await Promise.all([
+  const [syncedCount, activeCustomers, period, sectorResult] = await Promise.all([
     readingService.getTodayReadingsCount(),
     readingService.getActiveCustomersCount(),
     periodService.getCurrentPeriod(),
@@ -55,6 +55,8 @@ export async function getReaderDashboardDataAction() {
       .single()
   ])
 
+  const sectorProfile = sectorResult.data as SectorProfile | null
+
   return {
     syncedCount,
     activeCustomers,
@@ -63,19 +65,19 @@ export async function getReaderDashboardDataAction() {
       endDate: period.end_date
     } : null,
     sectorId,
-    sectorName: (sectorProfile.data as any)?.sectors?.name || null
+    sectorName: sectorProfile?.sectors?.name || null
   }
 }
 
 export async function searchReaderCustomersAction(query: string) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireReaderAuth()
   const sectorId = await getAssignedSectorId(userId, supabase)
   const customerService = getCustomerService(supabase)
   return await customerService.searchCustomers(query, sectorId || undefined)
 }
 
 export async function getLatestReadingAction(customerId: string) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireReaderAuth()
   const readingService = getReadingService(supabase)
   const reading = await readingService.getLatestReading(customerId)
   return reading
@@ -90,7 +92,7 @@ export async function registerReadingAction(data: {
   notes?: string
   photo_url?: string
 }) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireReaderAuth()
   const sectorId = await getAssignedSectorId(userId, supabase)
 
   const { data: customer } = await supabase

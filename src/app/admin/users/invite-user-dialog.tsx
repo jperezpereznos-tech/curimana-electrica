@@ -17,7 +17,6 @@ import { inviteUserAction } from './actions'
 
 const inviteSchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres'),
   full_name: z.string().min(3, 'Nombre requerido'),
   role: z.string().min(1, 'Rol requerido'),
 })
@@ -37,13 +36,13 @@ export function InviteUserDialog({ sectors }: { sectors: any[] }) {
 
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { email: '', password: '', full_name: '', role: 'meter_reader' },
+    defaultValues: { email: '', full_name: '', role: 'meter_reader' },
   })
 
   const onSubmit = async (values: InviteFormValues) => {
     setServerError(null)
     try {
-      await inviteUserAction(values.email, values.password, values.full_name, values.role)
+      await inviteUserAction(values.email, values.full_name, values.role)
       setOpen(false)
       form.reset()
       router.refresh()
@@ -62,9 +61,9 @@ export function InviteUserDialog({ sectors }: { sectors: any[] }) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Invitar Usuario</DialogTitle>
-          <DialogDescription>
-            Crea una cuenta nueva y asígnale un rol.
-          </DialogDescription>
+        <DialogDescription>
+          Envia una invitación por correo electrónico. El usuario establecerá su propia contraseña.
+        </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -79,17 +78,12 @@ export function InviteUserDialog({ sectors }: { sectors: any[] }) {
             <Input id="full_name" {...form.register('full_name')} />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo Electrónico</Label>
-            <Input id="email" type="email" {...form.register('email')} />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Correo Electrónico</Label>
+          <Input id="email" type="email" {...form.register('email')} />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input id="password" type="password" {...form.register('password')} />
-          </div>
-
-          <div className="space-y-2">
+        <div className="space-y-2">
             <Label>Rol</Label>
             <Select
               onValueChange={(val) => form.setValue('role', (val ?? '') as string)}

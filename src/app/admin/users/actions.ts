@@ -37,11 +37,11 @@ export async function assignSectorToUserAction(userId: string, sectorId: string 
   return result
 }
 
-export async function inviteUserAction(email: string, password: string, fullName: string, role: string) {
+export async function inviteUserAction(email: string, fullName: string, role: string) {
   const { supabase } = await requireAdminAuth()
   const profileService = getProfileService(supabase)
 
-  const authResult = await profileService.inviteUser(email, password, fullName)
+  const authResult = await profileService.inviteUser(email, '', fullName)
 
   if (authResult.user && role !== 'meter_reader') {
     await profileService.updateRole(authResult.user.id, role)

@@ -6,6 +6,8 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
+type TariffTier = { min_kwh: number; max_kwh: number | null; price_per_kwh: number }
+
 export class ReceiptService {
   private receiptRepo: ReceiptRepository
   private customerRepo: CustomerRepository
@@ -29,8 +31,8 @@ export class ReceiptService {
 
   calculateBreakdown(
     consumption: number,
-    tiers: any[],
-    fixedConcepts: { name: string, amount: number, type: string }[],
+    tiers: TariffTier[],
+    fixedConcepts: { name: string; amount: number; type: string }[],
     previousDebt: number = 0
   ) {
     const energyAmount = calculateEnergyAmount(consumption, tiers)

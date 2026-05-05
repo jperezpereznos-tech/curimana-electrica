@@ -1,7 +1,7 @@
 import { ProfileRepository } from '@/repositories/profile-repository'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export class ProfileService {
   private profileRepo: ProfileRepository
@@ -26,18 +26,15 @@ export class ProfileService {
     return await this.profileRepo.updateAssignedSector(userId, sectorId)
   }
 
-  async inviteUser(email: string, password: string, fullName: string) {
-    const supabase = this.profileRepo['supabase']
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
+  async inviteUser(email: string, _password: string, fullName: string) {
+    const adminClient = createAdminClient()
+    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: fullName },
     })
 
     if (error) throw error
-    return data
+
+    return { user: data.user ? { id: data.user.id, email: data.user.email } : null }
   }
 }
 

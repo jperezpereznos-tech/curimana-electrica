@@ -139,19 +139,24 @@ export class PeriodService {
     const activeConcepts = await this.conceptRepo.getAllActive()
     const allReadings = await this.readingRepo.getReadingsByPeriod(id)
 
-    const receiptPayloads: any[] = []
+    const receiptPayloads: {
+      customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
+      consumption_kwh: number; period_start: string; period_end: string; energy_amount: number;
+      fixed_charges: number; subtotal: number; igv: number; previous_debt: number;
+      total_amount: number; issue_date: string; due_date: string
+    }[] = []
     const skippedCustomers: string[] = []
     const errors: string[] = []
 
     for (const customer of activeCustomers) {
       try {
-        const customerReadings = (allReadings as any[]).filter((r: any) => r.customer_id === customer.id)
-        if (customerReadings.length === 0) {
-          skippedCustomers.push(customer.supply_number || customer.id)
-          continue
-        }
-        const customerReading = customerReadings.sort((a: any, b: any) =>
-          new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
+      const customerReadings = allReadings.filter(r => r.customer_id === customer.id)
+      if (customerReadings.length === 0) {
+        skippedCustomers.push(customer.supply_number || customer.id)
+        continue
+      }
+      const customerReading = customerReadings.sort((a, b) =>
+        new Date(b.reading_date || 0).getTime() - new Date(a.reading_date || 0).getTime()
         )[0]
 
         const consumption = customerReading.consumption || 0
@@ -173,8 +178,8 @@ export class PeriodService {
           }
         }
 
-        const sortedTiers = tiers.length > 0
-          ? [...tiers].sort((a: any, b: any) => a.min_kwh - b.min_kwh)
+      const sortedTiers = tiers.length > 0
+        ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
           : []
 
         percentageBase = (sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges

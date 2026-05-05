@@ -552,6 +552,9 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.void_payment(UUID, UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.void_payment(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) TO authenticated;
 
 REVOKE EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) TO authenticated;
@@ -904,7 +907,7 @@ WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reade
 -- ============================================================================
 
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('reading-photos', 'reading-photos', true)
+VALUES ('reading-photos', 'reading-photos', false)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "Authenticated upload reading photos" ON storage.objects;
@@ -912,7 +915,7 @@ CREATE POLICY "Authenticated upload reading photos" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (bucket_id = 'reading-photos' AND auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Public read reading photos" ON storage.objects;
-CREATE POLICY "Public read reading photos" ON storage.objects
-FOR SELECT TO public
+DROP POLICY IF EXISTS "Authenticated read reading photos" ON storage.objects;
+CREATE POLICY "Authenticated read reading photos" ON storage.objects
+FOR SELECT TO authenticated
 USING (bucket_id = 'reading-photos');

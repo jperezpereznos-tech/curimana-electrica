@@ -2,11 +2,21 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
+interface ReceiptPdfData {
+  customers?: { supply_number?: string; full_name?: string; address?: string; sector?: string }
+  billing_periods: { name: string }
+  receipt_number: string | number
+  total_amount: number
+  due_date: string
+  energy_amount: number
+  fixed_charges: number
+  igv?: number
+  previous_debt: number
+  municipality_config?: { ruc?: string; name?: string }
+}
+
 export class PdfService {
-  /**
-   * Genera el PDF del recibo eléctrico.
-   */
-  generateReceiptPdf(data: any) {
+  generateReceiptPdf(data: ReceiptPdfData) {
     const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, igv, previous_debt, municipality_config } = data
 
     const ruc = municipality_config?.ruc || '20123456789'

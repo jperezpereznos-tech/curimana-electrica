@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const loadingDoneRef = useRef(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [supabase] = useState(() => createClient())
   const router = useRouter()
@@ -79,42 +80,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentUser) {
           const userRole = await fetchRole()
-          if (mounted) {
-            setRole(userRole)
-            setIsLoading(false)
-          }
-        } else {
-          setRole(null)
-          setProfileError(null)
+      if (mounted) {
+          setRole(userRole)
+          loadingDoneRef.current = true
           setIsLoading(false)
         }
+      } else {
+        setRole(null)
+        setProfileError(null)
+        loadingDoneRef.current = true
+        setIsLoading(false)
+      }
       }
     )
 
     // Safety net: if onAuthStateChange doesn't fire within 3 seconds
     // (e.g. no session exists), force loading to false
-    const timeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (mounted && isLoading) {
-            if (!session) {
-              setUser(null)
-              setRole(null)
-              setIsLoading(false)
-            }
-            // If there IS a session, onAuthStateChange should handle it
+  const timeout = setTimeout(() => {
+    if (mounted && !loadingDoneRef.current) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (mounted && !loadingDoneRef.current) {
+          if (!session) {
+            setUser(null)
+            setRole(null)
+            loadingDoneRef.current = true
+            setIsLoading(false)
           }
-        })
-      }
-    }, 3000)
+        }
+      })
+    }
+  }, 3000)
 
     return () => {
       mounted = false
       subscription.unsubscribe()
       clearTimeout(timeout)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchRole, supabase.auth])
+    }, [fetchRole, supabase.auth])
 
   const signOut = async () => {
     await supabase.auth.signOut()

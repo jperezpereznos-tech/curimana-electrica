@@ -91,9 +91,10 @@ function NewReadingContent() {
             address: found.address || '',
             sector: found.sector || '',
             sector_id: found.sector_id || '',
-            tariff_id: found.tariff_id || '',
-            previous_reading: previousReading,
-          })
+        tariff_id: found.tariff_id || '',
+        previous_reading: previousReading,
+        last_updated: Date.now(),
+      })
           setSaveError(null)
           setCustomer({
             id: found.id,

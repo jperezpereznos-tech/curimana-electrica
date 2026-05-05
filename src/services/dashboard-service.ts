@@ -66,12 +66,15 @@ export class DashboardService {
       .order('month', { ascending: true })
       .limit(6)
 
-    return periods?.map(p => ({
-      name: p.name,
-      total: (p.receipts as any[])
-        ?.filter((r: any) => r.status === 'paid')
-        .reduce((sum: number, r: any) => sum + (r.paid_amount || 0), 0) || 0
-    })) || []
+    return periods?.map(p => {
+      const receipts = (p.receipts as { paid_amount: number; status: string }[] | null) ?? []
+      return {
+        name: p.name,
+        total: receipts
+          .filter(r => r.status === 'paid')
+          .reduce((sum, r) => sum + (r.paid_amount || 0), 0)
+      }
+    }) ?? []
   }
 
   async getConsumptionBySector(periodId?: string) {
@@ -93,7 +96,7 @@ export class DashboardService {
 
     const sectors: Record<string, number> = {}
     data?.forEach(r => {
-      const sectorKey = (r.customers as any)?.sector || 'Sin Sector'
+      const sectorKey = (r.customers as { sector: string } | null)?.sector || 'Sin Sector'
       sectors[sectorKey] = (sectors[sectorKey] || 0) + (r.consumption || 0)
     })
 
@@ -131,16 +134,16 @@ export class DashboardService {
       return []
     }
 
-    return data?.map(r => ({
-      id: r.id,
-      previous_reading: r.previous_reading,
-      current_reading: r.current_reading,
-      consumption: r.consumption,
-      reading_date: r.reading_date,
-      has_photo: !!r.photo_url,
-      customer_name: (r.customers as any)?.full_name || 'Desconocido',
-      supply_number: (r.customers as any)?.supply_number || 'N/A'
-    })) || []
+  return data?.map(r => ({
+    id: r.id,
+    previous_reading: r.previous_reading,
+    current_reading: r.current_reading,
+    consumption: r.consumption,
+    reading_date: r.reading_date,
+    has_photo: !!r.photo_url,
+    customer_name: (r.customers as { full_name: string; supply_number: string } | null)?.full_name || 'Desconocido',
+    supply_number: (r.customers as { full_name: string; supply_number: string } | null)?.supply_number || 'N/A'
+  })) || []
   }
 }
 

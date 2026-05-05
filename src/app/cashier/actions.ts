@@ -1,18 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireCashierAuth } from '@/lib/auth/server-cashier-auth'
 import { getPaymentService } from '@/services/payment-service'
 import { getCashClosureService } from '@/services/cash-closure-service'
 import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
 import { revalidatePath } from 'next/cache'
-
-async function requireAuth() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-  return { supabase, userId: user.id }
-}
 
 export async function processPaymentAction(data: {
   receiptId: string
@@ -23,7 +16,7 @@ export async function processPaymentAction(data: {
   receivedAmount: number
   changeAmount: number
 }) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireCashierAuth()
   const paymentService = getPaymentService(supabase)
 
   const result = await paymentService.processPayment({ ...data, cashierUserId: userId })
@@ -39,7 +32,7 @@ export async function processBatchPaymentAction(data: {
   receivedAmount?: number
   changeAmount?: number
 }) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireCashierAuth()
   const paymentService = getPaymentService(supabase)
 
   const result = await paymentService.processBatchPayment({ ...data, cashierUserId: userId })
@@ -48,7 +41,7 @@ export async function processBatchPaymentAction(data: {
 }
 
 export async function openClosureAction(amount: number) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireCashierAuth()
   const cashClosureService = getCashClosureService(supabase)
 
   const result = await cashClosureService.openClosure(userId, amount)
@@ -57,7 +50,7 @@ export async function openClosureAction(amount: number) {
 }
 
 export async function closeClosureAction(closureId: string) {
-  const { supabase, userId } = await requireAuth()
+  const { supabase, userId } = await requireCashierAuth()
   const cashClosureService = getCashClosureService(supabase)
 
   const result = await cashClosureService.closeClosure(closureId, userId)
@@ -66,7 +59,7 @@ export async function closeClosureAction(closureId: string) {
 }
 
 export async function searchCashierCustomerAction(query: string) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireCashierAuth()
   const customerService = getCustomerService(supabase)
   const receiptService = getReceiptService(supabase)
 
@@ -87,7 +80,7 @@ export async function searchCashierCustomerAction(query: string) {
 }
 
 export async function getPaymentsByCashierAction(userId: string, dateFilterParams: { from?: string; to?: string }) {
-  const { supabase } = await requireAuth()
+  const { supabase } = await requireCashierAuth()
   const paymentService = getPaymentService(supabase)
 
   const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
