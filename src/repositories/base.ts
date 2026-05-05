@@ -22,6 +22,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
     const { data, error } = await this.supabase
       .from(this.tableName)
       .select('*')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .eq('id' as any, id)
       .single()
 
@@ -32,6 +33,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
   async create(payload: Database['public']['Tables'][T]['Insert']) {
     const { data, error } = await this.supabase
       .from(this.tableName)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .insert(payload as any)
       .select()
       .single()
@@ -43,7 +45,9 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
   async update(id: string, payload: Database['public']['Tables'][T]['Update']) {
     const { data, error } = await this.supabase
       .from(this.tableName)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .update(payload as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .eq('id' as any, id)
       .select()
       .single()
@@ -63,8 +67,9 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
   async delete(id: string) {
     const { data, error } = await this.supabase
       .from(this.tableName)
-      .delete()
-      .eq('id' as any, id)
+    .delete()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .eq('id' as any, id)
       .select()
 
     if (error) throw error

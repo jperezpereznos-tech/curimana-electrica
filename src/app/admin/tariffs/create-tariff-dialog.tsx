@@ -28,9 +28,9 @@ import {
 import { registerTariffAction } from './actions'
 
 const tierSchema = z.object({
-  min_kwh: z.coerce.number().min(0),
-  max_kwh: z.coerce.number().nullable().optional(),
-  price_per_kwh: z.coerce.number().min(0),
+  min_kwh: z.number().min(0),
+  max_kwh: z.number().nullable().optional(),
+  price_per_kwh: z.number().min(0),
 })
 
 const tariffSchema = z.object({
@@ -43,7 +43,7 @@ export function CreateTariffDialog() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   
-  const form = useForm({
+  const form = useForm<z.infer<typeof tariffSchema>>({
     resolver: zodResolver(tariffSchema),
     defaultValues: {
       name: '',
@@ -59,7 +59,7 @@ export function CreateTariffDialog() {
 
   const [formError, setFormError] = useState<string | null>(null)
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: z.infer<typeof tariffSchema>) => {
     setFormError(null)
     try {
       await registerTariffAction(
@@ -68,19 +68,19 @@ export function CreateTariffDialog() {
           connection_type: values.connection_type,
           is_active: true
         },
-        values.tiers.map((t: { min_kwh: number; max_kwh: number | null | undefined; price_per_kwh: number }, i: number) => ({
-          ...t,
-          max_kwh: t.max_kwh || null,
-          order_index: i + 1
-        }))
+      values.tiers.map((t, i) => ({
+        min_kwh: t.min_kwh,
+        max_kwh: t.max_kwh ?? null,
+        price_per_kwh: t.price_per_kwh,
+        order_index: i + 1,
+      }))
       )
       setOpen(false)
       form.reset()
       setFormError(null)
       router.refresh()
-    } catch (error: any) {
-      const msg = error.message || 'Error al crear la tarifa'
-      // Filter out internal lock errors and show a user-friendly message
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al crear la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {
         setFormError('Error de conexión. Por favor intenta nuevamente.')
       } else {
@@ -120,7 +120,7 @@ export function CreateTariffDialog() {
             <div className="space-y-2">
               <Label>Tipo de Conexión</Label>
               <Select
-                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as any)}
+                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as 'monofásico' | 'trifásico')}
                 defaultValue={form.getValues('connection_type')}
               >
                 <SelectTrigger>
@@ -153,14 +153,14 @@ export function CreateTariffDialog() {
                   <Label className="text-xs">Min kWh</Label>
                   <Input
                     type="number"
-                    {...form.register(`tiers.${index}.min_kwh`)}
+                    {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Max kWh (vacio = ilimitado)</Label>
                   <Input
                     type="number"
-                    {...form.register(`tiers.${index}.max_kwh`)}
+                    {...form.register(`tiers.${index}.max_kwh`, { valueAsNumber: true })}
                   />
                 </div>
                 <div className="space-y-1">
@@ -168,7 +168,7 @@ export function CreateTariffDialog() {
                   <Input
                     type="number"
                     step="0.01"
-                    {...form.register(`tiers.${index}.price_per_kwh`)}
+                    {...form.register(`tiers.${index}.price_per_kwh`, { valueAsNumber: true })}
                   />
                 </div>
                 <Button

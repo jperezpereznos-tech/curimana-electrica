@@ -1,6 +1,7 @@
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentsList } from './payments-list'
+import type { PaymentWithDetails } from '@/types/views'
 
 export default async function PaymentsPage({
   searchParams,
@@ -10,7 +11,7 @@ export default async function PaymentsPage({
   const params = await searchParams
   const supabase = await createClient()
   const paymentService = getPaymentService(supabase)
-  let payments: any[] = []
+  let payments: PaymentWithDetails[] = []
   try {
     payments = await paymentService.getAllPayments({
       cashierId: params.cashierId,

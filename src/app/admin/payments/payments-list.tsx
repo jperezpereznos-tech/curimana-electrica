@@ -17,10 +17,11 @@ import { Download, Ban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { voidPaymentAction } from './actions'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import type { PaymentWithDetails } from '@/types/views'
 
 const PAGE_SIZE = 25
 
-function escapeCsvField(value: string): string {
+function escapeCsvField(value: string | number): string {
   const str = String(value ?? '')
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return '"' + str.replace(/"/g, '""') + '"'
@@ -28,7 +29,9 @@ function escapeCsvField(value: string): string {
   return str
 }
 
-export function PaymentsList({ initialPayments, currentFilters }: any) {
+type PaymentFilters = { from?: string; to?: string; cashierId?: string }
+
+export function PaymentsList({ initialPayments, currentFilters }: { initialPayments: PaymentWithDetails[]; currentFilters: PaymentFilters }) {
   const router = useRouter()
   const [dateFrom, setDateFrom] = useState(currentFilters.from || '')
   const [dateTo, setDateTo] = useState(currentFilters.to || '')
@@ -36,10 +39,10 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
   const [page, setPage] = useState(1)
   const [voidTargetId, setVoidTargetId] = useState<string | null>(null)
 
-  const totalPages = Math.max(1, Math.ceil((initialPayments || []).length / PAGE_SIZE))
-  const paginated = (initialPayments || []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+const totalPages = Math.max(1, Math.ceil(initialPayments.length / PAGE_SIZE))
+  const paginated = initialPayments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const updateFilters = (newFilters: any) => {
+  const updateFilters = (newFilters: Partial<PaymentFilters>) => {
     const params = new URLSearchParams()
     Object.entries({ ...currentFilters, ...newFilters }).forEach(([key, value]) => {
       if (value) params.set(key, value as string)
@@ -48,9 +51,9 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
     router.push(`/admin/payments?${params.toString()}`)
   }
 
-  const totalAmount = (initialPayments || [])
-    .filter((p: any) => p.status !== 'voided')
-    .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+const totalAmount = initialPayments
+  .filter((p: PaymentWithDetails) => p.status !== 'voided')
+  .reduce((sum: number, p: PaymentWithDetails) => sum + (p.amount || 0), 0)
 
   const handleVoid = async (paymentId: string) => {
     setVoidError(null)
@@ -65,18 +68,18 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
 
   const handleExport = () => {
     const headers = ['Recibo', 'Cliente', 'Suministro', 'Monto', 'Fecha', 'Cajero', 'Referencia', 'Estado']
-    const rows = (initialPayments || []).map((p: any) => [
+const rows = initialPayments.map((p: PaymentWithDetails) => [
       p.receipts?.receipt_number || '',
       p.receipts?.customers?.full_name || '',
       p.receipts?.customers?.supply_number || '',
       p.amount?.toString() || '0',
       formatDate(p.payment_date),
-      (p.cashier as any)?.full_name || '',
+      p.cashier?.full_name || '',
       p.reference || '',
       p.status || 'completed',
     ])
 
-    const csv = [headers.join(','), ...rows.map((r: string[]) => r.map(escapeCsvField).join(','))].join('\n')
+    const csv = [headers.join(','), ...rows.map((r: (string | number)[]) => r.map(escapeCsvField).join(','))].join('\n')
     const bom = '\uFEFF'
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -122,7 +125,7 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
 
       <div className="rounded-md border bg-card p-4">
         <p className="text-sm text-muted-foreground">
-          Total cobrado: <span className="font-bold text-foreground">{formatCurrency(totalAmount)}</span> — {(initialPayments || []).length} pagos
+          Total cobrado: <span className="font-bold text-foreground">{formatCurrency(totalAmount)}</span> — {initialPayments.length} pagos
         </p>
       </div>
 
@@ -141,21 +144,21 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(initialPayments || []).length === 0 ? (
+            {initialPayments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center">
                   No se encontraron pagos.
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((payment: any) => (
+              paginated.map((payment: PaymentWithDetails) => (
                 <TableRow key={payment.id} className={payment.status === 'voided' ? 'opacity-50' : ''}>
                   <TableCell className="font-mono text-xs">{payment.receipts?.receipt_number || 'N/A'}</TableCell>
                   <TableCell className="font-medium">{payment.receipts?.customers?.full_name || 'Desconocido'}</TableCell>
                   <TableCell className="font-mono text-xs">{payment.receipts?.customers?.supply_number || 'N/A'}</TableCell>
                   <TableCell className={payment.status === 'voided' ? 'line-through' : 'font-bold'}>{formatCurrency(payment.amount)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(payment.payment_date, { includeTime: true })}</TableCell>
-                  <TableCell>{(payment.cashier as any)?.full_name || 'N/A'}</TableCell>
+                  <TableCell>{payment.cashier?.full_name || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={payment.status === 'voided' ? 'destructive' : 'default'}>
                       {payment.status === 'voided' ? 'Anulado' : 'Completado'}
@@ -176,7 +179,7 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between py-4 border-t">
             <p className="text-sm text-muted-foreground">
-              {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, (initialPayments || []).length)} de {(initialPayments || []).length}
+              {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, initialPayments.length)} de {initialPayments.length}
             </p>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>

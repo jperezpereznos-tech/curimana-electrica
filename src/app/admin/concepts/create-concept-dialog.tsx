@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { registerConceptAction } from './actions'
+import type { TariffRow } from '@/types/views'
 
 const conceptSchema = z.object({
   code: z.string().min(2, 'Código requerido'),
@@ -39,7 +40,7 @@ const conceptSchema = z.object({
 type ConceptFormValues = z.infer<typeof conceptSchema>
 
 interface CreateConceptDialogProps {
-  tariffs: any[]
+  tariffs: TariffRow[]
 }
 
 export function CreateConceptDialog({ tariffs }: CreateConceptDialogProps) {
@@ -70,10 +71,10 @@ export function CreateConceptDialog({ tariffs }: CreateConceptDialogProps) {
       setOpen(false)
       form.reset()
       router.refresh()
-    } catch (error: any) {
-      const msg = error?.code === '42501'
-        ? 'No tiene permisos para realizar esta acción'
-        : (error.message || 'Error al crear el concepto')
+} catch (error: unknown) {
+      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
+      ? 'No tiene permisos para realizar esta acción'
+      : (error instanceof Error ? error.message : 'Error al crear el concepto')
       setServerError(msg)
     }
   }
@@ -119,7 +120,7 @@ export function CreateConceptDialog({ tariffs }: CreateConceptDialogProps) {
             <div className="space-y-2">
               <Label>Tipo de Cargo</Label>
               <Select
-                onValueChange={(val) => form.setValue('type', (val ?? 'fixed') as any)}
+                onValueChange={(val) => form.setValue('type', (val ?? 'fixed') as 'fixed' | 'percentage' | 'per_kwh')}
                 defaultValue={form.getValues('type')}
               >
                 <SelectTrigger>
@@ -154,7 +155,7 @@ export function CreateConceptDialog({ tariffs }: CreateConceptDialogProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las tarifas</SelectItem>
-                {tariffs.map((t: any) => (
+                {tariffs.map((t: TariffRow) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
               </SelectContent>

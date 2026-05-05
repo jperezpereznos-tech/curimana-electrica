@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,14 +9,15 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
 import {
   AlertTriangle, Camera, Search, ChevronLeft, ChevronRight, Eye, Pencil,
-  AlertCircle, CheckCircle2, User, MapPin,
+  AlertCircle, CheckCircle2, User,
 } from 'lucide-react'
-import { getReadingsAdminAction, updateReadingAction } from './actions'
+import { getReadingsAdminAction } from './actions'
 import { ReadingEditDialog } from './reading-edit-dialog'
+import type { ReadingWithCustomer as ReadingWithCustomerType, PeriodRow } from '@/types/views'
 
 const PAGE_SIZE = 25
 
@@ -27,19 +28,19 @@ function formatDate(d: string | null | undefined) {
 
 interface ReadingRow {
   id: string
-  customer_id: string
-  billing_period_id: string
+  customer_id: string | null
+  billing_period_id: string | null
   previous_reading: number
   current_reading: number
-  consumption: number
-  needs_review: boolean
+  consumption: number | null
+  needs_review: boolean | null
   reading_date: string | null
   photo_url: string | null
   notes: string | null
   meter_reader_id: string | null
   created_at: string | null
-  customers: { full_name: string; supply_number: string; sector_id: string | null; sectors: { id: string; name: string; code: string } | null } | null
-  profiles: { id: string; full_name: string } | null
+  customers: { full_name: string | null; supply_number: string | null; sector_id: string | null; sectors: { id: string; name: string; code: string } | null } | null
+  profiles: { id: string; full_name: string | null } | null
 }
 
 export function ReadingsList({
@@ -47,8 +48,8 @@ export function ReadingsList({
   periods,
   initialReviewCount,
 }: {
-  initialReadings: any[]
-  periods: any[]
+  initialReadings: ReadingWithCustomerType[]
+  periods: PeriodRow[]
   initialReviewCount: number
 }) {
   const [readings, setReadings] = useState<ReadingRow[]>(initialReadings)
@@ -144,7 +145,7 @@ export function ReadingsList({
           onChange={(e) => handlePeriodChange(e.target.value)}
         >
           <option value="">Todos los periodos</option>
-          {periods.map((p: any) => (
+          {periods.map((p: PeriodRow) => (
             <option key={p.id} value={p.id}>
               {p.month}/{p.year} {p.is_closed ? '(Cerrado)' : '(Activo)'}
             </option>

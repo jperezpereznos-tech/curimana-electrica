@@ -6,18 +6,17 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { updateReadingAction } from './actions'
 
-interface ReadingRow {
+export interface EditReadingRow {
   id: string
   previous_reading: number
   current_reading: number
-  consumption: number
-  needs_review: boolean
+  consumption: number | null
+  needs_review: boolean | null
   notes: string | null
-  customers: { full_name: string; supply_number: string } | null
+  customers: { full_name: string | null; supply_number: string | null } | null
 }
 
 export function ReadingEditDialog({
@@ -25,7 +24,7 @@ export function ReadingEditDialog({
   onClose,
   onUpdated,
 }: {
-  reading: ReadingRow
+  reading: EditReadingRow
   onClose: () => void
   onUpdated: () => void
 }) {
@@ -51,7 +50,7 @@ export function ReadingEditDialog({
       const result = await updateReadingAction(reading.id, {
         current_reading: curr,
         previous_reading: prev,
-        needs_review: needsReview,
+        needs_review: needsReview ?? undefined,
         notes: notes || undefined,
       })
 

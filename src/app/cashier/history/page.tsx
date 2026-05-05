@@ -26,10 +26,11 @@ import {
 import { getPaymentsByCashierAction } from '../actions'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
+import type { CashierHistoryPayment } from '@/types/views'
 
 export default function CashierHistoryPage() {
   const { user } = useAuth()
-  const [payments, setPayments] = useState<any[]>([])
+  const [payments, setPayments] = useState<CashierHistoryPayment[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [dateFilter, setDateFilter] = useState('today')

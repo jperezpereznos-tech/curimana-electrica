@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/button'
 import { MapPin, Users, ChevronRight } from 'lucide-react'
 import { customerService } from '@/services/customer-service'
 import Link from 'next/link'
+interface RouteCustomer {
+  id: string
+  supply_number: string
+  full_name: string
+  address: string | null
+  sector: string | null
+  sector_id: string | null
+  is_active: boolean | null
+  last_reading: string | null
+}
 
 interface AssignedSector {
   id: string
@@ -15,7 +25,7 @@ interface AssignedSector {
 }
 
 export function ReadingRouteClient({ assignedSector }: { assignedSector: AssignedSector | null }) {
-  const [customers, setCustomers] = useState<any[]>([])
+  const [customers, setCustomers] = useState<RouteCustomer[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,7 +34,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
     customerService.getActiveCustomersWithReadings(assignedSector?.id || undefined)
       .then((data) => {
         if (cancelled) return
-        const formatted = data?.map((c: any) => ({
+        const formatted = data?.map((c) => ({
           id: c.id,
           supply_number: c.supply_number,
           full_name: c.full_name,

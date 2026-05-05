@@ -16,8 +16,9 @@ import { Calendar, Lock, Unlock, PlayCircle } from 'lucide-react'
 import { closePeriodAction } from './actions'
 import { formatDate } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import type { PeriodRow } from '@/types/views'
 
-export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
+export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] }) {
   const router = useRouter()
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState<string | null>(null)
@@ -28,7 +29,7 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
     setError(null)
     setLoading(id)
     try {
-      const result = await closePeriodAction(id) as any
+      const result = await closePeriodAction(id) as { receiptsGenerated?: number; skipped?: number; errors?: string[] }
       const generated = result?.receiptsGenerated ?? 0
       const skipped = result?.skipped ?? 0
       const perCustomerErrors: string[] = result?.errors ?? []

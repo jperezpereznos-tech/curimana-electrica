@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { inviteUserAction } from './actions'
+import type { SectorRow } from '@/types/views'
 
 const inviteSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -29,7 +30,7 @@ const ROLES = [
   { id: 'admin', label: 'Administrador' },
 ]
 
-export function InviteUserDialog({ sectors }: { sectors: any[] }) {
+export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
@@ -46,8 +47,8 @@ export function InviteUserDialog({ sectors }: { sectors: any[] }) {
       setOpen(false)
       form.reset()
       router.refresh()
-    } catch (e: any) {
-      setServerError(e.message || 'Error al invitar usuario')
+    } catch (e: unknown) {
+      setServerError(e instanceof Error ? e.message : 'Error al invitar usuario')
     }
   }
 

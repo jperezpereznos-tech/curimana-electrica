@@ -11,6 +11,7 @@ import {
 import { FileDown, Loader2 } from 'lucide-react'
 import { downloadCSV } from '@/lib/report-utils'
 import { getCustomersWithDebtAction, getPaidReceiptsAction } from './actions'
+import type { ReceiptWithPeriod } from '@/types/views'
 
 export function DownloadReports() {
   const [loading, setLoading] = useState(false)
@@ -43,7 +44,7 @@ export function DownloadReports() {
     setError(null)
     try {
       const receipts = await getPaidReceiptsAction()
-      const data = (receipts || []).map((r: any) => ({
+      const data = (receipts || []).map((r: ReceiptWithPeriod) => ({
         Recibo: r.receipt_number,
         Suministro: r.customers?.supply_number,
         Cliente: r.customers?.full_name,

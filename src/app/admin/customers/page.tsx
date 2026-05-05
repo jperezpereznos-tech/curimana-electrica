@@ -4,6 +4,7 @@ import { getSectorService } from '@/services/sector-service'
 import { createClient } from '@/lib/supabase/server'
 import { CustomersList } from './customers-list'
 import { CreateCustomerDialog } from './create-customer-dialog'
+import type { CustomerWithRelations, TariffRow, SectorRow } from '@/types/views'
 
 export default async function CustomersPage({
   searchParams,
@@ -16,9 +17,9 @@ export default async function CustomersPage({
   const tariffService = getTariffService(supabase)
   const sectorService = getSectorService(supabase)
 
-  let customers: any[] = []
-  let tariffs: any[] = []
-  let sectors: any[] = []
+  let customers: CustomerWithRelations[] = []
+  let tariffs: TariffRow[] = []
+  let sectors: SectorRow[] = []
 
   try {
     [customers, tariffs, sectors] = await Promise.all([

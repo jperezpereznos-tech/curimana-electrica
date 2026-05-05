@@ -9,10 +9,14 @@ import { Search, MapPin, Zap, ChevronRight, WifiOff } from 'lucide-react'
 import { searchReaderCustomersAction } from '../actions'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
+import type { CustomerWithRelations } from '@/types/views'
+import type { CustomerCache } from '@/lib/db/dexie'
+
+type SearchResult = CustomerWithRelations | CustomerCache
 
 export default function SearchPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
 
@@ -97,7 +101,7 @@ export default function SearchPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{customer.full_name}</p>
-                        {customer.is_active ? (
+                        {'is_active' in customer && customer.is_active ? (
                           <Badge variant="default" className="text-[10px]">Activo</Badge>
                         ) : (
                           <Badge variant="secondary" className="text-[10px]">Inactivo</Badge>
@@ -113,7 +117,7 @@ export default function SearchPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-2">
                         <Badge variant="outline">{customer.sector || 'Sin sector'}</Badge>
-                        <Badge variant="outline">{customer.connection_type || 'Monofásico'}</Badge>
+                        <Badge variant="outline">{'connection_type' in customer ? (customer.connection_type || 'Monofásico') : 'Monofásico'}</Badge>
                       </div>
                     </div>
                     <Link href={`/reader/new?supply=${customer.supply_number}`}>

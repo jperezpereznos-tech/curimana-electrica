@@ -1,26 +1,22 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  LineChart,
-  Line,
-  AreaChart,
-  Area
+  Cell
 } from 'recharts'
 import { formatCurrency } from '@/lib/utils'
-import { TrendingUp, Users, CreditCard, AlertCircle } from 'lucide-react'
+import type { KPIProps, ChartDataEntry } from '@/types/views'
 
-export function KPICard({ title, value, subtext, icon, trend }: any) {
+export function KPICard({ title, value, subtext, icon, trend }: KPIProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -42,7 +38,7 @@ export function KPICard({ title, value, subtext, icon, trend }: any) {
   )
 }
 
-export function RevenueChart({ data }: { data: any[] }) {
+export function RevenueChart({ data }: { data: ChartDataEntry[] }) {
   return (
     <Card className="col-span-1 md:col-span-2">
       <CardHeader>
@@ -71,7 +67,7 @@ export function RevenueChart({ data }: { data: any[] }) {
   )
 }
 
-export function SectorConsumptionChart({ data }: { data: any[] }) {
+export function SectorConsumptionChart({ data }: { data: ChartDataEntry[] }) {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
 
   return (

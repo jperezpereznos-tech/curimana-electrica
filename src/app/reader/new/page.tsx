@@ -13,6 +13,11 @@ import { db } from '@/lib/db/dexie'
 import { customerService } from '@/services/customer-service'
 import { getLatestReadingAction, getReaderAssignedSectorIdAction } from '../actions'
 import Link from 'next/link'
+import type { CustomerWithRelations } from '@/types/views'
+
+type ReaderCustomer = Pick<CustomerWithRelations, 'id' | 'full_name' | 'address' | 'sector' | 'sector_id' | 'supply_number'> & {
+  previous_reading: number
+}
 
 export default function NewReadingPage() {
   return (
@@ -27,7 +32,7 @@ function NewReadingContent() {
   const searchParams = useSearchParams()
   const initialSupply = searchParams.get('supply') || ''
   const [supplyNumber, setSupplyNumber] = useState(initialSupply)
-  const [customer, setCustomer] = useState<any>(null)
+  const [customer, setCustomer] = useState<ReaderCustomer | null>(null)
   const [currentReading, setCurrentReading] = useState('')
   const [notes, setNotes] = useState('')
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
@@ -64,46 +69,48 @@ function NewReadingContent() {
           setNotFound(true)
         } else {
           setSaveError(null)
-          setCustomer({
-            id: cachedCustomer.id,
-            full_name: cachedCustomer.full_name,
-            address: cachedCustomer.address,
-            sector: cachedCustomer.sector,
-            sector_id: cachedCustomer.sector_id,
-            previous_reading: cachedCustomer.previous_reading,
-          })
+        setCustomer({
+          id: cachedCustomer.id,
+          full_name: cachedCustomer.full_name,
+          address: cachedCustomer.address,
+          sector: cachedCustomer.sector,
+          sector_id: cachedCustomer.sector_id,
+          supply_number: cachedCustomer.supply_number,
+          previous_reading: cachedCustomer.previous_reading,
+        })
         }
       } else if (navigator.onLine) {
-        const results = await customerService.searchCustomers(supply, assignedSectorId || undefined)
-        const found = results?.find((c: any) => c.supply_number === supply)
-        if (found) {
-          let previousReading = 0
-          try {
-            const latestReading = await getLatestReadingAction(found.id)
-            if (latestReading) {
-              previousReading = Number(latestReading.current_reading) || 0
-            }
-          } catch {}
-          await db.customers_cache.put({
-            id: found.id,
-            supply_number: found.supply_number,
-            full_name: found.full_name,
-            address: found.address || '',
-            sector: found.sector || '',
-            sector_id: found.sector_id || '',
-        tariff_id: found.tariff_id || '',
-        previous_reading: previousReading,
-        last_updated: Date.now(),
-      })
-          setSaveError(null)
-          setCustomer({
-            id: found.id,
-            full_name: found.full_name,
-            address: found.address,
-            sector: found.sector,
-            sector_id: found.sector_id,
-            previous_reading: previousReading,
-          })
+      const results = await customerService.searchCustomers(supply, assignedSectorId || undefined)
+      const found = results?.find((c: CustomerWithRelations) => c.supply_number === supply)
+      if (found) {
+        let previousReading = 0
+        try {
+          const latestReading = await getLatestReadingAction(found.id)
+          if (latestReading) {
+            previousReading = Number(latestReading.current_reading) || 0
+          }
+        } catch {}
+        await db.customers_cache.put({
+          id: found.id,
+          supply_number: found.supply_number,
+          full_name: found.full_name,
+          address: found.address || '',
+          sector: found.sector || '',
+          sector_id: found.sector_id || '',
+          tariff_id: found.tariff_id || '',
+          previous_reading: previousReading,
+          last_updated: Date.now(),
+        })
+        setSaveError(null)
+        setCustomer({
+          id: found.id,
+          full_name: found.full_name,
+          address: found.address,
+          sector: found.sector,
+          sector_id: found.sector_id,
+          supply_number: found.supply_number,
+          previous_reading: previousReading,
+        })
         } else {
           setNotFound(true)
         }
@@ -127,6 +134,7 @@ function NewReadingContent() {
   }, [supplyNumber, handleSearch])
 
   const doSave = async () => {
+    if (!customer) return
     const reading = Number(currentReading)
     const previous = customer.previous_reading
 

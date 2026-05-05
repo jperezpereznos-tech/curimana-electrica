@@ -46,7 +46,8 @@ export function useOfflineSync() {
     setPendingCount(pending)
   }, [])
 
-  const syncCustomerCache = useCallback(async () => {
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+const syncCustomerCache = useCallback(async () => {
     if (!navigator.onLine) return
     try {
       const supabase = createClient()
@@ -145,8 +146,8 @@ export function useOfflineSync() {
         if (currentPeriod) {
           periodId = currentPeriod.id
         }
-      } catch (error: any) {
-        console.error('Error getting current period:', error?.message || error)
+} catch (error: unknown) {
+    console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
       }
 
       if (!periodId) {
@@ -216,13 +217,14 @@ export function useOfflineSync() {
         )
 
           await db.pending_readings.delete(reading.id!)
-    } catch (error: any) {
-      const errMsg = error?.message || error?.code || String(error)
-      const hint = error?.code === '23503' ? 'FK constraint: customer_id or billing_period_id not found'
-        : error?.code === '42501' ? 'RLS policy denied: session may be expired'
-        : error?.code === '23505' ? 'Duplicate reading already exists'
+} catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+      const errObj = error instanceof Error ? error as Error & { code?: string } : null
+      const hint = errObj?.code === '23503' ? 'FK constraint: customer_id or billing_period_id not found'
+        : errObj?.code === '42501' ? 'RLS policy denied: session may be expired'
+        : errObj?.code === '23505' ? 'Duplicate reading already exists'
         : ''
-      console.error(`Error syncing reading (customer: ${reading.customer_id}, supply: ${reading.supply_number}):`, errMsg, hint ? `| ${hint}` : '')
+    console.error(`Error syncing reading (customer: ${reading.customer_id}, supply: ${reading.supply_number}):`, errMsg, hint ? `| ${hint}` : '')
       const retryCount = (reading.retry_count || 0) + 1
           await db.pending_readings.update(reading.id!, {
             status: 'failed',
@@ -284,6 +286,7 @@ export function useOfflineSync() {
       }, delay)
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void syncNow(false).then(scheduleNext)
     return () => { cancelled = true; clearTimeout(timeoutId) }
   }, [isOnline, syncNow])

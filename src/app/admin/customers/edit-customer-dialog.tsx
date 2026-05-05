@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { updateCustomerAction } from './actions'
+import type { CustomerRow, TariffRow, SectorRow } from '@/types/views'
 
 const customerSchema = z.object({
   full_name: z.string().min(5, 'Nombre completo requerido'),
@@ -40,9 +41,9 @@ const customerSchema = z.object({
 type CustomerFormValues = z.infer<typeof customerSchema>
 
 interface EditCustomerDialogProps {
-  customer: any
-  tariffs: any[]
-  sectors: any[]
+  customer: CustomerRow
+  tariffs: TariffRow[]
+  sectors: SectorRow[]
   trigger?: React.ReactNode
 }
 
@@ -60,20 +61,20 @@ export function EditCustomerDialog({ customer, tariffs, sectors, trigger }: Edit
     sector_id: customer.sector_id || '',
     phone: customer.phone || '',
     tariff_id: customer.tariff_id || '',
-    connection_type: customer.connection_type || 'monofásico',
+      connection_type: (customer.connection_type || 'monofásico') as 'monofásico' | 'trifásico',
   },
 })
 
-  useEffect(() => {
-    if (open) {
-      form.reset({
-        full_name: customer.full_name || '',
-        document_number: customer.document_number || '',
-        address: customer.address || '',
-        sector_id: customer.sector_id || '',
-        phone: customer.phone || '',
-        tariff_id: customer.tariff_id || '',
-        connection_type: customer.connection_type || 'monofásico',
+useEffect(() => {
+  if (open) {
+    form.reset({
+      full_name: customer.full_name || '',
+      document_number: customer.document_number || '',
+      address: customer.address || '',
+      sector_id: customer.sector_id || '',
+      phone: customer.phone || '',
+      tariff_id: customer.tariff_id || '',
+      connection_type: (customer.connection_type || 'monofásico') as 'monofásico' | 'trifásico',
       })
       setServerError(null)
     }
@@ -85,10 +86,10 @@ export function EditCustomerDialog({ customer, tariffs, sectors, trigger }: Edit
       await updateCustomerAction(customer.id, values)
       setOpen(false)
       router.refresh()
-    } catch (error: any) {
-      const msg = error?.code === '42501'
-        ? 'No tiene permisos para realizar esta acción'
-        : (error.message || 'Error al actualizar cliente')
+} catch (error: unknown) {
+      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
+      ? 'No tiene permisos para realizar esta acción'
+      : (error instanceof Error ? error.message : 'Error al actualizar cliente')
       setServerError(msg)
     }
   }
@@ -176,7 +177,7 @@ export function EditCustomerDialog({ customer, tariffs, sectors, trigger }: Edit
             <div className="space-y-2">
               <Label>Tipo Conexión</Label>
               <Select
-                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as any)}
+                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as 'monofásico' | 'trifásico')}
                 value={form.watch('connection_type')}
               >
                 <SelectTrigger>

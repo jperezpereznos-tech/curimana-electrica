@@ -19,8 +19,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import type { ReceiptWithPeriod } from '@/types/views'
 
-export function ReceiptDetailActions({ receipt }: { receipt: any }) {
+export function ReceiptDetailActions({ receipt }: { receipt: ReceiptWithPeriod }) {
   const router = useRouter()
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [closureId, setClosureId] = useState<string | null>(null)
@@ -30,7 +31,7 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
   const [openError, setOpenError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-  const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status)
+  const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status ?? '')
 
   useEffect(() => {
     if (isPayable) {
@@ -97,7 +98,7 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
         {isPayable && closureId && (
           <PaymentModal
             receipt={receipt}
-            customer={{ id: receipt.customer_id }}
+            customer={{ id: receipt.customer_id ?? '' }}
             closureId={closureId}
             onSuccess={handlePaymentSuccess}
             onProcessPayment={adminProcessPaymentAction}

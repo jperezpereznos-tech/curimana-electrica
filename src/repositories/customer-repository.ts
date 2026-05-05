@@ -1,14 +1,9 @@
 import { BaseRepository } from './base'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
+import type { CustomerWithRelations } from '@/types/views'
 
 type Customer = Database['public']['Tables']['customers']['Row']
-
-type CustomerWithRelations = Customer & {
-  tariffs: { name: string; tariff_tiers: { min_kwh: number; max_kwh: number | null; price_per_kwh: number }[] } | null
-  sectors: { id: string; name: string; code: string } | null
-  readings: { current_reading: number; reading_date: string }[]
-}
 
 export class CustomerRepository extends BaseRepository<'customers'> {
   constructor(supabaseClient?: SupabaseClient<Database>) {

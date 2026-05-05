@@ -121,8 +121,8 @@ export class PaymentService {
       for (const completed of completedPayments) {
         try {
           await this.voidPayment(completed.id, data.cashierUserId)
-        } catch (voidErr: any) {
-          voidErrors.push(`Pago ${completed.id}: ${voidErr?.message || voidErr}`)
+} catch (voidErr: unknown) {
+      voidErrors.push(`Pago ${completed.id}: ${voidErr instanceof Error ? voidErr.message : String(voidErr)}`)
         }
       }
       if (voidErrors.length > 0) {

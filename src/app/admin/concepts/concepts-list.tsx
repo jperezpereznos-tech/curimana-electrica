@@ -25,8 +25,9 @@ import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { EditConceptDialog } from './edit-concept-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import type { ConceptRow, TariffRow } from '@/types/views'
 
-function formatAmount(concept: any) {
+function formatAmount(concept: ConceptRow) {
   if (concept.type === 'percentage') return `${concept.amount}%`
   if (concept.type === 'per_kwh') return `${formatCurrency(concept.amount)}/kWh`
   return formatCurrency(concept.amount)
@@ -41,7 +42,7 @@ function formatType(type: string) {
   return map[type] || type
 }
 
-export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcepts: any[]; tariffs?: any[] }) {
+export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcepts: ConceptRow[]; tariffs?: TariffRow[] }) {
   const router = useRouter()
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -71,9 +72,13 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
   }
 
   const getTariffName = (tariffId: string | null) => {
-    if (!tariffId) return 'Todas'
-    const tariff = tariffs.find((t: any) => t.id === tariffId)
-    return tariff?.name || 'N/A'
+  if (!tariffId) return 'Todas'
+  const tariff = tariffs.find((t: TariffRow) => t.id === tariffId)
+  return tariff?.name || 'N/A'
+  }
+
+  const handleToggle = (id: string, isActive: boolean | null) => {
+  handleToggleStatus(id, isActive ?? false)
   }
 
   return (
@@ -107,7 +112,7 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
               <TableRow key={concept.id}>
                 <TableCell className="font-mono text-xs">{concept.code}</TableCell>
                 <TableCell className="font-medium">{concept.name}</TableCell>
-                <TableCell>{formatType(concept.type)}</TableCell>
+                <TableCell>{formatType(concept.type ?? '')}</TableCell>
                 <TableCell>{formatAmount(concept)}</TableCell>
                 <TableCell className="text-sm">{getTariffName(concept.applies_to_tariff_id)}</TableCell>
                 <TableCell>
@@ -127,13 +132,13 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
                       <EditConceptDialog
                         concept={concept}
                         tariffs={tariffs}
-                        trigger={
-                          <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
-                            Editar
-                          </DropdownMenuItem>
-                        }
-                      />
-                      <DropdownMenuItem onClick={() => handleToggleStatus(concept.id, concept.is_active)}>
+          trigger={
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              Editar
+            </DropdownMenuItem>
+          }
+        />
+            <DropdownMenuItem onClick={() => handleToggle(concept.id, concept.is_active)}>
                         {concept.is_active ? 'Desactivar' : 'Activar'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />

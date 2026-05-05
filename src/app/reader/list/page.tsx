@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { ReadingRouteClient } from './reading-route-client'
+import type { AssignedSectorItem } from '@/types/views'
 
 export default async function ReadingRoutePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let assignedSector = null
+  let assignedSector: AssignedSectorItem | null = null
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
@@ -14,7 +15,7 @@ export default async function ReadingRoutePage() {
       .single()
 
     if (profile?.assigned_sector_id) {
-      assignedSector = (profile as any).sectors
+      assignedSector = (profile as { sectors: AssignedSectorItem }).sectors
     }
   }
 

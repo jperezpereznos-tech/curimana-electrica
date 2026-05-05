@@ -6,6 +6,7 @@ import { getReadingService } from '@/services/reading-service'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
+import type { LatestReadingItem } from '@/types/views'
 
 interface LatestReading {
   id: string
@@ -13,8 +14,8 @@ interface LatestReading {
   supply_number: string
   previous_reading: number
   current_reading: number
-  consumption: number
-  reading_date: string
+  consumption: number | null
+  reading_date: string | null
   has_photo: boolean
 }
 
@@ -40,15 +41,15 @@ export async function LatestReadings() {
   let readings: LatestReading[] = []
   try {
     const data = await readingService.getLatestReadings()
-    readings = data?.map((r: any) => ({
+    readings = data?.map((r: LatestReadingItem) => ({
       id: r.id,
-      customer_name: (r as any).customers?.full_name || 'Desconocido',
-      supply_number: (r as any).customers?.supply_number || 'N/A',
+      customer_name: r.customers?.full_name || 'Desconocido',
+      supply_number: r.customers?.supply_number || 'N/A',
       previous_reading: r.previous_reading,
       current_reading: r.current_reading,
       consumption: r.consumption,
       reading_date: r.reading_date,
-      has_photo: !!(r as any).photo_url,
+      has_photo: !!r.photo_url,
     })) || []
   } catch (error) {
     console.error('Error fetching latest readings:', error)
@@ -91,7 +92,7 @@ export async function LatestReadings() {
                 <p className="font-bold text-sm">{reading.consumption} kWh</p>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  <span>{formatTimeAgo(reading.reading_date)}</span>
+                  <span>{formatTimeAgo(reading.reading_date ?? '')}</span>
                 </div>
               </div>
             </div>

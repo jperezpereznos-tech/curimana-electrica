@@ -2,12 +2,13 @@ import { getPeriodService } from '@/services/period-service'
 import { createClient } from '@/lib/supabase/server'
 import { PeriodsList } from './periods-list'
 import { CreatePeriodButton } from './create-period-button'
+import type { PeriodRow } from '@/types/views'
 
 export default async function PeriodsPage() {
   const supabase = await createClient()
   const periodService = getPeriodService(supabase)
 
-  let periods: any[] = []
+  let periods: PeriodRow[] = []
   try { periods = await periodService.getAllPeriods() } catch { }
 
   return (

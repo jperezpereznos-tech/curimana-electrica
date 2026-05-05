@@ -11,8 +11,8 @@ export async function getReadingsAdminAction(periodId?: string, needsReviewOnly?
   try {
     const readings = await readingService.getAllForAdmin(periodId, needsReviewOnly)
     return { data: readings, error: null }
-  } catch (error: any) {
-    return { data: [], error: error.message }
+} catch (error: unknown) {
+    return { data: [], error: error instanceof Error ? error.message : String(error) }
   }
 }
 
@@ -23,8 +23,8 @@ export async function getPeriodsForFilterAction() {
   try {
     const periods = await periodService.getAllPeriods()
     return { data: periods, error: null }
-  } catch (error: any) {
-    return { data: [], error: error.message }
+  } catch (error: unknown) {
+    return { data: [], error: error instanceof Error ? error.message : String(error) }
   }
 }
 
@@ -40,7 +40,7 @@ export async function updateReadingAction(readingId: string, data: {
   try {
     const updated = await readingService.updateReading(readingId, data, userId)
     return { data: updated, error: null }
-  } catch (error: any) {
-    return { data: null, error: error.message }
+  } catch (error: unknown) {
+    return { data: null, error: error instanceof Error ? error.message : String(error) }
   }
 }

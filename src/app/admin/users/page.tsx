@@ -1,10 +1,11 @@
 import { getUsersWithRolesAction } from './actions'
 import { UsersList } from './users-list'
 import { InviteUserDialog } from './invite-user-dialog'
+import type { ProfileWithSector, SectorRow } from '@/types/views'
 
 export default async function UsersPage() {
-  let users: any[] = []
-  let sectors: any[] = []
+  let users: ProfileWithSector[] = []
+  let sectors: SectorRow[] = []
 
   try {
     const data = await getUsersWithRolesAction()

@@ -26,11 +26,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { updateTariffAction } from './actions'
+import type { TariffWithTiers, TariffTierRow } from '@/types/views'
 
 const tierSchema = z.object({
-  min_kwh: z.coerce.number().min(0),
-  max_kwh: z.coerce.number().nullable().optional(),
-  price_per_kwh: z.coerce.number().min(0),
+  min_kwh: z.number().min(0),
+  max_kwh: z.number().nullable().optional(),
+  price_per_kwh: z.number().min(0),
 })
 
 const tariffSchema = z.object({
@@ -39,8 +40,10 @@ const tariffSchema = z.object({
   tiers: z.array(tierSchema).min(1, 'Debe haber al menos un tramo'),
 })
 
+type TariffFormValues = z.infer<typeof tariffSchema>
+
 interface EditTariffDialogProps {
-  tariff: any
+  tariff: TariffWithTiers
   trigger?: React.ReactNode
 }
 
@@ -49,19 +52,19 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
   const [formError, setFormError] = useState<string | null>(null)
   const router = useRouter()
 
-  const form = useForm({
+  const form = useForm<TariffFormValues>({
     resolver: zodResolver(tariffSchema),
     defaultValues: {
       name: tariff.name || '',
-      connection_type: tariff.connection_type || 'monofásico',
+      connection_type: (tariff.connection_type || 'monofásico') as 'monofásico' | 'trifásico',
       tiers: tariff.tariff_tiers?.length
         ? tariff.tariff_tiers
-            .sort((a: any, b: any) => a.order_index - b.order_index)
-            .map((t: any) => ({
-              min_kwh: t.min_kwh,
-              max_kwh: t.max_kwh,
-              price_per_kwh: t.price_per_kwh,
-            }))
+.sort((a: TariffTierRow, b: TariffTierRow) => a.order_index - b.order_index)
+        .map((t: TariffTierRow) => ({
+          min_kwh: t.min_kwh,
+          max_kwh: t.max_kwh,
+          price_per_kwh: t.price_per_kwh,
+        }))
         : [{ min_kwh: 0, max_kwh: null, price_per_kwh: 0 }],
     },
   })
@@ -75,11 +78,11 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
     if (open) {
       form.reset({
         name: tariff.name || '',
-        connection_type: tariff.connection_type || 'monofásico',
+        connection_type: (tariff.connection_type || 'monofásico') as 'monofásico' | 'trifásico',
         tiers: tariff.tariff_tiers?.length
-          ? tariff.tariff_tiers
-              .sort((a: any, b: any) => a.order_index - b.order_index)
-              .map((t: any) => ({
+        ? tariff.tariff_tiers
+        .sort((a: TariffTierRow, b: TariffTierRow) => a.order_index - b.order_index)
+        .map((t: TariffTierRow) => ({
                 min_kwh: t.min_kwh,
                 max_kwh: t.max_kwh,
                 price_per_kwh: t.price_per_kwh,
@@ -90,7 +93,7 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
     }
   }, [open, tariff, form])
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: z.infer<typeof tariffSchema>) => {
     setFormError(null)
     try {
       await updateTariffAction(
@@ -99,7 +102,7 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
           name: values.name,
           connection_type: values.connection_type,
         },
-        values.tiers.map((t: { min_kwh: number; max_kwh: number | null | undefined; price_per_kwh: number }, i: number) => ({
+        values.tiers.map((t: { min_kwh: number; max_kwh?: number | null | undefined; price_per_kwh: number }, i: number) => ({
           ...t,
           max_kwh: t.max_kwh || null,
           order_index: i + 1,
@@ -107,8 +110,8 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
       )
       setOpen(false)
       router.refresh()
-    } catch (error: any) {
-      const msg = error.message || 'Error al actualizar la tarifa'
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {
         setFormError('Error de conexión. Por favor intenta nuevamente.')
       } else {
@@ -145,7 +148,7 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
             <div className="space-y-2">
               <Label>Tipo de Conexión</Label>
               <Select
-                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as any)}
+                onValueChange={(val) => form.setValue('connection_type', val as 'monofásico' | 'trifásico')}
                 value={form.watch('connection_type')}
               >
                 <SelectTrigger>
@@ -174,15 +177,15 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
               <div key={field.id} className="grid grid-cols-4 gap-2 items-end border p-3 rounded-lg bg-muted/50">
                 <div className="space-y-1">
                   <Label className="text-xs">Min kWh</Label>
-                  <Input type="number" {...form.register(`tiers.${index}.min_kwh`)} />
+                  <Input type="number" {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Max kWh (vacio = ilimitado)</Label>
-                  <Input type="number" {...form.register(`tiers.${index}.max_kwh`)} />
+                  <Input type="number" {...form.register(`tiers.${index}.max_kwh`, { valueAsNumber: true })} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Precio S/</Label>
-                  <Input type="number" step="0.01" {...form.register(`tiers.${index}.price_per_kwh`)} />
+                  <Input type="number" step="0.01" {...form.register(`tiers.${index}.price_per_kwh`, { valueAsNumber: true })} />
                 </div>
                 <Button
                   type="button"

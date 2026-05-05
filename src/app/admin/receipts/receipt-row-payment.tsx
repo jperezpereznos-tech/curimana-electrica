@@ -15,9 +15,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { ReceiptWithPeriod } from '@/types/views'
 
 type ReceiptRowPaymentProps = {
-  receipt: any
+  receipt: ReceiptWithPeriod
   onPaymentSuccess: () => void
 }
 
@@ -29,7 +30,7 @@ const [openingAmount, setOpeningAmount] = useState('0')
 const [opening, setOpening] = useState(false)
 const [openError, setOpenError] = useState<string | null>(null)
 
-const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status)
+  const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status ?? '')
 
 const handleClick = useCallback(async () => {
   if (!isPayable) return
@@ -69,7 +70,7 @@ return (
     {closureId ? (
       <PaymentModal
         receipt={receipt}
-        customer={{ id: receipt.customer_id }}
+        customer={{ id: receipt.customer_id ?? '' }}
         closureId={closureId}
         onSuccess={onPaymentSuccess}
         onProcessPayment={adminProcessPaymentAction}

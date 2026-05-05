@@ -2,14 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
 import { ReadingsList } from './readings-list'
+import type { ReadingWithCustomer, PeriodRow } from '@/types/views'
 
 export default async function ReadingsPage() {
   const supabase = await createClient()
   const readingService = getReadingService(supabase)
   const periodService = getPeriodService(supabase)
 
-  let readings: any[] = []
-  let periods: any[] = []
+  let readings: ReadingWithCustomer[] = []
+  let periods: PeriodRow[] = []
   let reviewCount = 0
 
   try { readings = await readingService.getAllForAdmin() } catch {}

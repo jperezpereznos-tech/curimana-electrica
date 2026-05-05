@@ -10,14 +10,10 @@ import { searchCashierCustomerAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { PaymentModal } from './payment-modal'
 import { BatchPaymentModal } from './batch-payment-modal'
-import { Database } from '@/types/database'
+import type { CustomerWithRelations, ReceiptWithPeriod } from '@/types/views'
 
-type Customer = Database['public']['Tables']['customers']['Row']
-type ReceiptItem = Database['public']['Tables']['receipts']['Row'] & {
-  billing_periods: {
-    name: string
-  } | null
-}
+type Customer = CustomerWithRelations
+type ReceiptItem = ReceiptWithPeriod
 
 const statusLabel: Record<string, { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { text: 'Pendiente', variant: 'outline' },
@@ -45,8 +41,8 @@ export function CashierSearch({ closureId }: { closureId: string }) {
       if (version !== searchVersionRef.current) return
 
       if (result) {
-        setCustomer(result.customer as any)
-        setReceipts(result.receipts as any)
+        setCustomer(result.customer)
+        setReceipts(result.receipts)
       } else {
         setCustomer(null)
         setReceipts([])

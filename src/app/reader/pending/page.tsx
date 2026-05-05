@@ -10,6 +10,8 @@ import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 
+import { PendingReadingItem } from '@/types/views'
+
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; icon: typeof Circle; className: string }> = {
   pending: { label: 'Pendiente', variant: 'secondary', icon: Circle, className: '' },
   syncing: { label: 'Sincronizando', variant: 'outline', icon: Loader2, className: 'animate-spin' },
@@ -18,7 +20,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 
 export default function PendingReadingsPage() {
   const { syncNow } = useOfflineSync()
-  const [pendingReadings, setPendingReadings] = useState<any[]>([])
+  const [pendingReadings, setPendingReadings] = useState<PendingReadingItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [retryingId, setRetryingId] = useState<string | null>(null)

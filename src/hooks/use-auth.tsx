@@ -50,14 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // RPC returned null - user may not have a profile yet
         setProfileError('No se encontró un perfil con rol asignado')
         return null
-      } catch (e: any) {
-        if (attempt < retries - 1) {
-          console.warn(`[useAuth] Catch error on attempt ${attempt + 1}, retrying...`)
-          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
-          continue
-        }
-        console.error('[useAuth] Catch error:', e)
-        setProfileError(`Error: ${e.message}`)
+} catch (e: unknown) {
+      if (attempt < retries - 1) {
+        console.warn(`[useAuth] Catch error on attempt ${attempt + 1}, retrying...`)
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+        continue
+      }
+      console.error('[useAuth] Catch error:', e)
+      setProfileError(`Error: ${e instanceof Error ? e.message : String(e)}`)
         return null
       }
     }

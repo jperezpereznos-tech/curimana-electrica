@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { MapPin, Phone, User, CreditCard, Activity } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { CustomerReceiptsTab } from './customer-receipts-tab'
+import type { PaymentForCustomer, ReadingWithBillingPeriod, ReceiptForCustomer } from '@/types/views'
 
 export default async function CustomerDetailsPage({
   params,
@@ -28,7 +29,7 @@ export default async function CustomerDetailsPage({
 
   const { customer, readings, receipts } = data
 
-  let payments: any[] = []
+  let payments: PaymentForCustomer[] = []
   try {
     const paymentService = getPaymentService(supabase)
     const allPayments = await paymentService.getPaymentsByCustomer(customer.id)
@@ -122,10 +123,10 @@ export default async function CustomerDetailsPage({
                 {readings.length === 0 ? (
                   <TableRow><TableCell colSpan={5} className="text-center">No hay registros</TableCell></TableRow>
                 ) : (
-                  readings.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell>{formatDate(r.reading_date)}</TableCell>
-                      <TableCell>{r.billing_periods?.name}</TableCell>
+  readings.map((r: ReadingWithBillingPeriod) => (
+  <TableRow key={r.id}>
+  <TableCell>{formatDate(r.reading_date)}</TableCell>
+  <TableCell>{r.billing_periods?.name}</TableCell>
                       <TableCell>{r.previous_reading}</TableCell>
                       <TableCell>{r.current_reading}</TableCell>
                       <TableCell className="font-bold">{r.consumption}</TableCell>
@@ -139,8 +140,8 @@ export default async function CustomerDetailsPage({
 
         <TabsContent value="receipts" className="mt-4">
           <Card className="p-4">
-            <CustomerReceiptsTab
-              receipts={receipts}
+        <CustomerReceiptsTab
+  receipts={receipts as ReceiptForCustomer[]}
               customer={{ id: customer.id, full_name: customer.full_name }}
               onRefresh={() => {}}
             />
@@ -164,10 +165,10 @@ export default async function CustomerDetailsPage({
                 {payments.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center">No hay pagos registrados</TableCell></TableRow>
                 ) : (
-                  payments.map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
-                      <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
+  payments.map((p: PaymentForCustomer) => (
+  <TableRow key={p.id}>
+  <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
+  <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
                       <TableCell>{formatDate(p.payment_date, { includeTime: true })}</TableCell>
                       <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
                       <TableCell className="capitalize">{p.method}</TableCell>

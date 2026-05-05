@@ -6,10 +6,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Shield, MapPin } from 'lucide-react'
 import { updateUserRoleAction, assignSectorToUserAction } from './actions'
+import type { ProfileWithSector, SectorRow } from '@/types/views'
 
 const ROLES = [
   { id: 'admin', label: 'Administrador', color: 'bg-red-100 text-red-800' },
@@ -17,7 +17,7 @@ const ROLES = [
   { id: 'meter_reader', label: 'Lecturador', color: 'bg-green-100 text-green-800' },
 ] as const
 
-export function UsersList({ users, sectors }: { users: any[]; sectors: any[] }) {
+export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sectors: SectorRow[] }) {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -26,8 +26,8 @@ export function UsersList({ users, sectors }: { users: any[]; sectors: any[] }) 
     try {
       await updateUserRoleAction(userId, role)
       router.refresh()
-    } catch (e: any) {
-      setError(e.message || 'Error al cambiar rol')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al cambiar rol')
     }
   }
 
@@ -36,8 +36,8 @@ export function UsersList({ users, sectors }: { users: any[]; sectors: any[] }) 
     try {
       await assignSectorToUserAction(userId, sectorId)
       router.refresh()
-    } catch (e: any) {
-      setError(e.message || 'Error al asignar sector')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al asignar sector')
     }
   }
 
@@ -71,7 +71,7 @@ export function UsersList({ users, sectors }: { users: any[]; sectors: any[] }) 
               </TableRow>
             ) : (
               users.map((user) => {
-                const roleInfo = getRoleBadge(user.role)
+                const roleInfo = getRoleBadge(user.role ?? '')
                 return (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
@@ -82,7 +82,7 @@ export function UsersList({ users, sectors }: { users: any[]; sectors: any[] }) 
                     </TableCell>
                     <TableCell>
                       <Select
-                        value={user.role}
+                        value={user.role ?? ''}
                         onValueChange={(val) => handleRoleChange(user.id, val as string)}
                       >
                         <SelectTrigger className="w-[160px] h-8">

@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { registerCustomerAction } from './actions'
+import type { TariffRow, SectorRow } from '@/types/views'
 
 const customerSchema = z.object({
   supply_number: z.string().min(1, 'Número de suministro requerido'),
@@ -40,7 +41,7 @@ const customerSchema = z.object({
 
 type CustomerFormValues = z.infer<typeof customerSchema>
 
-export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: any[]; sectors: any[] }) {
+export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: TariffRow[]; sectors: SectorRow[] }) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
@@ -70,10 +71,10 @@ export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: any[]; sec
       setOpen(false)
       form.reset()
       router.refresh()
-    } catch (error: any) {
-      const msg = error?.code === '42501'
-        ? 'No tiene permisos para realizar esta acción'
-        : (error.message || 'Error al registrar cliente')
+} catch (error: unknown) {
+      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
+      ? 'No tiene permisos para realizar esta acción'
+      : (error instanceof Error ? error.message : 'Error al registrar cliente')
       setServerError(msg)
     }
   }
@@ -167,7 +168,7 @@ export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: any[]; sec
             <div className="space-y-2">
               <Label>Tipo Conexión</Label>
               <Select
-                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as any)}
+                onValueChange={(val) => form.setValue('connection_type', (val ?? 'monofásico') as 'monofásico' | 'trifásico')}
                 value={form.watch('connection_type')}
               >
                 <SelectTrigger className="w-full">

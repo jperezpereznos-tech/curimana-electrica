@@ -2,13 +2,14 @@ import { getSectorService } from '@/services/sector-service'
 import { createClient } from '@/lib/supabase/server'
 import { SectorsList } from './sectors-list'
 import { CreateSectorDialog } from './create-sector-dialog'
+import type { SectorRow, ReaderProfilePartial } from '@/types/views'
 
 export default async function SectorsPage() {
   const supabase = await createClient()
   const sectorService = getSectorService(supabase)
 
-  let sectors: any[] = []
-  let readers: any[] = []
+  let sectors: SectorRow[] = []
+  let readers: ReaderProfilePartial[] = []
   let pageError: string | null = null
 
   try {
@@ -20,8 +21,8 @@ export default async function SectorsPage() {
       .order('full_name', { ascending: true })
     if (readersError) throw readersError
     readers = data ?? []
-  } catch (e: any) {
-    pageError = e?.message || e?.code || 'Error al cargar datos de sectores'
+} catch (e: unknown) {
+      pageError = e instanceof Error ? e.message : 'Error al cargar datos de sectores'
   }
 
   return (

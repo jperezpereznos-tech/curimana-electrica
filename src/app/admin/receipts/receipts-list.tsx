@@ -31,10 +31,13 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { pdfService } from '@/services/pdf-service'
 import { ReceiptRowPayment } from './receipt-row-payment'
+import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
 
 const PAGE_SIZE = 25
 
-export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) {
+type ReceiptFilters = { q?: string; period?: string; status?: string }
+
+export function ReceiptsList({ initialReceipts, periods, currentFilters }: { initialReceipts: ReceiptWithPeriod[]; periods: PeriodRow[]; currentFilters: ReceiptFilters }) {
   const router = useRouter()
   const [q, setQ] = useState(currentFilters.q || '')
   const [page, setPage] = useState(1)
@@ -42,7 +45,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
   const totalPages = Math.max(1, Math.ceil(initialReceipts.length / PAGE_SIZE))
   const paginated = initialReceipts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const updateFilters = (newFilters: any) => {
+  const updateFilters = (newFilters: Partial<ReceiptFilters>) => {
     const params = new URLSearchParams(window.location.search)
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value) params.set(key, value as string)
@@ -51,7 +54,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
     router.push(`/admin/receipts?${params.toString()}`)
   }
 
-  const handleDownload = (receipt: any) => {
+  const handleDownload = (receipt: ReceiptWithPeriod) => {
     pdfService.generateReceiptPdf(receipt)
   }
 
@@ -84,7 +87,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {periods.map((p: any) => (
+              {periods.map((p: PeriodRow) => (
                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
               ))}
             </SelectContent>
@@ -137,7 +140,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: any) 
                 </TableCell>
               </TableRow>
 ) : (
-  paginated.map((receipt: any) => (
+  paginated.map((receipt: ReceiptWithPeriod) => (
     <TableRow key={receipt.id}>
       <TableCell className="font-mono font-bold">{receipt.receipt_number}</TableCell>
       <TableCell className="font-mono text-primary">{receipt.customers?.supply_number}</TableCell>

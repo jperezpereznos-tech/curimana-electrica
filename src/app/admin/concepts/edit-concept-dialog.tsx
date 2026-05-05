@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { updateConceptAction } from './actions'
+import type { ConceptRow, TariffRow } from '@/types/views'
 
 const conceptSchema = z.object({
   code: z.string().min(2, 'Código requerido'),
@@ -39,8 +40,8 @@ const conceptSchema = z.object({
 type ConceptFormValues = z.infer<typeof conceptSchema>
 
 interface EditConceptDialogProps {
-  concept: any
-  tariffs?: any[]
+  concept: ConceptRow
+  tariffs?: TariffRow[]
   trigger?: React.ReactNode
 }
 
@@ -50,27 +51,27 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
   const router = useRouter()
 
   const form = useForm<ConceptFormValues>({
-    resolver: zodResolver(conceptSchema),
-    defaultValues: {
-      code: concept.code || '',
-      name: concept.name || '',
-      description: concept.description || '',
-      amount: concept.amount || 0,
-      type: concept.type || 'fixed',
-      applies_to_tariff_id: concept.applies_to_tariff_id || 'all',
-    },
+  resolver: zodResolver(conceptSchema),
+  defaultValues: {
+  code: concept.code || '',
+  name: concept.name || '',
+  description: concept.description || '',
+  amount: concept.amount || 0,
+  type: (concept.type as 'fixed' | 'percentage' | 'per_kwh') || 'fixed',
+  applies_to_tariff_id: concept.applies_to_tariff_id || 'all',
+  },
   })
 
   useEffect(() => {
-    if (open) {
-      form.reset({
-        code: concept.code || '',
-        name: concept.name || '',
-        description: concept.description || '',
-        amount: concept.amount || 0,
-        type: concept.type || 'fixed',
-        applies_to_tariff_id: concept.applies_to_tariff_id || 'all',
-      })
+  if (open) {
+  form.reset({
+  code: concept.code || '',
+  name: concept.name || '',
+  description: concept.description || '',
+  amount: concept.amount || 0,
+  type: (concept.type as 'fixed' | 'percentage' | 'per_kwh') || 'fixed',
+  applies_to_tariff_id: concept.applies_to_tariff_id || 'all',
+  })
       setServerError(null)
     }
   }, [open, concept, form])
@@ -84,10 +85,10 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
       })
       setOpen(false)
       router.refresh()
-    } catch (error: any) {
-      const msg = error?.code === '42501'
-        ? 'No tiene permisos para realizar esta acción'
-        : (error.message || 'Error al actualizar el concepto')
+} catch (error: unknown) {
+      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
+      ? 'No tiene permisos para realizar esta acción'
+      : (error instanceof Error ? error.message : 'Error al actualizar el concepto')
       setServerError(msg)
     }
   }
@@ -132,7 +133,7 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
             <div className="space-y-2">
               <Label>Tipo de Cargo</Label>
               <Select
-                onValueChange={(val) => form.setValue('type', (val ?? 'fixed') as any)}
+                onValueChange={(val) => form.setValue('type', (val ?? 'fixed') as 'fixed' | 'percentage' | 'per_kwh')}
                 value={form.watch('type')}
               >
                 <SelectTrigger>
@@ -166,7 +167,7 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las tarifas</SelectItem>
-                {tariffs.map((t: any) => (
+                {tariffs.map((t: TariffRow) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
               </SelectContent>

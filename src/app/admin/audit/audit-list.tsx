@@ -15,10 +15,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Shield, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import type { AuditLogRow } from '@/types/views'
 
 const PAGE_SIZE = 25
 
-export function AuditList({ initialLogs }: { initialLogs: any[] }) {
+export function AuditList({ initialLogs }: { initialLogs: AuditLogRow[] }) {
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(1)
 

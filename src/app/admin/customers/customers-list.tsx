@@ -26,10 +26,11 @@ import { formatCurrency } from '@/lib/utils'
 import { updateCustomerAction } from './actions'
 import { EditCustomerDialog } from './edit-customer-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import type { CustomerWithRelations, TariffRow, SectorRow } from '@/types/views'
 
 const PAGE_SIZE = 25
 
-export function CustomersList({ initialCustomers, query, tariffs, sectors }: { initialCustomers: any[], query: string, tariffs: any[], sectors: any[] }) {
+export function CustomersList({ initialCustomers, query, tariffs, sectors }: { initialCustomers: CustomerWithRelations[], query: string, tariffs: TariffRow[], sectors: SectorRow[] }) {
   const [searchTerm, setSearchTerm] = useState(query)
   const [actionError, setActionError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -43,7 +44,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
   const handleToggleActive = async (id: string, isActive: boolean) => {
     setActionError(null)
     try {
-      await updateCustomerAction(id, { is_active: isActive } as any)
+      await updateCustomerAction(id, { is_active: isActive })
       setToggleTarget(null)
       router.refresh()
     } catch {
@@ -117,7 +118,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                     <Badge variant="outline">{customer.tariffs?.name || 'N/A'}</Badge>
                   </TableCell>
                   <TableCell>
-                    <span className={customer.current_debt > 0 ? 'text-destructive font-bold' : 'text-success'}>
+                    <span className={(customer.current_debt ?? 0) > 0 ? 'text-destructive font-bold' : 'text-success'}>
                       {formatCurrency(customer.current_debt)}
                     </span>
                   </TableCell>
@@ -143,7 +144,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                       tariffs={tariffs}
                       sectors={sectors}
                       trigger={
-                    <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                       Editar
                     </DropdownMenuItem>
                   }

@@ -2,6 +2,7 @@ import { getReceiptService } from '@/services/receipt-service'
 import { getPeriodService } from '@/services/period-service'
 import { createClient } from '@/lib/supabase/server'
 import { ReceiptsList } from './receipts-list'
+import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
 
 export default async function ReceiptsPage({
   searchParams,
@@ -13,8 +14,8 @@ export default async function ReceiptsPage({
   const receiptService = getReceiptService(supabase)
   const periodService = getPeriodService(supabase)
 
-  let receipts: any[] = []
-  let periods: any[] = []
+  let receipts: ReceiptWithPeriod[] = []
+  let periods: PeriodRow[] = []
 
   try {
     receipts = await receiptService.getAllReceipts({

@@ -3,15 +3,15 @@ import autoTable from 'jspdf-autotable'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface ReceiptPdfData {
-  customers?: { supply_number?: string; full_name?: string; address?: string; sector?: string }
-  billing_periods: { name: string }
+  customers?: { supply_number?: string; full_name?: string; address?: string; sector?: string } | null
+  billing_periods: { name: string } | null
   receipt_number: string | number
   total_amount: number
   due_date: string
   energy_amount: number
   fixed_charges: number
-  igv?: number
-  previous_debt: number
+  igv?: number | null
+  previous_debt: number | null
   municipality_config?: { ruc?: string; name?: string }
 }
 
@@ -53,7 +53,7 @@ export class PdfService {
     doc.text(`Dirección: ${customers?.address || ''}`, 15, 72)
     doc.text(`Sector: ${customers?.sector || ''}`, 15, 78)
 
-    doc.text(`Periodo: ${billing_periods.name}`, 140, 60)
+    doc.text(`Periodo: ${billing_periods?.name || ''}`, 140, 60)
     doc.text(`Vencimiento: ${formatDate(due_date)}`, 140, 66)
 
     // Detalle de Consumo
@@ -70,12 +70,12 @@ export class PdfService {
         ['Deuda Anterior', formatCurrency(previous_debt).replace('S/ ', '')],
       ],
       theme: 'striped',
-      headStyles: { fillColor: primaryColor as any },
+      headStyles: { fillColor: primaryColor as unknown as number },
       columnStyles: { 1: { halign: 'right' } }
     })
 
     // Total
-    const finalY = (doc as any).lastAutoTable.finalY + 10
+    const finalY = (doc as unknown as Record<string, { finalY: number }>).lastAutoTable.finalY + 10
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.text('TOTAL A PAGAR:', 120, finalY)

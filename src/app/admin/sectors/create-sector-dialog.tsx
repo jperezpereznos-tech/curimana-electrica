@@ -45,8 +45,8 @@ export function CreateSectorDialog() {
       setOpen(false)
       form.reset()
       router.refresh()
-    } catch (error: any) {
-      setServerError(error.message || 'Error al crear sector')
+    } catch (error: unknown) {
+      setServerError(error instanceof Error ? error.message : 'Error al crear sector')
     }
   }
 

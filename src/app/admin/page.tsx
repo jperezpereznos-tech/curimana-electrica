@@ -6,14 +6,15 @@ import { LatestReadings } from './latest-readings'
 import { TrendingUp, Users, CreditCard, AlertCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { DownloadReports } from './download-reports'
+import type { RevenueEntry, SectorEntry } from '@/types/views'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
   const dashboardService = getDashboardService(supabase)
 
   let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
-  let revenueHistory: any[] = []
-  let sectorData: any[] = []
+  let revenueHistory: RevenueEntry[] = []
+  let sectorData: SectorEntry[] = []
 
   try { kpis = await dashboardService.getSummaryKPIs() } catch { }
   try { revenueHistory = await dashboardService.getRevenueHistory() } catch { }

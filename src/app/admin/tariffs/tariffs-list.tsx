@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TariffWithTiers } from '@/repositories/tariff-repository'
+import { TariffWithTiers } from '@/types/views'
 import {
   Table,
   TableBody,
@@ -117,7 +117,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
                 <EditTariffDialog
                   tariff={tariff}
                   trigger={
-                    <DropdownMenuItem onSelect={(e: any) => e.preventDefault()}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                       Editar
                     </DropdownMenuItem>
                   }

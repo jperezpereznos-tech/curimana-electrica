@@ -3,14 +3,15 @@ import { getTariffService } from '@/services/tariff-service'
 import { createClient } from '@/lib/supabase/server'
 import { ConceptsList } from './concepts-list'
 import { CreateConceptDialog } from './create-concept-dialog'
+import type { ConceptRow, TariffRow } from '@/types/views'
 
 export default async function ConceptsPage() {
   const supabase = await createClient()
   const conceptService = getConceptService(supabase)
   const tariffService = getTariffService(supabase)
 
-  let concepts: any[] = []
-  let tariffs: any[] = []
+  let concepts: ConceptRow[] = []
+  let tariffs: TariffRow[] = []
 
   try {
     [concepts, tariffs] = await Promise.all([

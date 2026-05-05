@@ -1,12 +1,13 @@
 import { getAuditService } from '@/services/audit-service'
 import { createClient } from '@/lib/supabase/server'
 import { AuditList } from './audit-list'
+import type { AuditLogRow } from '@/types/views'
 
 export default async function AuditPage() {
   const supabase = await createClient()
   const auditService = getAuditService(supabase)
 
-  let logs: any[] = []
+  let logs: AuditLogRow[] = []
   try { logs = await auditService.getAuditLogs() } catch { }
 
   return (

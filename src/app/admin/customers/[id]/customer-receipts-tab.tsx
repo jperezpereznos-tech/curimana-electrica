@@ -26,11 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Database } from '@/types/database'
-
-type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
-  billing_periods: { name: string } | null
-}
+import type { ReceiptForCustomer, ReceiptWithPeriod } from '@/types/views'
 
 const statusConfig: Record<string, { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { text: 'Pendiente', variant: 'outline' },
@@ -41,7 +37,7 @@ const statusConfig: Record<string, { text: string; variant: 'default' | 'seconda
 }
 
 type CustomerReceiptsTabProps = {
-  receipts: any[]
+  receipts: ReceiptForCustomer[]
   customer: { id: string; full_name: string }
   onRefresh: () => void
 }
@@ -54,7 +50,7 @@ export function CustomerReceiptsTab({ receipts, customer, onRefresh }: CustomerR
   const [openError, setOpenError] = useState<string | null>(null)
 
   const payableReceipts = useMemo(
-    () => receipts.filter((r: any) => ['pending', 'partial', 'overdue'].includes(r.status)) as ReceiptWithPeriod[],
+    () => receipts.filter((r: ReceiptForCustomer) => ['pending', 'partial', 'overdue'].includes(r.status ?? '')),
     [receipts]
   )
 
@@ -127,9 +123,9 @@ export function CustomerReceiptsTab({ receipts, customer, onRefresh }: CustomerR
           {receipts.length === 0 ? (
             <TableRow><TableCell colSpan={6} className="text-center">No hay registros</TableCell></TableRow>
           ) : (
-            receipts.map((r: any) => {
-              const st = statusConfig[r.status] || { text: r.status, variant: 'outline' as const }
-              const isPayable = ['pending', 'partial', 'overdue'].includes(r.status)
+            receipts.map((r: ReceiptForCustomer) => {
+    const st = statusConfig[r.status ?? ''] || { text: r.status ?? '', variant: 'outline' as const }
+    const isPayable = ['pending', 'partial', 'overdue'].includes(r.status ?? '')
               return (
                 <TableRow key={r.id}>
                   <TableCell className="font-mono">{r.receipt_number}</TableCell>

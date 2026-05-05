@@ -2,7 +2,7 @@
  * Utilidades para la generación de reportes descargables.
  */
 
-export function downloadCSV(data: any[], filename: string) {
+export function downloadCSV(data: Record<string, string | number | boolean | null | undefined>[], filename: string) {
   if (data.length === 0) return
 
   const sanitize = (val: unknown) => {
