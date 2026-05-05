@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,7 +48,6 @@ export default function SearchPage() {
   }
 
   return (
-    <ReaderLayout>
     <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Buscar Suministro</h2>
 
@@ -130,6 +128,5 @@ export default function SearchPage() {
           </div>
         )}
       </div>
-    </ReaderLayout>
   )
 }

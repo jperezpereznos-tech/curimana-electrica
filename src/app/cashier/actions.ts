@@ -91,14 +91,14 @@ export async function getPaymentsByCashierAction(userId: string, dateFilterParam
   const paymentService = getPaymentService(supabase)
 
   const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
-    return data?.map((p: any) => ({
-      id: p.id,
-      receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
-      customer_name: p.receipts?.customers?.full_name || 'Desconocido',
-      supply_number: p.receipts?.customers?.supply_number || 'N/A',
-      amount: p.amount,
-      payment_date: p.payment_date,
-      status: p.status || 'completed',
-      reference: p.reference
-    })) || []
+  return data?.map((p: Record<string, unknown>) => ({
+    id: p.id as string,
+    receipt_number: ((p.receipts as Record<string, unknown> | null)?.receipt_number as string | number)?.toString() || 'N/A',
+    customer_name: ((p.receipts as Record<string, unknown> | null)?.customers as Record<string, unknown> | null)?.full_name as string || 'Desconocido',
+    supply_number: ((p.receipts as Record<string, unknown> | null)?.customers as Record<string, unknown> | null)?.supply_number as string || 'N/A',
+    amount: p.amount as number,
+    payment_date: p.payment_date as string,
+    status: (p.status as string) || 'completed',
+    reference: p.reference as string | null
+  })) || []
 }

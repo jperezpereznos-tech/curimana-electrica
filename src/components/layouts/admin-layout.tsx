@@ -87,7 +87,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main id="main-content" className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 border-b flex items-center justify-between px-8 bg-white">
+        <header className="h-16 border-b flex items-center justify-between px-8 bg-background">
           <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label="Toggle menu">
             <Menu size={24} />
           </Button>

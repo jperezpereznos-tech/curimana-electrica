@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MapPin, Users, Trash2, Power, PowerOff } from 'lucide-react'
 import { updateSectorAction, deleteSectorAction, assignReaderToSectorAction } from './actions'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { Database } from '@/types/database'
 
 type Sector = Database['public']['Tables']['sectors']['Row']
@@ -15,6 +16,7 @@ type Reader = { id: string; full_name: string | null; email: string; assigned_se
 
 export function SectorsList({ initialSectors, readers }: { initialSectors: Sector[]; readers: Reader[] }) {
   const [sectors] = useState(initialSectors)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const router = useRouter()
 
   const readersForSector = (sectorId: string) =>
@@ -30,9 +32,9 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar este sector? Los clientes asignados quedarán sin sector.')) return
     try {
       await deleteSectorAction(id)
+      setDeleteTargetId(null)
       router.refresh()
     } catch {}
   }
@@ -62,7 +64,7 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(sector)}>
                     {sector.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(sector.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTargetId(sector.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -116,9 +118,18 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
 
       {sectors.length === 0 && (
         <div className="col-span-2 text-center py-12 text-muted-foreground">
-          No hay sectores registrados. Crea uno para empezar.
-        </div>
-      )}
+    No hay sectores registrados. Crea uno para empezar.
     </div>
+    )}
+    <ConfirmDialog
+      open={!!deleteTargetId}
+      onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}
+      title="Eliminar Sector"
+      description="¿Eliminar este sector? Los clientes asignados quedarán sin sector."
+      confirmLabel="Eliminar"
+      destructive
+      onConfirm={() => deleteTargetId && handleDelete(deleteTargetId)}
+    />
+  </div>
   )
 }

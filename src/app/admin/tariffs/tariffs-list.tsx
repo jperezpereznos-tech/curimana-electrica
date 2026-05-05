@@ -25,6 +25,7 @@ import {
 import { toggleTariffStatusAction, deleteTariffAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { EditTariffDialog } from './edit-tariff-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface TariffsListProps {
   initialTariffs: TariffWithTiers[]
@@ -34,6 +35,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
   const router = useRouter()
   const [tariffs, setTariffs] = useState(initialTariffs)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
@@ -47,10 +49,10 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta tarifa? Esta acción es irreversible.')) return
     setActionError(null)
     try {
       await deleteTariffAction(id)
+      setDeleteTargetId(null)
       setTariffs(prev => prev.filter(t => t.id !== id))
       router.refresh()
     } catch {
@@ -124,7 +126,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
                   {tariff.is_active ? 'Desactivar' : 'Activar'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(tariff.id)}>Eliminar</DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTargetId(tariff.id)}>Eliminar</DropdownMenuItem>
               </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -132,7 +134,16 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
             ))
           )}
         </TableBody>
-      </Table>
-    </div>
+  </Table>
+    <ConfirmDialog
+      open={!!deleteTargetId}
+      onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}
+      title="Eliminar Tarifa"
+      description="¿Estás seguro de eliminar esta tarifa? Esta acción es irreversible."
+      confirmLabel="Eliminar"
+      destructive
+      onConfirm={() => deleteTargetId && handleDelete(deleteTargetId)}
+    />
+  </div>
   )
 }

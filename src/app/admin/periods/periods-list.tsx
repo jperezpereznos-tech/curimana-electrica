@@ -15,27 +15,26 @@ import { Button } from '@/components/ui/button'
 import { Calendar, Lock, Unlock, PlayCircle } from 'lucide-react'
 import { closePeriodAction } from './actions'
 import { formatDate } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
   const router = useRouter()
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [closeTargetId, setCloseTargetId] = useState<string | null>(null)
 
   const handleClosePeriod = async (id: string) => {
-    if (!confirm('¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas.')) {
-      return
-    }
-
     setError(null)
     setLoading(id)
     try {
       const result = await closePeriodAction(id) as any
       const generated = result?.receiptsGenerated ?? 0
-        setPeriods(prev =>
-          prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
-        )
-        router.refresh()
+      setPeriods(prev =>
+        prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
+      )
+      setCloseTargetId(null)
+      router.refresh()
       alert(`Periodo cerrado exitosamente. Se generaron ${generated} recibos.`)
     } catch {
       setError('Error al cerrar el periodo.')
@@ -92,7 +91,7 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
                       size="sm" 
                       variant="outline" 
                       className="gap-2 border-primary text-primary hover:bg-primary/5"
-                      onClick={() => handleClosePeriod(period.id)}
+                      onClick={() => setCloseTargetId(period.id)}
                       disabled={loading === period.id}
                     >
                       <PlayCircle className="h-4 w-4" />
@@ -109,7 +108,16 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: any[] }) {
             ))
           )}
         </TableBody>
-      </Table>
-    </div>
+  </Table>
+    <ConfirmDialog
+      open={!!closeTargetId}
+      onOpenChange={(open) => { if (!open) setCloseTargetId(null) }}
+      title="Cerrar Periodo"
+      description="¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas."
+      confirmLabel="Cerrar y Generar Recibos"
+      destructive
+      onConfirm={() => closeTargetId && handleClosePeriod(closeTargetId)}
+    />
+  </div>
   )
 }

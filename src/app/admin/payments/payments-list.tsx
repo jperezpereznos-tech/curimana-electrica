@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Download, Ban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { voidPaymentAction } from './actions'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 const PAGE_SIZE = 25
 
@@ -33,6 +34,7 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
   const [dateTo, setDateTo] = useState(currentFilters.to || '')
   const [voidError, setVoidError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [voidTargetId, setVoidTargetId] = useState<string | null>(null)
 
   const totalPages = Math.max(1, Math.ceil((initialPayments || []).length / PAGE_SIZE))
   const paginated = (initialPayments || []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -51,10 +53,10 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
     .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
 
   const handleVoid = async (paymentId: string) => {
-    if (!confirm('Estas seguro de anular este pago? Se revertira el monto en el recibo y la deuda del cliente.')) return
     setVoidError(null)
     try {
       await voidPaymentAction(paymentId)
+      setVoidTargetId(null)
       router.refresh()
     } catch {
       setVoidError('Error al anular el pago.')
@@ -161,9 +163,9 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
                   </TableCell>
                   <TableCell className="text-right">
                     {payment.status !== 'voided' && (
-                      <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={() => handleVoid(payment.id)}>
-                        <Ban className="h-3 w-3" /> Anular
-                      </Button>
+          <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={() => setVoidTargetId(payment.id)}>
+                <Ban className="h-3 w-3" /> Anular
+              </Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -188,6 +190,15 @@ export function PaymentsList({ initialPayments, currentFilters }: any) {
           </div>
         )}
       </div>
+    <ConfirmDialog
+        open={!!voidTargetId}
+        onOpenChange={(open) => { if (!open) setVoidTargetId(null) }}
+        title="Anular Pago"
+        description="¿Estás seguro de anular este pago? Se revertirá el monto en el recibo y la deuda del cliente."
+        confirmLabel="Anular"
+        destructive
+        onConfirm={() => voidTargetId && handleVoid(voidTargetId)}
+      />
     </div>
   )
 }

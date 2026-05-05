@@ -1,6 +1,5 @@
 'use client'
 
-import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,8 +43,7 @@ export default function SyncPage() {
   }
 
   return (
-    <ReaderLayout>
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
         <h2 className="text-xl font-bold">Sincronización</h2>
 
         <Card>
@@ -172,6 +170,5 @@ export default function SyncPage() {
           </Card>
         )}
       </div>
-    </ReaderLayout>
   )
 }

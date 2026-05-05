@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 export function ReceiptDetailActions({ receipt }: { receipt: any }) {
   const router = useRouter()
@@ -27,6 +28,7 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
   const [openingAmount, setOpeningAmount] = useState('0')
   const [opening, setOpening] = useState(false)
   const [openError, setOpenError] = useState<string | null>(null)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status)
 
@@ -57,13 +59,10 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
   }
 
   const handleCancel = async () => {
-    if (!confirm('¿Estás seguro de anular este recibo? Esta acción es irreversible.')) {
-      return
-    }
-
     setCancelError(null)
     try {
       await cancelReceiptAction(receipt.id, 'Anulación administrativa')
+      setShowCancelConfirm(false)
       router.refresh()
     } catch {
       setCancelError('Error al anular el recibo')
@@ -106,7 +105,7 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
         )}
 
         {receipt.status !== 'cancelled' && (
-          <Button variant="destructive" className="gap-2" onClick={handleCancel}>
+          <Button variant="destructive" className="gap-2" onClick={() => setShowCancelConfirm(true)}>
             <XCircle className="h-4 w-4" /> Anular Recibo
           </Button>
         )}
@@ -142,7 +141,16 @@ export function ReceiptDetailActions({ receipt }: { receipt: any }) {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+    </Dialog>
+    <ConfirmDialog
+      open={showCancelConfirm}
+      onOpenChange={setShowCancelConfirm}
+      title="Anular Recibo"
+      description="¿Estás seguro de anular este recibo? Esta acción es irreversible."
+      confirmLabel="Anular"
+      destructive
+      onConfirm={handleCancel}
+    />
+  </div>
   )
 }

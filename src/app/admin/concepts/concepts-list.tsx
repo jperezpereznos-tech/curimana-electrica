@@ -24,6 +24,7 @@ import {
 import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
 import { EditConceptDialog } from './edit-concept-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 function formatAmount(concept: any) {
   if (concept.type === 'percentage') return `${concept.amount}%`
@@ -44,6 +45,7 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
   const router = useRouter()
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
@@ -57,10 +59,10 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este concepto?')) return
     setActionError(null)
     try {
       await deleteConceptAction(id)
+      setDeleteTargetId(null)
       setConcepts(prev => prev.filter(c => c.id !== id))
       router.refresh()
     } catch {
@@ -135,7 +137,7 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
                         {concept.is_active ? 'Desactivar' : 'Activar'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(concept.id)}>Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTargetId(concept.id)}>Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -143,7 +145,16 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
             ))
           )}
         </TableBody>
-      </Table>
-    </div>
+  </Table>
+    <ConfirmDialog
+      open={!!deleteTargetId}
+      onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}
+      title="Eliminar Concepto"
+      description="¿Estás seguro de eliminar este concepto?"
+      confirmLabel="Eliminar"
+      destructive
+      onConfirm={() => deleteTargetId && handleDelete(deleteTargetId)}
+    />
+  </div>
   )
 }

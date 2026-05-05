@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -47,8 +46,7 @@ export default function ReaderDashboard() {
   }, [])
 
   return (
-    <ReaderLayout>
-  <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {sectorName && (
         <div className="p-3 rounded-lg bg-muni-blue/10 text-muni-blue flex items-center gap-2 font-medium">
           <MapPin className="h-5 w-5" />
@@ -104,6 +102,5 @@ export default function ReaderDashboard() {
           </Card>
         )}
       </div>
-    </ReaderLayout>
   )
 }

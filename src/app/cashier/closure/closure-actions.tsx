@@ -15,12 +15,14 @@ import {
 } from '@/components/ui/dialog'
 import { Lock, Unlock, PlayCircle, Loader2 } from 'lucide-react'
 import { openClosureAction, closeClosureAction } from '../actions'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 export function ClosureActions({ action, closureId }: { action: 'open' | 'close', closureId?: string }) {
   const [open, setOpen] = useState(false)
   const [initialAmount, setInitialAmount] = useState('0')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const router = useRouter()
 
   const handleOpen = async () => {
@@ -44,13 +46,11 @@ export function ClosureActions({ action, closureId }: { action: 'open' | 'close'
   }
 
   const handleClose = async () => {
-    if (!confirm('¿Estás seguro de cerrar la caja? No podrás registrar más pagos hasta abrir una nueva.')) {
-      return
-    }
     setError(null)
     setLoading(true)
     try {
       await closeClosureAction(closureId!)
+      setShowCloseConfirm(false)
       router.refresh()
     } catch {
       setError('Error al cerrar caja')
@@ -106,10 +106,19 @@ export function ClosureActions({ action, closureId }: { action: 'open' | 'close'
           {error}
         </div>
       )}
-      <Button variant="destructive" size="lg" className="gap-2" onClick={handleClose} disabled={loading}>
+      <Button variant="destructive" size="lg" className="gap-2" onClick={() => setShowCloseConfirm(true)} disabled={loading}>
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-5 w-5" />}
-      Realizar Cierre de Caja
+    Realizar Cierre de Caja
     </Button>
-    </div>
+    <ConfirmDialog
+      open={showCloseConfirm}
+      onOpenChange={setShowCloseConfirm}
+      title="Cerrar Caja"
+      description="¿Estás seguro de cerrar la caja? No podrás registrar más pagos hasta abrir una nueva."
+      confirmLabel="Cerrar Caja"
+      destructive
+      onConfirm={handleClose}
+    />
+  </div>
   )
 }

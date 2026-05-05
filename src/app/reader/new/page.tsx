@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check, Loader2 } from 'lucide-react'
 import { CameraCapture } from '@/components/camera-capture'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { db } from '@/lib/db/dexie'
 import { customerService } from '@/services/customer-service'
 import { getLatestReadingAction, getReaderAssignedSectorIdAction } from '../actions'
@@ -16,7 +16,7 @@ import Link from 'next/link'
 
 export default function NewReadingPage() {
   return (
-    <Suspense fallback={<ReaderLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></ReaderLayout>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
       <NewReadingContent />
     </Suspense>
   )
@@ -37,6 +37,7 @@ function NewReadingContent() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [assignedSectorId, setAssignedSectorId] = useState<string | null>(null)
+  const [showMeterResetConfirm, setShowMeterResetConfirm] = useState(false)
 
   useEffect(() => {
     getReaderAssignedSectorIdAction()
@@ -124,32 +125,11 @@ function NewReadingContent() {
     }
   }, [supplyNumber, handleSearch])
 
-  const handleSave = async () => {
-    if (!customer || !currentReading) return
-    setSaveError(null)
-    setSaveSuccess(false)
-
-    if (assignedSectorId && customer.sector_id && customer.sector_id !== assignedSectorId) {
-      setSaveError('No puede registrar lecturas de suministros fuera de su sector asignado')
-      return
-    }
-
+  const doSave = async () => {
     const reading = Number(currentReading)
-    if (isNaN(reading) || reading < 0) {
-      setSaveError('La lectura debe ser un número válido mayor o igual a cero')
-      return
-    }
-
     const previous = customer.previous_reading
 
-    // Handle decreasing meter readings properly (meter resets)
-    if (reading < previous) {
-      if (!confirm('La lectura es MENOR a la anterior. ¿Estás seguro?')) {
-        return
-      }
-    }
-
-  try {
+    try {
       await db.pending_readings.add({
         customer_id: customer.id,
         supply_number: supplyNumber,
@@ -167,16 +147,39 @@ function NewReadingContent() {
         needs_review: reading < previous
       })
 
-    setSaveSuccess(true)
-    router.push('/reader')
-  } catch {
-    setSaveError('Error al guardar la lectura')
+      setSaveSuccess(true)
+      router.push('/reader')
+    } catch {
+      setSaveError('Error al guardar la lectura')
     }
   }
 
+  const handleSave = async () => {
+    if (!customer || !currentReading) return
+    setSaveError(null)
+    setSaveSuccess(false)
+
+    if (assignedSectorId && customer.sector_id && customer.sector_id !== assignedSectorId) {
+      setSaveError('No puede registrar lecturas de suministros fuera de su sector asignado')
+      return
+    }
+
+    const reading = Number(currentReading)
+    if (isNaN(reading) || reading < 0) {
+      setSaveError('La lectura debe ser un número válido mayor o igual a cero')
+      return
+    }
+
+    if (reading < customer.previous_reading) {
+      setShowMeterResetConfirm(true)
+      return
+    }
+
+    doSave()
+  }
+
   return (
-    <ReaderLayout>
-      <div className="flex flex-col gap-6 pb-20">
+    <div className="flex flex-col gap-6 pb-20">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" render={<Link href="/reader"><ArrowLeft className="h-5 w-5" /></Link>} />
           <h2 className="text-xl font-bold">Nueva Lectura</h2>
@@ -310,9 +313,17 @@ function NewReadingContent() {
             >
               <Save className="h-6 w-6" /> Guardar Lectura
             </Button>
-          </div>
-        )}
-      </div>
-    </ReaderLayout>
+    </div>
+      )}
+      <ConfirmDialog
+        open={showMeterResetConfirm}
+        onOpenChange={(open) => { if (!open) setShowMeterResetConfirm(false) }}
+        title="Lectura Menor"
+        description="La lectura es MENOR a la anterior. ¿Estás seguro?"
+        confirmLabel="Sí, guardar"
+        destructive
+        onConfirm={() => { setShowMeterResetConfirm(false); doSave() }}
+      />
+    </div>
   )
 }

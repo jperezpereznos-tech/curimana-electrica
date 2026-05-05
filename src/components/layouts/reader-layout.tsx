@@ -19,7 +19,7 @@ export function ReaderLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col pb-16">
-      <header className="h-14 bg-white border-b flex items-center justify-between px-4 sticky top-0 z-10 shadow-sm">
+      <header className="h-14 bg-background border-b flex items-center justify-between px-4 sticky top-0 z-10 shadow-sm">
         <h1 className="font-bold text-muni-blue">Lector Curimana</h1>
         <Button variant="ghost" size="icon" onClick={() => signOut()} className="text-muted-foreground" aria-label="Cerrar sesión">
           <LogOut size={20} />
@@ -31,7 +31,7 @@ export function ReaderLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="h-16 bg-white border-t flex items-center justify-around fixed bottom-0 left-0 right-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <nav className="h-16 bg-background border-t flex items-center justify-around fixed bottom-0 left-0 right-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         {navItems.map((item) => (
           <Link
             key={item.href}

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,8 +51,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
   const pendingCount = customers.filter(c => !c.last_reading).length
 
   return (
-    <ReaderLayout>
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Ruta de Lectura</h2>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -134,6 +132,5 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
           </div>
         )}
       </div>
-    </ReaderLayout>
   )
 }

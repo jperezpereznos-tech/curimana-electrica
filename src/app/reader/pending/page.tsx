@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ReaderLayout } from '@/components/layouts/reader-layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -84,8 +83,7 @@ export default function PendingReadingsPage() {
   const totalCount = pendingReadings.length
 
   return (
-    <ReaderLayout>
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Lecturas Pendientes</h2>
           <div className="flex items-center gap-2">
@@ -187,6 +185,5 @@ export default function PendingReadingsPage() {
           </div>
         )}
       </div>
-    </ReaderLayout>
   )
 }

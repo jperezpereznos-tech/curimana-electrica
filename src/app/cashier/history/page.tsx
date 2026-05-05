@@ -57,13 +57,14 @@ export default function CashierHistoryPage() {
     if (!user) return
     let cancelled = false
 
-    setCurrentPage(1)
-
     const dateFilterParams = getDateFilterParams(dateFilter)
 
     getPaymentsByCashierAction(user.id, dateFilterParams)
       .then((data) => {
-        if (!cancelled) setPayments(data)
+        if (!cancelled) {
+          setPayments(data)
+          setCurrentPage(1)
+        }
       })
       .catch(() => {})
       .finally(() => {

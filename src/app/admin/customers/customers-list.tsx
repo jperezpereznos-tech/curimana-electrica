@@ -25,6 +25,7 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { updateCustomerAction } from './actions'
 import { EditCustomerDialog } from './edit-customer-dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 const PAGE_SIZE = 25
 
@@ -32,6 +33,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
   const [searchTerm, setSearchTerm] = useState(query)
   const [actionError, setActionError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [toggleTarget, setToggleTarget] = useState<{ id: string; isActive: boolean } | null>(null)
   const router = useRouter()
 
   const customers = useMemo(() => initialCustomers, [initialCustomers])
@@ -39,11 +41,10 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
   const paginated = customers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
-    const msg = isActive ? '¿Estás seguro de dar de baja este cliente?' : '¿Estás seguro de reactivar este cliente?'
-    if (!confirm(msg)) return
     setActionError(null)
     try {
       await updateCustomerAction(id, { is_active: isActive } as any)
+      setToggleTarget(null)
       router.refresh()
     } catch {
       setActionError(isActive ? 'Error al dar de baja el cliente.' : 'Error al reactivar el cliente.')
@@ -149,11 +150,11 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                 />
           <DropdownMenuSeparator />
           {customer.is_active ? (
-            <DropdownMenuItem className="text-destructive" onClick={() => handleToggleActive(customer.id, false)}>
+    <DropdownMenuItem className="text-destructive" onClick={() => setToggleTarget({ id: customer.id, isActive: false })}>
               Dar de Baja
             </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={() => handleToggleActive(customer.id, true)}>
+            ) : (
+            <DropdownMenuItem onClick={() => setToggleTarget({ id: customer.id, isActive: true })}>
               Reactivar
             </DropdownMenuItem>
           )}
@@ -178,8 +179,17 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
             <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-          </div>
-        </div>
+    </div>
+    <ConfirmDialog
+      open={!!toggleTarget}
+      onOpenChange={(open) => { if (!open) setToggleTarget(null) }}
+      title={toggleTarget?.isActive ? 'Reactivar Cliente' : 'Dar de Baja'}
+      description={toggleTarget?.isActive ? '¿Estás seguro de reactivar este cliente?' : '¿Estás seguro de dar de baja este cliente?'}
+      confirmLabel={toggleTarget?.isActive ? 'Reactivar' : 'Dar de Baja'}
+      destructive={!toggleTarget?.isActive}
+      onConfirm={() => toggleTarget && handleToggleActive(toggleTarget.id, toggleTarget.isActive)}
+    />
+  </div>
       )}
     </div>
     </div>

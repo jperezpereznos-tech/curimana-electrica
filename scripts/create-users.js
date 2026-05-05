@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -13,9 +14,9 @@ if (!supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const users = [
-  { email: 'admin@curimana.gob.pe', password: 'password', role: 'admin' },
-  { email: 'cajero@curimana.gob.pe', password: 'password', role: 'cashier' },
-  { email: 'lector@curimana.gob.pe', password: 'password', role: 'meter_reader' }
+  { email: process.env.ADMIN_EMAIL || 'admin@curimana.gob.pe', password: process.env.ADMIN_PASSWORD || crypto.randomUUID(), role: 'admin' },
+  { email: process.env.CASHIER_EMAIL || 'cajero@curimana.gob.pe', password: process.env.CASHIER_PASSWORD || crypto.randomUUID(), role: 'cashier' },
+  { email: process.env.READER_EMAIL || 'lector@curimana.gob.pe', password: process.env.READER_PASSWORD || crypto.randomUUID(), role: 'meter_reader' }
 ];
 
 async function main() {
@@ -33,7 +34,7 @@ async function main() {
     if (error) {
       console.log(`Failed to create ${user.email}:`, error.message);
     } else {
-      console.log(`Created ${user.email}`);
+      console.log(`Created ${user.email} — password: ${user.password}`);
     }
   }
 }

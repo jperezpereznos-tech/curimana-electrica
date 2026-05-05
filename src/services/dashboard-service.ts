@@ -59,18 +59,18 @@ export class DashboardService {
   }
 
   async getRevenueHistory() {
-    // Simulamos historial de 6 meses para el gráfico
-    // En producción se haría un group by por billing_period
     const { data: periods } = await this.supabase
       .from('billing_periods')
-      .select('name, receipts(paid_amount)')
+      .select('name, receipts!inner(paid_amount, status)')
       .order('year', { ascending: true })
       .order('month', { ascending: true })
       .limit(6)
 
     return periods?.map(p => ({
       name: p.name,
-      total: (p.receipts as any[])?.reduce((sum: number, r: any) => sum + (r.paid_amount || 0), 0) || 0
+      total: (p.receipts as any[])
+        ?.filter((r: any) => r.status === 'paid')
+        .reduce((sum: number, r: any) => sum + (r.paid_amount || 0), 0) || 0
     })) || []
   }
 
