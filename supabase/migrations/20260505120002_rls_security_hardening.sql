@@ -12,6 +12,7 @@
 -- Reemplazar "Users can update own profile" con versión que excluye columna role
 
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile (no role)" ON profiles;
 
 CREATE POLICY "Users can update own profile (no role)" ON profiles
 FOR UPDATE TO authenticated
@@ -23,6 +24,8 @@ WITH CHECK (
 
 -- ── 2. Payments: Cashier puede UPDATE (para void) ──
 
+DROP POLICY IF EXISTS "Cashier update payments" ON payments;
+
 CREATE POLICY "Cashier update payments" ON payments
 FOR UPDATE TO authenticated
 USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'))
@@ -30,6 +33,7 @@ WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
 
 -- ── 3. Receipts: Meter_reader solo ve receipts de clientes en su sector ──
 
+DROP POLICY IF EXISTS "Users read receipts" ON receipts;
 DROP POLICY IF EXISTS "Users read receipts" ON receipts;
 
 CREATE POLICY "Users read receipts" ON receipts
@@ -52,6 +56,7 @@ USING (
 -- ── 4. Profiles: Meter_reader solo ve profiles de su sector (o propio) ──
 
 DROP POLICY IF EXISTS "Authenticated read all profiles" ON profiles;
+DROP POLICY IF EXISTS "Authenticated read profiles (restricted)" ON profiles;
 
 CREATE POLICY "Authenticated read profiles (restricted)" ON profiles
 FOR SELECT TO authenticated

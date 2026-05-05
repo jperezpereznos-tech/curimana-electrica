@@ -5,8 +5,10 @@ ALTER TABLE payments
   ADD COLUMN IF NOT EXISTS cash_closure_id UUID REFERENCES cash_closures(id);
 
 -- Add CHECK constraint for method values
-ALTER TABLE payments
-  ADD CONSTRAINT payments_method_check CHECK (method IN ('cash', 'transfer', 'card'));
+DO $$ BEGIN
+  ALTER TABLE payments ADD CONSTRAINT payments_method_check CHECK (method IN ('cash', 'transfer', 'card'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Index for querying payments by cash closure
 CREATE INDEX IF NOT EXISTS idx_payments_cash_closure_id ON payments(cash_closure_id);

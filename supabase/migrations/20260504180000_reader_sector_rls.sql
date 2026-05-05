@@ -9,6 +9,8 @@
 -- ── customers: Reemplazar política "Users read customers" con políticas por rol ──
 
 DROP POLICY IF EXISTS "Users read customers" ON customers;
+DROP POLICY IF EXISTS "Cashier read customers" ON customers;
+DROP POLICY IF EXISTS "Reader read assigned sector customers" ON customers;
 
 CREATE POLICY "Cashier read customers" ON customers
 FOR SELECT TO authenticated
@@ -30,6 +32,7 @@ USING (
 -- ── readings: Reemplazar políticas para restringir INSERT y SELECT por sector ──
 
 DROP POLICY IF EXISTS "Reader insert readings" ON readings;
+DROP POLICY IF EXISTS "Reader insert readings sector" ON readings;
 
 CREATE POLICY "Reader insert readings" ON readings
 FOR INSERT TO authenticated
@@ -49,6 +52,7 @@ WITH CHECK (
 );
 
 DROP POLICY IF EXISTS "Users read readings" ON readings;
+DROP POLICY IF EXISTS "Reader read assigned sector readings" ON readings;
 
 CREATE POLICY "Users read readings" ON readings
 FOR SELECT TO authenticated

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_logs: {
@@ -167,74 +192,82 @@ export type Database = {
           total_collected?: number | null
           total_receipts?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cash_closures_cashier_id_fkey"
+            columns: ["cashier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-customers: {
-  Row: {
-    address: string
-    connection_type: string | null
-    created_at: string | null
-    current_debt: number | null
-    document_number: string | null
-    full_name: string
-    id: string
-    is_active: boolean | null
-    phone: string | null
-    sector: string | null
-    sector_id: string | null
-    supply_number: string
-    tariff_id: string | null
-    updated_at: string | null
-  }
-  Insert: {
-    address: string
-    connection_type?: string | null
-    created_at?: string | null
-    current_debt?: number | null
-    document_number?: string | null
-    full_name: string
-    id?: string
-    is_active?: boolean | null
-    phone?: string | null
-    sector?: string | null
-    sector_id?: string | null
-    supply_number: string
-    tariff_id?: string | null
-    updated_at?: string | null
-  }
-  Update: {
-    address?: string
-    connection_type?: string | null
-    created_at?: string | null
-    current_debt?: number | null
-    document_number?: string | null
-    full_name?: string
-    id?: string
-    is_active?: boolean | null
-    phone?: string | null
-    sector?: string | null
-    sector_id?: string | null
-    supply_number?: string
-    tariff_id?: string | null
-    updated_at?: string | null
-  }
-  Relationships: [
-    {
-      foreignKeyName: "customers_tariff_id_fkey"
-      columns: ["tariff_id"]
-      isOneToOne: false
-      referencedRelation: "tariffs"
-      referencedColumns: ["id"]
-    },
-    {
-      foreignKeyName: "customers_sector_id_fkey"
-      columns: ["sector_id"]
-      isOneToOne: false
-      referencedRelation: "sectors"
-      referencedColumns: ["id"]
-    },
-  ]
-}
+      customers: {
+        Row: {
+          address: string
+          connection_type: string | null
+          created_at: string | null
+          current_debt: number | null
+          document_number: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          phone: string | null
+          sector: string | null
+          sector_id: string | null
+          supply_number: string
+          tariff_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          connection_type?: string | null
+          created_at?: string | null
+          current_debt?: number | null
+          document_number?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          sector?: string | null
+          sector_id?: string | null
+          supply_number: string
+          tariff_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          connection_type?: string | null
+          created_at?: string | null
+          current_debt?: number | null
+          document_number?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          sector?: string | null
+          sector_id?: string | null
+          supply_number?: string
+          tariff_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_tariff_id_fkey"
+            columns: ["tariff_id"]
+            isOneToOne: false
+            referencedRelation: "tariffs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       municipality_config: {
         Row: {
           address: string
@@ -268,56 +301,70 @@ customers: {
         }
         Relationships: []
       }
-payments: {
-Row: {
-amount: number
-cashier_id: string | null
-cash_closure_id: string | null
-change_amount: number | null
-created_at: string | null
-customer_id: string | null
-id: string
-method: string | null
-payment_date: string | null
-receipt_id: string | null
-received_amount: number | null
-reference: string | null
-status: string | null
-voided_at: string | null
-}
-Insert: {
-amount: number
-cashier_id?: string | null
-cash_closure_id?: string | null
-change_amount?: number | null
-created_at?: string | null
-customer_id?: string | null
-id?: string
-method?: string | null
-payment_date?: string | null
-receipt_id?: string | null
-received_amount?: number | null
-reference?: string | null
-status?: string | null
-voided_at?: string | null
-}
-Update: {
-amount?: number
-cashier_id?: string | null
-cash_closure_id?: string | null
-change_amount?: number | null
-created_at?: string | null
-customer_id?: string | null
-id?: string
-method?: string | null
-payment_date?: string | null
-receipt_id?: string | null
-received_amount?: number | null
-reference?: string | null
-status?: string | null
-voided_at?: string | null
-}
+      payments: {
+        Row: {
+          amount: number
+          cash_closure_id: string | null
+          cashier_id: string | null
+          change_amount: number | null
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          method: string | null
+          payment_date: string | null
+          receipt_id: string | null
+          received_amount: number | null
+          reference: string | null
+          status: string | null
+          voided_at: string | null
+        }
+        Insert: {
+          amount: number
+          cash_closure_id?: string | null
+          cashier_id?: string | null
+          change_amount?: number | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          method?: string | null
+          payment_date?: string | null
+          receipt_id?: string | null
+          received_amount?: number | null
+          reference?: string | null
+          status?: string | null
+          voided_at?: string | null
+        }
+        Update: {
+          amount?: number
+          cash_closure_id?: string | null
+          cashier_id?: string | null
+          change_amount?: number | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          method?: string | null
+          payment_date?: string | null
+          receipt_id?: string | null
+          received_amount?: number | null
+          reference?: string | null
+          status?: string | null
+          voided_at?: string | null
+        }
         Relationships: [
+          {
+            foreignKeyName: "payments_cash_closure_id_fkey"
+            columns: ["cash_closure_id"]
+            isOneToOne: false
+            referencedRelation: "cash_closures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_cashier_id_fkey"
+            columns: ["cashier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_customer_id_fkey"
             columns: ["customer_id"]
@@ -334,58 +381,103 @@ voided_at?: string | null
           },
         ]
       }
-   readings: {
-    Row: {
-      billing_period_id: string | null
-      consumption: number
-      created_at: string | null
-      current_reading: number
-      customer_id: string | null
-      id: string
-      is_estimated: boolean | null
-      is_synced: boolean | null
-      meter_reader_id: string | null
-      needs_review: boolean | null
-      notes: string | null
-      photo_url: string | null
-      previous_reading: number
-      reading_date: string | null
-      sync_id: string | null
-    }
-    Insert: {
-      billing_period_id?: string | null
-      consumption?: number
-      created_at?: string | null
-      current_reading: number
-      customer_id?: string | null
-      id?: string
-      is_estimated?: boolean | null
-      is_synced?: boolean | null
-      meter_reader_id?: string | null
-      needs_review?: boolean | null
-      notes?: string | null
-      photo_url?: string | null
-      previous_reading: number
-      reading_date?: string | null
-      sync_id?: string | null
-    }
-    Update: {
-      billing_period_id?: string | null
-      consumption?: number
-      created_at?: string | null
-      current_reading?: number
-      customer_id?: string | null
-      id?: string
-      is_estimated?: boolean | null
-      is_synced?: boolean | null
-      meter_reader_id?: string | null
-      needs_review?: boolean | null
-      notes?: string | null
-      photo_url?: string | null
-      previous_reading?: number
-      reading_date?: string | null
-      sync_id?: string | null
-    }
+      profiles: {
+        Row: {
+          assigned_sector_id: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_sector_id?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_sector_id?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_assigned_sector_id_fkey"
+            columns: ["assigned_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readings: {
+        Row: {
+          billing_period_id: string | null
+          consumption: number | null
+          created_at: string | null
+          current_reading: number
+          customer_id: string | null
+          id: string
+          is_estimated: boolean | null
+          is_synced: boolean | null
+          meter_reader_id: string | null
+          needs_review: boolean | null
+          notes: string | null
+          photo_url: string | null
+          previous_reading: number
+          reading_date: string | null
+          sync_id: string | null
+        }
+        Insert: {
+          billing_period_id?: string | null
+          consumption?: number | null
+          created_at?: string | null
+          current_reading: number
+          customer_id?: string | null
+          id?: string
+          is_estimated?: boolean | null
+          is_synced?: boolean | null
+          meter_reader_id?: string | null
+          needs_review?: boolean | null
+          notes?: string | null
+          photo_url?: string | null
+          previous_reading: number
+          reading_date?: string | null
+          sync_id?: string | null
+        }
+        Update: {
+          billing_period_id?: string | null
+          consumption?: number | null
+          created_at?: string | null
+          current_reading?: number
+          customer_id?: string | null
+          id?: string
+          is_estimated?: boolean | null
+          is_synced?: boolean | null
+          meter_reader_id?: string | null
+          needs_review?: boolean | null
+          notes?: string | null
+          photo_url?: string | null
+          previous_reading?: number
+          reading_date?: string | null
+          sync_id?: string | null
+        }
         Relationships: [
           {
             foreignKeyName: "readings_billing_period_id_fkey"
@@ -401,84 +493,91 @@ voided_at?: string | null
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "readings_meter_reader_id_fkey"
+            columns: ["meter_reader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
-    receipts: {
-      Row: {
-        billing_period_id: string | null
-        consumption_kwh: number
-        created_at: string | null
-        current_reading: number
-        customer_id: string | null
-        due_date: string
-        energy_amount: number
-        fixed_charges: number
-        id: string
-        igv: number | null
-        issue_date: string | null
-        paid_amount: number | null
-        paid_at: string | null
-              period_end: string
-        period_start: string
-        previous_debt: number | null
-        previous_reading: number
-        reading_id: string | null
-        receipt_number: number
-        status: string | null
-        subtotal: number
-        total_amount: number
-        updated_at: string | null
-      }
-      Insert: {
-        billing_period_id?: string | null
-        consumption_kwh: number
-        created_at?: string | null
-        current_reading: number
-        customer_id?: string | null
-        due_date: string
-        energy_amount: number
-        fixed_charges: number
-        id?: string
-        igv?: number | null
-        issue_date?: string | null
-        paid_amount?: number | null
-  paid_at?: string | null
-  period_end: string
-        period_start: string
-        previous_debt?: number | null
-        previous_reading: number
-        reading_id?: string | null
-        receipt_number?: number
-        status?: string | null
-        subtotal: number
-        total_amount: number
-        updated_at?: string | null
-      }
-      Update: {
-        billing_period_id?: string | null
-        consumption_kwh?: number
-        created_at?: string | null
-        current_reading?: number
-        customer_id?: string | null
-        due_date?: string
-        energy_amount?: number
-        fixed_charges?: number
-        id?: string
-        igv?: number | null
-        issue_date?: string | null
-        paid_amount?: number | null
-  paid_at?: string | null
-  period_end?: string
-        period_start?: string
-        previous_debt?: number | null
-        previous_reading?: number
-        reading_id?: string | null
-        receipt_number?: number
-        status?: string | null
-        subtotal?: number
-        total_amount?: number
-        updated_at?: string | null
-      }
+      receipts: {
+        Row: {
+          billing_period_id: string | null
+          consumption_kwh: number
+          created_at: string | null
+          current_reading: number
+          customer_id: string | null
+          due_date: string
+          energy_amount: number
+          fixed_charges: number
+          id: string
+          igv: number | null
+          issue_date: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          previous_debt: number | null
+          previous_reading: number
+          reading_id: string | null
+          receipt_number: number
+          status: string | null
+          subtotal: number
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          billing_period_id?: string | null
+          consumption_kwh: number
+          created_at?: string | null
+          current_reading: number
+          customer_id?: string | null
+          due_date: string
+          energy_amount: number
+          fixed_charges: number
+          id?: string
+          igv?: number | null
+          issue_date?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          previous_debt?: number | null
+          previous_reading: number
+          reading_id?: string | null
+          receipt_number?: number
+          status?: string | null
+          subtotal: number
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          billing_period_id?: string | null
+          consumption_kwh?: number
+          created_at?: string | null
+          current_reading?: number
+          customer_id?: string | null
+          due_date?: string
+          energy_amount?: number
+          fixed_charges?: number
+          id?: string
+          igv?: number | null
+          issue_date?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          previous_debt?: number | null
+          previous_reading?: number
+          reading_id?: string | null
+          receipt_number?: number
+          status?: string | null
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string | null
+        }
         Relationships: [
           {
             foreignKeyName: "receipts_billing_period_id_fkey"
@@ -503,97 +602,52 @@ voided_at?: string | null
           },
         ]
       }
-profiles: {
-  Row: {
-    id: string
-    email: string
-    role: string | null
-    full_name: string | null
-    assigned_sector_id: string | null
-    created_at: string | null
-    updated_at: string | null
-  }
-  Insert: {
-    id: string
-    email: string
-    role?: string | null
-    full_name?: string | null
-    assigned_sector_id?: string | null
-    created_at?: string | null
-    updated_at?: string | null
-  }
-  Update: {
-    id?: string
-    email?: string
-    role?: string | null
-    full_name?: string | null
-    assigned_sector_id?: string | null
-    created_at?: string | null
-    updated_at?: string | null
-  }
-  Relationships: [
-    {
-      foreignKeyName: "profiles_role_fkey"
-      columns: ["role"]
-      isOneToOne: false
-      referencedRelation: "roles"
-      referencedColumns: ["id"]
-    },
-    {
-      foreignKeyName: "profiles_assigned_sector_id_fkey"
-      columns: ["assigned_sector_id"]
-      isOneToOne: false
-      referencedRelation: "sectors"
-      referencedColumns: ["id"]
-    }
-  ]
-}
-roles: {
-  Row: {
-    created_at: string | null
-    description: string | null
-    id: string
-  }
-  Insert: {
-    created_at?: string | null
-    description?: string | null
-    id: string
-  }
-  Update: {
-    created_at?: string | null
-    description?: string | null
-    id?: string
-  }
-  Relationships: []
-}
-sectors: {
-  Row: {
-    id: string
-    name: string
-    code: string
-    description: string | null
-    is_active: boolean | null
-    created_at: string | null
-  }
-  Insert: {
-    id?: string
-    name: string
-    code: string
-    description?: string | null
-    is_active?: boolean | null
-    created_at?: string | null
-  }
-  Update: {
-    id?: string
-    name?: string
-    code?: string
-    description?: string | null
-    is_active?: boolean | null
-    created_at?: string | null
-  }
-  Relationships: []
-}
-tariff_tiers: {
+      roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      sectors: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      tariff_tiers: {
         Row: {
           created_at: string | null
           id: string
@@ -659,52 +713,53 @@ tariff_tiers: {
     Views: {
       [_ in never]: never
     }
-  Functions: {
-    calculate_energy_amount: {
-      Args: { p_consumption: number; p_tariff_id: string }
-      Returns: number
+    Functions: {
+      adjust_customer_debt: {
+        Args: { p_amount: number; p_customer_id: string }
+        Returns: number
+      }
+      calculate_energy_amount: {
+        Args: { p_consumption: number; p_tariff_id: string }
+        Returns: number
+      }
+      close_billing_period: {
+        Args: { p_period_id: string }
+        Returns: {
+          period_id: string
+          success: boolean
+        }[]
+      }
+      current_role: { Args: never; Returns: string }
+      generate_period_receipts: {
+        Args: { p_period_id: string; p_receipts: Json }
+        Returns: {
+          generated_count: number
+          skipped_count: number
+        }[]
+      }
+      get_user_role: { Args: never; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      process_payment: {
+        Args: {
+          p_amount: number
+          p_cash_closure_id: string
+          p_cashier_id: string
+          p_change_amount: number
+          p_customer_id: string
+          p_receipt_id: string
+          p_received_amount: number
+        }
+        Returns: string
+      }
+      recalculate_customer_debt: {
+        Args: { p_customer_id: string }
+        Returns: number
+      }
+      void_payment: {
+        Args: { p_payment_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
-    get_user_role: {
-      Args: Record<PropertyKey, never>
-      Returns: string
-    }
-    current_role: {
-      Args: Record<PropertyKey, never>
-      Returns: string
-    }
-  close_billing_period: {
-    Args: { p_period_id: string }
-    Returns: { success: boolean; period_id: string }[]
-  }
-  adjust_customer_debt: {
-    Args: { p_customer_id: string; p_amount: number }
-    Returns: number
-  }
-  recalculate_customer_debt: {
-    Args: { p_customer_id: string }
-    Returns: number
-  }
-  process_payment: {
-    Args: {
-      p_receipt_id: string
-      p_customer_id: string
-      p_cash_closure_id: string
-      p_amount: number
-      p_received_amount: number
-      p_change_amount: number
-      p_cashier_id: string
-    }
-    Returns: string
-  }
-  void_payment: {
-    Args: { p_payment_id: string; p_user_id: string }
-    Returns: undefined
-  }
-  generate_period_receipts: {
-    Args: { p_period_id: string; p_receipts: Json }
-    Returns: { generated_count: number; skipped_count: number }[]
-  }
-  }
     Enums: {
       [_ in never]: never
     }
@@ -832,6 +887,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
