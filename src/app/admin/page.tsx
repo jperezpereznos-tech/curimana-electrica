@@ -10,6 +10,7 @@ import type { RevenueEntry, SectorEntry } from '@/types/views'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
+  const { data: { user }, error: authErr } = await supabase.auth.getUser()
   const dashboardService = getDashboardService(supabase)
 
   let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
@@ -17,9 +18,13 @@ export default async function AdminDashboard() {
   let sectorData: SectorEntry[] = []
   let fetchErrors: string[] = []
 
-  try { kpis = await dashboardService.getSummaryKPIs() } catch (e) { console.error('Admin KPI fetch failed:', e); fetchErrors.push('KPIs') }
-  try { revenueHistory = await dashboardService.getRevenueHistory() } catch (e) { console.error('Admin revenue fetch failed:', e); fetchErrors.push('Ingresos') }
-  try { sectorData = await dashboardService.getConsumptionBySector() } catch (e) { console.error('Admin sector fetch failed:', e); fetchErrors.push('Sectores') }
+  if (authErr || !user) {
+    fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
+  }
+
+  try { kpis = await dashboardService.getSummaryKPIs() } catch (e) { fetchErrors.push(`KPIs: ${e instanceof Error ? e.message : String(e)}`) }
+  try { revenueHistory = await dashboardService.getRevenueHistory() } catch (e) { fetchErrors.push(`Ingresos: ${e instanceof Error ? e.message : String(e)}`) }
+  try { sectorData = await dashboardService.getConsumptionBySector() } catch (e) { fetchErrors.push(`Sectores: ${e instanceof Error ? e.message : String(e)}`) }
 
   return (
     <div className="flex flex-col gap-8">

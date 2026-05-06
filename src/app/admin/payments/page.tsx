@@ -12,14 +12,14 @@ export default async function PaymentsPage({
   const supabase = await createClient()
   const paymentService = getPaymentService(supabase)
   let payments: PaymentWithDetails[] = []
-  let fetchError = false
+  let errorMsg = ''
   try {
     payments = await paymentService.getAllPayments({
       cashierId: params.cashierId,
       from: params.from,
       to: params.to,
     })
-  } catch (e) { console.error('Payments page fetch failed:', e); fetchError = true }
+  } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
   return (
     <>
@@ -30,9 +30,9 @@ export default async function PaymentsPage({
         </div>
       </div>
 
-      {fetchError && (
+      {errorMsg && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
-          Error al cargar datos. Verifique su conexion y recargue la pagina.
+          Error: {errorMsg}
         </div>
       )}
 

@@ -20,7 +20,7 @@ export default async function CustomersPage({
   let customers: CustomerWithRelations[] = []
   let tariffs: TariffRow[] = []
   let sectors: SectorRow[] = []
-  let fetchError = false
+  let errorMsg = ''
 
   try {
     [customers, tariffs, sectors] = await Promise.all([
@@ -28,7 +28,7 @@ export default async function CustomersPage({
       tariffService.getAllTariffs(),
       sectorService.getActiveSectors()
     ])
-  } catch (e) { console.error('Customers page fetch failed:', e); fetchError = true }
+  } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
   return (
     <>
@@ -40,9 +40,9 @@ export default async function CustomersPage({
         <CreateCustomerDialog tariffs={tariffs} sectors={sectors} />
       </div>
 
-      {fetchError && (
+      {errorMsg && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
-          Error al cargar datos. Verifique su conexion y recargue la pagina.
+          Error: {errorMsg}
         </div>
       )}
 

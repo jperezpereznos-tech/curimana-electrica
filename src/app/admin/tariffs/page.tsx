@@ -9,8 +9,8 @@ export default async function TariffsPage() {
   const tariffService = getTariffService(supabase)
 
   let tariffs: TariffWithTiers[] = []
-  let fetchError = false
-  try { tariffs = await tariffService.getAllTariffs() } catch (e) { console.error('Tariffs page fetch failed:', e); fetchError = true }
+  let errorMsg = ''
+  try { tariffs = await tariffService.getAllTariffs() } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
   return (
     <>
@@ -22,9 +22,9 @@ export default async function TariffsPage() {
         <CreateTariffDialog />
       </div>
 
-      {fetchError && (
+      {errorMsg && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
-          Error al cargar datos. Verifique su conexion y recargue la pagina.
+          Error: {errorMsg}
         </div>
       )}
 

@@ -12,14 +12,14 @@ export default async function ConceptsPage() {
 
   let concepts: ConceptRow[] = []
   let tariffs: TariffRow[] = []
-  let fetchError = false
+  let errorMsg = ''
 
   try {
     [concepts, tariffs] = await Promise.all([
       conceptService.getAllConcepts(),
       tariffService.getAllTariffs()
     ])
-  } catch (e) { console.error('Concepts page fetch failed:', e); fetchError = true }
+  } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
   return (
     <>
@@ -31,9 +31,9 @@ export default async function ConceptsPage() {
         <CreateConceptDialog tariffs={tariffs} />
       </div>
 
-      {fetchError && (
+      {errorMsg && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
-          Error al cargar datos. Verifique su conexion y recargue la pagina.
+          Error: {errorMsg}
         </div>
       )}
 
