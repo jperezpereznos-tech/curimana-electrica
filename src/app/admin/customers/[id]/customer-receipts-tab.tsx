@@ -19,7 +19,7 @@ const statusConfig: Record<string, { text: string; variant: 'default' | 'seconda
 type CustomerReceiptsTabProps = {
  receipts: ReceiptForCustomer[]
  customer: { id: string; full_name: string }
- onRefresh: () => void
+ onRefresh?: () => void
 }
 
 export function CustomerReceiptsTab({ receipts, customer: _customer }: CustomerReceiptsTabProps) {

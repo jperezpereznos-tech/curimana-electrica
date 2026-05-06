@@ -1,4 +1,4 @@
-﻿import { getCustomerService } from '@/services/customer-service'
+import { getCustomerService } from '@/services/customer-service'
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
@@ -143,7 +143,6 @@ export default async function CustomerDetailsPage({
         <CustomerReceiptsTab
   receipts={receipts as ReceiptForCustomer[]}
               customer={{ id: customer.id, full_name: customer.full_name }}
-              onRefresh={() => {}}
             />
           </Card>
         </TabsContent>
