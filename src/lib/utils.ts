@@ -22,13 +22,13 @@ export function formatDate(date: Date | string | null | undefined, options?: { i
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(d)
+    }).format(d).replace(/\u202f/g, ' ')
   }
   return new Intl.DateTimeFormat('es-PE', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).format(d)
+  }).format(d).replace(/\u202f/g, ' ')
 }
 
 export function generateReceiptNumber(): number {

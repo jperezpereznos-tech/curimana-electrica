@@ -23,7 +23,7 @@ const PAGE_SIZE = 25
 
 function formatDate(d: string | null | undefined) {
   if (!d) return '-'
-  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(d))
+  return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(d)).replace(/\u202f/g, ' ')
 }
 
 interface ReadingRow {
