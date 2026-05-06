@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 const tariffSchema = z.object({
   name: z.string().min(1),
-  connection_type: z.enum(['monofasico', 'trifasico']).optional().nullable(),
+  connection_type: z.enum(['monofásico', 'trifásico']).optional().nullable(),
   is_active: z.boolean().optional().nullable(),
 })
 
