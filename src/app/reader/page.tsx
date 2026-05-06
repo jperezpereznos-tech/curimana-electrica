@@ -12,6 +12,7 @@ import { getReaderDashboardDataAction } from './actions'
 
 export default function ReaderDashboard() {
   const { isOnline, pendingSyncCount, syncNow } = useOfflineSync()
+  const [hasMounted, setHasMounted] = useState(false)
   const [todayCount, setTodayCount] = useState(0)
   const [syncedCount, setSyncedCount] = useState(0)
   const [activeCustomers, setActiveCustomers] = useState(0)
@@ -19,6 +20,7 @@ export default function ReaderDashboard() {
   const [sectorName, setSectorName] = useState<string | null>(null)
 
   useEffect(() => {
+    setHasMounted(true)
     let cancelled = false
 
     const today = new Date().toISOString().split('T')[0]
@@ -53,20 +55,24 @@ export default function ReaderDashboard() {
           Sector: {sectorName}
         </div>
       )}
-      <div className={`p-3 rounded-lg flex items-center justify-between ${isOnline ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-          <div className="flex items-center gap-2 font-medium">
-            {isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
-            {isOnline ? 'En línea' : 'Sin conexión'}
-          </div>
-          {pendingSyncCount > 0 && isOnline && (
-            <Button size="sm" onClick={syncNow} variant="ghost" className="gap-2 h-8">
-              <RefreshCcw className="h-4 w-4" /> Sincronizar ({pendingSyncCount})
-            </Button>
-          )}
-          {pendingSyncCount > 0 && !isOnline && (
-            <Badge variant="destructive">{pendingSyncCount} pendientes</Badge>
-          )}
+      {!hasMounted ? (
+        <div className="h-12 w-full animate-pulse bg-muted rounded-lg" />
+      ) : (
+        <div className={`p-3 rounded-lg flex items-center justify-between ${isOnline ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+            <div className="flex items-center gap-2 font-medium">
+              {isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
+              {isOnline ? 'En línea' : 'Sin conexión'}
+            </div>
+            {pendingSyncCount > 0 && isOnline && (
+              <Button size="sm" onClick={syncNow} variant="ghost" className="gap-2 h-8">
+                <RefreshCcw className="h-4 w-4" /> Sincronizar ({pendingSyncCount})
+              </Button>
+            )}
+            {pendingSyncCount > 0 && !isOnline && (
+              <Badge variant="destructive">{pendingSyncCount} pendientes</Badge>
+            )}
         </div>
+      )}
 
         <div className="grid grid-cols-2 gap-4">
           <Card>

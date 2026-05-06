@@ -48,13 +48,13 @@ export function useOfflineSync() {
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
 const syncCustomerCache = useCallback(async () => {
-    if (!navigator.onLine) return
+    if (!navigator.onLine || !user?.id) return
     try {
       const supabase = createClient()
       const { data: profile } = await supabase
         .from('profiles')
         .select('assigned_sector_id')
-        .eq('id', user!.id)
+        .eq('id', user.id)
         .maybeSingle()
 
       const sectorId = profile?.assigned_sector_id || null
