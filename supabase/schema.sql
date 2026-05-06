@@ -718,6 +718,10 @@ FOR UPDATE TO authenticated
 USING ((SELECT public.get_user_role()) = 'admin')
 WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
+CREATE POLICY "Admin delete profiles" ON profiles
+FOR DELETE TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin');
+
 -- ── municipality_config ──
 CREATE POLICY "Admin CRUD municipality_config" ON municipality_config
 FOR ALL TO authenticated

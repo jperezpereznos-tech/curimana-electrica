@@ -50,3 +50,17 @@ export async function inviteUserAction(email: string, fullName: string, role: st
   revalidatePath('/admin/users')
   return authResult
 }
+
+export async function deleteUserAction(userId: string) {
+  const { supabase } = await requireAdminAuth()
+
+  const { data: currentUser } = await supabase.auth.getClaims()
+  if (currentUser && currentUser.claims.sub === userId) {
+    throw new Error('No puedes eliminar tu propia cuenta')
+  }
+
+  const profileService = getProfileService(supabase)
+  await profileService.deleteUser(userId)
+
+  revalidatePath('/admin/users')
+}
