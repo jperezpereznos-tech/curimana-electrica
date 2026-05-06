@@ -28,9 +28,21 @@ STABLE SECURITY DEFINER
 SET search_path = 'public'
 AS $$ SELECT role FROM public.profiles WHERE id = auth.uid() $$;
 
+CREATE OR REPLACE FUNCTION public.get_user_sector_id()
+RETURNS UUID
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid());
+END;
+$$;
+
 -- Revocar acceso anónimo a funciones sensibles
 REVOKE EXECUTE ON FUNCTION public.get_user_role() FROM anon;
 REVOKE EXECUTE ON FUNCTION public."current_role"() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.get_user_sector_id() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.calculate_energy_amount(NUMERIC, UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION public.close_billing_period(UUID) FROM anon;
 
@@ -683,8 +695,8 @@ USING (
   OR (
     (SELECT public.get_user_role()) = 'meter_reader'
     AND (
-      (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()) IS NULL
-      OR assigned_sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
+      (SELECT public.get_user_sector_id()) IS NULL
+      OR assigned_sector_id = (SELECT public.get_user_sector_id())
     )
   )
 );
@@ -694,7 +706,7 @@ FOR UPDATE TO authenticated
 USING (id = auth.uid())
 WITH CHECK (
   id = auth.uid()
-  AND role = (SELECT role FROM profiles WHERE id = auth.uid())
+  AND role = (SELECT public.get_user_role())
 );
 
 CREATE POLICY "Admin insert profiles" ON profiles
@@ -759,13 +771,13 @@ USING ((SELECT public.get_user_role()) = 'cashier');
 CREATE POLICY "Reader read assigned sector customers" ON customers
 FOR SELECT TO authenticated
 USING (
-  (SELECT public.get_user_role()) = 'meter_reader'
-  AND (
-    SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()
-  ) IS NULL
+  (SELECT public.get_user_role()) IN ('admin', 'cashier')
   OR (
     (SELECT public.get_user_role()) = 'meter_reader'
-    AND sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
+    AND (
+      (SELECT public.get_user_sector_id()) IS NULL
+      OR sector_id = (SELECT public.get_user_sector_id())
+    )
   )
 );
 
@@ -788,16 +800,12 @@ WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 CREATE POLICY "Reader insert readings" ON readings
 FOR INSERT TO authenticated
 WITH CHECK (
-  (SELECT public.get_user_role()) = 'admin'
-  OR (
-    (SELECT public.get_user_role()) = 'meter_reader'
-    AND (
-      (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()) IS NULL
-      OR EXISTS (
-        SELECT 1 FROM customers c
-        WHERE c.id = readings.customer_id
-        AND c.sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
-      )
+  (SELECT public.get_user_role()) IN ('admin', 'meter_reader')
+  AND (
+    (SELECT public.get_user_role()) = 'admin'
+    OR (
+      (SELECT public.get_user_sector_id()) IS NULL
+      OR (SELECT sector_id FROM customers WHERE id = readings.customer_id) = (SELECT public.get_user_sector_id())
     )
   )
 );
@@ -814,12 +822,8 @@ USING (
   OR (
     (SELECT public.get_user_role()) = 'meter_reader'
     AND (
-      (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()) IS NULL
-      OR EXISTS (
-        SELECT 1 FROM customers c
-        WHERE c.id = readings.customer_id
-        AND c.sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
-      )
+      (SELECT public.get_user_sector_id()) IS NULL
+      OR (SELECT sector_id FROM customers WHERE id = readings.customer_id) = (SELECT public.get_user_sector_id())
     )
   )
 );
@@ -845,12 +849,8 @@ USING (
   OR (
     (SELECT public.get_user_role()) = 'meter_reader'
     AND (
-      (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid()) IS NULL
-      OR EXISTS (
-        SELECT 1 FROM customers c
-        WHERE c.id = receipts.customer_id
-        AND c.sector_id = (SELECT assigned_sector_id FROM profiles WHERE id = auth.uid())
-      )
+      (SELECT public.get_user_sector_id()) IS NULL
+      OR (SELECT sector_id FROM customers WHERE id = receipts.customer_id) = (SELECT public.get_user_sector_id())
     )
   )
 );

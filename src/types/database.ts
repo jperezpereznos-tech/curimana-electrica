@@ -737,8 +737,9 @@ export type Database = {
           skipped_count: number
         }[]
       }
-      get_user_role: { Args: never; Returns: string }
-      is_admin: { Args: never; Returns: boolean }
+ get_user_role: { Args: never; Returns: string }
+ get_user_sector_id: { Args: never; Returns: string }
+ is_admin: { Args: never; Returns: boolean }
       process_payment: {
         Args: {
           p_amount: number

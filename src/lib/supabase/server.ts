@@ -4,9 +4,6 @@ import { Database } from '@/types/database'
 
 export async function createClient() {
  const cookieStore = await cookies()
- const allCookies = cookieStore.getAll()
- const authCookies = allCookies.filter(c => c.name.includes('auth-token'))
- console.log('[SERVER] auth cookies count:', authCookies.length, authCookies.map(c => c.name.substring(0, 30)))
 
  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
