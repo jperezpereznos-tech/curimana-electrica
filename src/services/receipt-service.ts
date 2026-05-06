@@ -77,9 +77,10 @@ export class ReceiptService {
     const updatedReceipt = await this.receiptRepo.update(id, { status: 'cancelled' })
 
     if (customer) {
-      await this.supabase.rpc('recalculate_customer_debt', {
+      const { error: debtErr } = await this.supabase.rpc('recalculate_customer_debt', {
         p_customer_id: customerId
       })
+      if (debtErr) console.error('Error recalculating customer debt after cancel:', debtErr)
     }
 
     if (userId) {
@@ -92,7 +93,7 @@ export class ReceiptService {
           new_data: { status: 'cancelled', reason },
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for cancelReceipt:', e) }
     }
 
     return updatedReceipt

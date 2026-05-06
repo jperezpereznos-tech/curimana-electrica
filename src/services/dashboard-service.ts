@@ -13,40 +13,45 @@ export class DashboardService {
     startOfMonth.setDate(1)
     startOfMonth.setHours(0,0,0,0)
 
-    const { data: payments } = await this.supabase
+    const { data: payments, error: paymentsErr } = await this.supabase
       .from('payments')
       .select('amount')
       .eq('status', 'completed')
       .gte('created_at', startOfMonth.toISOString())
+    if (paymentsErr) console.error('KPI payments error:', paymentsErr)
 
     const totalCollected = payments?.reduce((sum, p) => sum + p.amount, 0) || 0
 
-    const { data: customers } = await this.supabase
+    const { data: customers, error: customersErr } = await this.supabase
       .from('customers')
       .select('current_debt')
       .eq('is_active', true)
+    if (customersErr) console.error('KPI customers debt error:', customersErr)
 
     const totalDebt = customers?.reduce((sum, c) => sum + (c.current_debt || 0), 0) || 0
 
-    const { count: activeCustomers } = await this.supabase
+    const { count: activeCustomers, error: countErr } = await this.supabase
       .from('customers')
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true)
+    if (countErr) console.error('KPI active customers count error:', countErr)
 
-    const { data: currentPeriod } = await this.supabase
+    const { data: currentPeriod, error: periodErr } = await this.supabase
       .from('billing_periods')
       .select('id')
       .eq('is_closed', false)
       .limit(1)
       .maybeSingle()
+    if (periodErr) console.error('KPI billing period error:', periodErr)
 
     let pendingReceipts = 0
     if (currentPeriod) {
-      const { count } = await this.supabase
+      const { count, error: receiptsErr } = await this.supabase
         .from('receipts')
         .select('*', { count: 'exact', head: true })
         .eq('billing_period_id', currentPeriod.id)
         .in('status', ['pending', 'partial'])
+      if (receiptsErr) console.error('KPI pending receipts error:', receiptsErr)
       pendingReceipts = count || 0
     }
 
@@ -59,12 +64,13 @@ export class DashboardService {
   }
 
   async getRevenueHistory() {
-    const { data: periods } = await this.supabase
+    const { data: periods, error: revenueErr } = await this.supabase
       .from('billing_periods')
       .select('name, receipts!inner(paid_amount, status)')
       .order('year', { ascending: true })
       .order('month', { ascending: true })
       .limit(6)
+    if (revenueErr) console.error('Revenue history error:', revenueErr)
 
     return periods?.map(p => {
       const receipts = (p.receipts as { paid_amount: number; status: string }[] | null) ?? []

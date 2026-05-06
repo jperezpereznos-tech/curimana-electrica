@@ -9,7 +9,8 @@ export default async function PeriodsPage() {
   const periodService = getPeriodService(supabase)
 
   let periods: PeriodRow[] = []
-  try { periods = await periodService.getAllPeriods() } catch { }
+  let fetchError = false
+  try { periods = await periodService.getAllPeriods() } catch (e) { console.error('Periods page fetch failed:', e); fetchError = true }
 
   return (
     <>
@@ -20,6 +21,12 @@ export default async function PeriodsPage() {
         </div>
         <CreatePeriodButton />
       </div>
+
+      {fetchError && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
+          Error al cargar datos. Verifique su conexion y recargue la pagina.
+        </div>
+      )}
 
       <PeriodsList initialPeriods={periods} />
     </>

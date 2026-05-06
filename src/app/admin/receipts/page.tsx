@@ -16,6 +16,7 @@ export default async function ReceiptsPage({
 
   let receipts: ReceiptWithPeriod[] = []
   let periods: PeriodRow[] = []
+  let fetchError = false
 
   try {
     receipts = await receiptService.getAllReceipts({
@@ -23,9 +24,9 @@ export default async function ReceiptsPage({
       status: params.status,
       supplyNumber: params.q
     })
-  } catch { }
+  } catch (e) { console.error('Receipts page fetch failed:', e); fetchError = true }
 
-  try { periods = await periodService.getAllPeriods() } catch { }
+  try { periods = await periodService.getAllPeriods() } catch (e) { console.error('Receipts periods fetch failed:', e); fetchError = true }
 
   return (
     <>
@@ -35,6 +36,12 @@ export default async function ReceiptsPage({
           <p className="text-muted-foreground">Consulta y gestion de la facturacion historica.</p>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
+          Error al cargar datos. Verifique su conexion y recargue la pagina.
+        </div>
+      )}
 
       <ReceiptsList
         initialReceipts={receipts || []}

@@ -36,7 +36,9 @@ export async function proxy(request: NextRequest) {
   // 1. Si no hay usuario y no está en /login, redirigir a /login
   if (!user && url.pathname !== '/login') {
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+    return response
   }
 
   // Helper: obtener rol del usuario usando SECURITY DEFINER function
@@ -67,7 +69,9 @@ export async function proxy(request: NextRequest) {
         return supabaseResponse
       }
     }
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+    return response
   }
 
   // 3. Protección por roles - solo para rutas protegidas
@@ -81,22 +85,30 @@ export async function proxy(request: NextRequest) {
     // Si hubo error al consultar el perfil, dejar pasar a la página raíz para que el frontend maneje el error
     if (!role) {
       url.pathname = '/'
-      return NextResponse.redirect(url)
+      const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+      return response
     }
 
     if (url.pathname.startsWith('/admin') && role !== 'admin') {
       url.pathname = '/'
-      return NextResponse.redirect(url)
+      const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+      return response
     }
 
     if (url.pathname.startsWith('/cashier') && !['admin', 'cashier'].includes(role)) {
       url.pathname = '/'
-      return NextResponse.redirect(url)
+      const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+      return response
     }
 
     if (url.pathname.startsWith('/reader') && !['admin', 'meter_reader'].includes(role)) {
       url.pathname = '/'
-      return NextResponse.redirect(url)
+      const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+      return response
     }
   }
 

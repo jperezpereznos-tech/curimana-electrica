@@ -8,7 +8,8 @@ export default async function AuditPage() {
   const auditService = getAuditService(supabase)
 
   let logs: AuditLogRow[] = []
-  try { logs = await auditService.getAuditLogs() } catch { }
+  let fetchError = false
+  try { logs = await auditService.getAuditLogs() } catch (e) { console.error('Audit page fetch failed:', e); fetchError = true }
 
   return (
     <div className="flex flex-col gap-6">
@@ -16,6 +17,12 @@ export default async function AuditPage() {
         <h2 className="text-3xl font-bold tracking-tight">Bitacora de Auditoria</h2>
         <p className="text-muted-foreground">Registro historico de acciones criticas y cambios en el sistema.</p>
       </div>
+
+      {fetchError && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Error al cargar datos. Verifique su conexion y recargue la pagina.
+        </div>
+      )}
 
       <AuditList initialLogs={logs} />
     </div>

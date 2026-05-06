@@ -15,10 +15,11 @@ export default async function AdminDashboard() {
   let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
   let revenueHistory: RevenueEntry[] = []
   let sectorData: SectorEntry[] = []
+  let fetchErrors: string[] = []
 
-  try { kpis = await dashboardService.getSummaryKPIs() } catch { }
-  try { revenueHistory = await dashboardService.getRevenueHistory() } catch { }
-  try { sectorData = await dashboardService.getConsumptionBySector() } catch { }
+  try { kpis = await dashboardService.getSummaryKPIs() } catch (e) { console.error('Admin KPI fetch failed:', e); fetchErrors.push('KPIs') }
+  try { revenueHistory = await dashboardService.getRevenueHistory() } catch (e) { console.error('Admin revenue fetch failed:', e); fetchErrors.push('Ingresos') }
+  try { sectorData = await dashboardService.getConsumptionBySector() } catch (e) { console.error('Admin sector fetch failed:', e); fetchErrors.push('Sectores') }
 
   return (
     <div className="flex flex-col gap-8">
@@ -29,6 +30,12 @@ export default async function AdminDashboard() {
         </div>
         <DownloadReports />
       </div>
+
+      {fetchErrors.length > 0 && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Error al cargar: {fetchErrors.join(', ')}. Verifique su conexion y recargue la pagina.
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard

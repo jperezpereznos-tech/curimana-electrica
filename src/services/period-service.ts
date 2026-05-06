@@ -69,11 +69,12 @@ export class PeriodService {
       nextMonth = now.getMonth() + 1
     }
 
-    const { data: config } = await this.supabase
+    const { data: config, error: configErr } = await this.supabase
       .from('municipality_config')
       .select('billing_cut_day')
       .limit(1)
       .single()
+    if (configErr) console.error('Error fetching billing_cut_day:', configErr)
 
     const cutDay = config?.billing_cut_day || 26
     const periodData = this.calculatePeriodDates(nextYear, nextMonth, cutDay)
@@ -122,18 +123,20 @@ export class PeriodService {
     if (!period) throw new Error('Periodo no encontrado')
     if (period.is_closed) throw new Error('El periodo ya está cerrado')
 
-    const { data: config } = await this.supabase
+    const { data: config, error: configErr } = await this.supabase
       .from('municipality_config')
       .select('payment_grace_days')
       .limit(1)
       .single()
+    if (configErr) console.error('Error fetching payment_grace_days:', configErr)
 
     const graceDays = config?.payment_grace_days || 20
 
-    const { data: activeCustomersData } = await this.supabase
+    const { data: activeCustomersData, error: customersErr } = await this.supabase
       .from('customers')
       .select('*, tariffs(*, tariff_tiers(*))')
       .eq('is_active', true)
+    if (customersErr) throw customersErr
 
     const activeCustomers = activeCustomersData || []
     const activeConcepts = await this.conceptRepo.getAllActive()
