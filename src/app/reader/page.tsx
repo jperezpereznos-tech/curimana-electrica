@@ -49,12 +49,17 @@ export default function ReaderDashboard() {
 
   return (
     <div className="flex flex-col gap-4">
-      {sectorName && (
-        <div className="p-3 rounded-lg bg-muni-blue/10 text-muni-blue flex items-center gap-2 font-medium">
-          <MapPin className="h-5 w-5" />
-          Sector: {sectorName}
-        </div>
-      )}
+  {sectorName ? (
+    <div className="p-3 rounded-lg bg-muni-blue/10 text-muni-blue flex items-center gap-2 font-medium">
+      <MapPin className="h-5 w-5" />
+      Sector: {sectorName}
+    </div>
+  ) : hasMounted ? (
+    <div className="p-3 rounded-lg bg-destructive/10 text-destructive flex items-center gap-2 font-medium">
+      <MapPin className="h-5 w-5" />
+      Sin sector asignado — contacte al administrador
+    </div>
+  ) : null}
       {!hasMounted ? (
         <div className="h-12 w-full animate-pulse bg-muted rounded-lg" />
       ) : (

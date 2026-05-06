@@ -44,9 +44,8 @@ export async function getReaderDashboardDataAction() {
   const periodService = getPeriodService(supabase)
   const sectorId = await getAssignedSectorId(userId, supabase)
 
-  const [syncedCount, activeCustomers, period, sectorResult] = await Promise.all([
+  const [syncedCount, period, sectorResult] = await Promise.all([
     readingService.getTodayReadingsCount(),
-    readingService.getActiveCustomersCount(),
     periodService.getCurrentPeriod(),
     supabase
       .from('profiles')
@@ -54,6 +53,11 @@ export async function getReaderDashboardDataAction() {
       .eq('id', userId)
       .single()
   ])
+
+  let activeCustomers = 0
+  if (sectorId) {
+    activeCustomers = await readingService.getActiveCustomersCount()
+  }
 
   const sectorProfile = sectorResult.data as SectorProfile | null
 
@@ -72,8 +76,9 @@ export async function getReaderDashboardDataAction() {
 export async function searchReaderCustomersAction(query: string) {
   const { supabase, userId } = await requireReaderAuth()
   const sectorId = await getAssignedSectorId(userId, supabase)
+  if (!sectorId) throw new Error('No tiene un sector asignado. Contacte al administrador.')
   const customerService = getCustomerService(supabase)
-  return await customerService.searchCustomers(query, sectorId || undefined)
+  return await customerService.searchCustomers(query, sectorId)
 }
 
 export async function getLatestReadingAction(customerId: string) {
@@ -101,7 +106,8 @@ export async function registerReadingAction(data: {
     .eq('id', data.customer_id)
     .single()
 
-  if (sectorId && customer?.sector_id && customer.sector_id !== sectorId) {
+  if (!sectorId) throw new Error('No tiene un sector asignado. Contacte al administrador.')
+  if (!customer?.sector_id || customer.sector_id !== sectorId) {
     throw new Error('No puede registrar lecturas de suministros fuera de su sector asignado')
   }
 

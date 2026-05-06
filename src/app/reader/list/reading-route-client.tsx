@@ -31,7 +31,13 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
   useEffect(() => {
     let cancelled = false
 
-    customerService.getActiveCustomersWithReadings(assignedSector?.id || undefined)
+    if (!assignedSector) {
+      setCustomers([])
+      setLoading(false)
+      return
+    }
+
+    customerService.getActiveCustomersWithReadings(assignedSector.id)
       .then((data) => {
         if (cancelled) return
         const formatted = data?.map((c) => ({
@@ -97,9 +103,9 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
             Cargando ruta...
           </div>
         ) : customers.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {assignedSector ? 'No hay suministros en su sector asignado' : 'No hay suministros disponibles'}
-          </div>
+    <div className="text-center py-8 text-muted-foreground">
+      {assignedSector ? 'No hay suministros en su sector asignado' : 'No tiene un sector asignado. Contacte al administrador para que le asigne un sector.'}
+    </div>
         ) : (
           <div className="space-y-3">
             {customers.map((customer, index) => (
