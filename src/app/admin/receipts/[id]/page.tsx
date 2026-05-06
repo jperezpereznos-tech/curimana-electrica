@@ -1,4 +1,4 @@
-﻿import { getReceiptService } from '@/services/receipt-service'
+import { getReceiptService } from '@/services/receipt-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -32,7 +32,7 @@ export default async function ReceiptDetailsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
+        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
           <h2 className="text-3xl font-bold tracking-tight">Recibo</h2>
           <div className="flex items-center gap-2 text-muted-foreground">

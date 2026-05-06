@@ -39,13 +39,13 @@ export function TopDebtors() {
     return () => { cancelled = true }
   }, [])
 
-if (loading) {
+  if (loading) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-destructive" />
-Mayores Deudores
+            Mayores Deudores
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -106,17 +106,15 @@ Mayores Deudores
                 <span className="font-bold text-destructive">
                   {formatCurrency(debtor.current_debt || 0)}
                 </span>
-                <Link href={`/admin/customers/${debtor.id}`}>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </Link>
+                <Button variant="ghost" size="icon" className="h-8 w-8" nativeButton={false} render={<Link href={`/admin/customers/${debtor.id}`} />}>
+                  <Eye className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           ))
         )}
         
-        <Button variant="ghost" className="w-full text-sm" render={<Link href="/admin/customers">Ver todos <ChevronRight className="h-4 w-4 ml-1" /></Link>} />
+        <Button variant="ghost" className="w-full text-sm" nativeButton={false} render={<Link href="/admin/customers">Ver todos <ChevronRight className="h-4 w-4 ml-1" /></Link>} />
       </CardContent>
     </Card>
   )

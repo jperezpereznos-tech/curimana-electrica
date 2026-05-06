@@ -190,7 +190,7 @@ function NewReadingContent() {
   return (
     <div className="flex flex-col gap-6 pb-20">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" render={<Link href="/reader"><ArrowLeft className="h-5 w-5" /></Link>} />
+          <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/reader"><ArrowLeft className="h-5 w-5" /></Link>} />
           <h2 className="text-xl font-bold">Nueva Lectura</h2>
         </div>
 

@@ -161,7 +161,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: { ini
  </Badge>
  </TableCell>
  <TableCell className="text-right flex justify-end gap-2">
-        <Button variant="ghost" size="icon" render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
+        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
         <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)}>
           <Download className="h-4 w-4" />
         </Button>

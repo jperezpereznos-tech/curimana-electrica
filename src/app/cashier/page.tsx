@@ -34,7 +34,7 @@ export default async function CashierDashboard() {
           <p className="text-muted-foreground">
           No tienes una caja abierta. Abre una sesion para registrar cobros.
           </p>
-          <Button render={<Link href="/cashier/closure">Abrir caja</Link>} />
+          <Button nativeButton={false} render={<Link href="/cashier/closure">Abrir caja</Link>} />
         </div>
       ) : (
         <CashierSearch closureId={activeClosure.id} />

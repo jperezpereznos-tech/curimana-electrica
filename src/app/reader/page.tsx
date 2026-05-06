@@ -88,9 +88,9 @@ export default function ReaderDashboard() {
         </div>
 
         <div className="flex flex-col gap-3 mt-4">
-          <Button size="lg" className="h-20 text-lg gap-3" render={<Link href="/reader/new"><Camera className="h-6 w-6" /> Nueva Lectura</Link>} />
-          <Button variant="outline" size="lg" className="h-16 gap-3" render={<Link href="/reader/search"><Search className="h-5 w-5" /> Buscar Suministro</Link>} />
-          <Button variant="outline" size="lg" className="h-16 gap-3" render={<Link href="/reader/list"><List className="h-5 w-5" /> Ruta de Lectura</Link>} />
+          <Button size="lg" className="h-20 text-lg gap-3" nativeButton={false} render={<Link href="/reader/new"><Camera className="h-6 w-6" /> Nueva Lectura</Link>} />
+          <Button variant="outline" size="lg" className="h-16 gap-3" nativeButton={false} render={<Link href="/reader/search"><Search className="h-5 w-5" /> Buscar Suministro</Link>} />
+          <Button variant="outline" size="lg" className="h-16 gap-3" nativeButton={false} render={<Link href="/reader/list"><List className="h-5 w-5" /> Ruta de Lectura</Link>} />
         </div>
 
         {periodInfo && (
