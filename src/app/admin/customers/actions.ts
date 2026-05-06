@@ -14,7 +14,7 @@ const customerSchema = z.object({
   sector: z.string().optional().nullable(),
   sector_id: z.string().optional().nullable(),
   tariff_id: z.string().optional().nullable(),
-  connection_type: z.enum(['monofasico', 'trifasico']).optional().nullable(),
+  connection_type: z.enum(['monofásico', 'trifásico']).optional().nullable(),
   is_active: z.boolean().optional().nullable(),
   current_debt: z.number().optional().nullable(),
 })
