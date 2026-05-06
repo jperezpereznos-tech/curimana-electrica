@@ -2,131 +2,139 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
+const ROLE_COOKIE = 'x-user-role'
+const ROLE_COOKIE_MAX_AGE = 3600
+
 export async function proxy(request: NextRequest) {
-  const url = request.nextUrl.clone()
+ const url = request.nextUrl.clone()
 
-  let supabaseResponse = NextResponse.next({ request })
+ let supabaseResponse = NextResponse.next({ request })
 
-  // Crear un solo cliente Supabase con manejo correcto de cookies
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet, headers) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-          Object.entries(headers).forEach(([key, value]) =>
-            supabaseResponse.headers.set(key, value)
-          )
-        },
-      },
-    }
-  )
+ const supabase = createServerClient(
+ process.env.NEXT_PUBLIC_SUPABASE_URL!,
+ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+ {
+ cookies: {
+ getAll() {
+ return request.cookies.getAll()
+ },
+ setAll(cookiesToSet, headers) {
+ cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+ supabaseResponse = NextResponse.next({ request })
+ cookiesToSet.forEach(({ name, value, options }) =>
+ supabaseResponse.cookies.set(name, value, options)
+ )
+ Object.entries(headers).forEach(([key, value]) =>
+ supabaseResponse.headers.set(key, value)
+ )
+ },
+ },
+ }
+ )
 
  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
  if (claimsError) console.error('[PROXY] getClaims error:', claimsError.message)
- const user = claimsData ? { sub: claimsData.claims.sub, role: claimsData.claims.role } : null
+ const userId = claimsData ? claimsData.claims.sub : null
 
- // 1. Si no hay usuario y no está en /login, redirigir a /login
- if (!user && url.pathname !== '/login') {
-    url.pathname = '/login'
-    const response = NextResponse.redirect(url)
-    supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
-    return response
-  }
+ if (!userId && url.pathname !== '/login') {
+ url.pathname = '/login'
+ const response = NextResponse.redirect(url)
+ supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+ response.cookies.delete(ROLE_COOKIE)
+ return response
+ }
 
-  // Helper: obtener rol del usuario usando SECURITY DEFINER function
-  const getUserRole = async (): Promise<string | null> => {
-    const { data, error } = await supabase.rpc('get_user_role')
-    if (error) {
-      console.error('PROXY get_user_role error:', error)
-      return null
-    }
-    return data as string | null
-  }
+ const getCachedRole = (): string | null => {
+ return request.cookies.get(ROLE_COOKIE)?.value ?? null
+ }
 
-  // 2. Si hay usuario y está en /login o en la raíz /, redirigir al dashboard según rol
-  if (user && (url.pathname === '/login' || url.pathname === '/')) {
-    const role = await getUserRole()
+ const fetchAndCacheRole = async (): Promise<string | null> => {
+ const { data, error } = await supabase.rpc('get_user_role')
+ if (error) {
+ console.error('[PROXY] get_user_role error:', JSON.stringify({ message: error.message, details: error.details, hint: error.hint, code: error.code }))
+ return null
+ }
+ const role = data as string | null
+ if (role) {
+ supabaseResponse.cookies.set(ROLE_COOKIE, role, {
+ path: '/',
+ maxAge: ROLE_COOKIE_MAX_AGE,
+ httpOnly: true,
+ sameSite: 'lax',
+ })
+ }
+ return role
+ }
 
-    if (role === 'admin') {
-      url.pathname = '/admin'
-    } else if (role === 'cashier') {
-      url.pathname = '/cashier'
-    } else if (role === 'meter_reader') {
-      url.pathname = '/reader'
-    } else {
-      // Sin rol válido, dejar en / para que el frontend muestre el error
-      if (url.pathname === '/login') {
-        url.pathname = '/'
-      } else {
-        return supabaseResponse
-      }
-    }
-    const response = NextResponse.redirect(url)
-    supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
-    return response
-  }
+ const getRole = async (): Promise<string | null> => {
+ const cached = getCachedRole()
+ if (cached) return cached
+ return fetchAndCacheRole()
+ }
 
-  // 3. Protección por roles - solo para rutas protegidas
-  const isProtectedRoute = url.pathname.startsWith('/admin') || 
-                           url.pathname.startsWith('/cashier') || 
-                           url.pathname.startsWith('/reader')
+ if (userId && (url.pathname === '/login' || url.pathname === '/')) {
+ const role = await getRole()
 
-  if (user && isProtectedRoute) {
-    const role = await getUserRole()
+ if (role === 'admin') {
+ url.pathname = '/admin'
+ } else if (role === 'cashier') {
+ url.pathname = '/cashier'
+ } else if (role === 'meter_reader') {
+ url.pathname = '/reader'
+ } else {
+ if (url.pathname === '/login') {
+ url.pathname = '/'
+ } else {
+ return supabaseResponse
+ }
+ }
+ const response = NextResponse.redirect(url)
+ supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+ return response
+ }
 
-    // Si hubo error al consultar el perfil, dejar pasar a la página raíz para que el frontend maneje el error
-    if (!role) {
-      url.pathname = '/'
-      const response = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
-      return response
-    }
+ const isProtectedRoute = url.pathname.startsWith('/admin') ||
+ url.pathname.startsWith('/cashier') ||
+ url.pathname.startsWith('/reader')
 
-    if (url.pathname.startsWith('/admin') && role !== 'admin') {
-      url.pathname = '/'
-      const response = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
-      return response
-    }
+ if (userId && isProtectedRoute) {
+ const role = await getRole()
 
-    if (url.pathname.startsWith('/cashier') && !['admin', 'cashier'].includes(role)) {
-      url.pathname = '/'
-      const response = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
-      return response
-    }
+ if (!role) {
+ url.pathname = '/'
+ const response = NextResponse.redirect(url)
+ supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+ response.cookies.delete(ROLE_COOKIE)
+ return response
+ }
 
-    if (url.pathname.startsWith('/reader') && !['admin', 'meter_reader'].includes(role)) {
-      url.pathname = '/'
-      const response = NextResponse.redirect(url)
-      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
-      return response
-    }
-  }
+ if (url.pathname.startsWith('/admin') && role !== 'admin') {
+ url.pathname = '/'
+ const response = NextResponse.redirect(url)
+ supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+ return response
+ }
 
-  return supabaseResponse
+ if (url.pathname.startsWith('/cashier') && !['admin', 'cashier'].includes(role)) {
+ url.pathname = '/'
+ const response = NextResponse.redirect(url)
+ supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+ return response
+ }
+
+ if (url.pathname.startsWith('/reader') && !['admin', 'meter_reader'].includes(role)) {
+ url.pathname = '/'
+ const response = NextResponse.redirect(url)
+ supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+ return response
+ }
+ }
+
+ return supabaseResponse
 }
 
 export const config = {
-  matcher: [
-  /*
-   * Match all request paths except for the ones starting with:
-   * - _next/static (static files)
-   * - _next/image (image optimization files)
-   * - favicon.ico (favicon file)
-   * - public (public assets)
-   * - sw.js (service worker)
-   * - manifest.json (PWA manifest)
-   */
-  '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|sw.js|manifest\\.json).*)',
-  ],
+ matcher: [
+ '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|sw.js|manifest\\.json).*)',
+ ],
 }
