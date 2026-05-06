@@ -3,8 +3,8 @@
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import {
- LayoutDashboard, Users, Zap, Receipt, Wallet,
- LogOut, Menu, Calendar, Tag, ClipboardList, MapPin, Shield, BookOpen
+  LayoutDashboard, Users, Zap, Receipt, Wallet,
+  LogOut, Menu, Calendar, Tag, ClipboardList, MapPin, Shield, BookOpen
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -24,8 +24,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { name: 'Lecturas', href: '/admin/readings', icon: BookOpen },
     { name: 'Tarifas', href: '/admin/tariffs', icon: Zap },
     { name: 'Recibos', href: '/admin/receipts', icon: Receipt },
- { name: 'Pagos', href: '/admin/payments', icon: Wallet },
- { name: 'Periodos', href: '/admin/periods', icon: Calendar },
+    { name: 'Pagos', href: '/admin/payments', icon: Wallet },
+    { name: 'Periodos', href: '/admin/periods', icon: Calendar },
     { name: 'Conceptos', href: '/admin/concepts', icon: Tag },
     { name: 'Auditoria', href: '/admin/audit', icon: ClipboardList },
   ]
@@ -43,7 +43,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         !isSidebarOpen && "-ml-64"
       )}>
         <div className="p-6">
-          <h1 className="text-xl font-bold">Curimana Admin</h1>
+          <h1 className="text-xl font-bold">Municipalidad Distrital de Curimana</h1>
         </div>
         <nav className="mt-6 px-4 space-y-2">
           {navItems.map((item) => (
