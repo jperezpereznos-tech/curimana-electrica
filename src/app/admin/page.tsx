@@ -9,18 +9,18 @@ import { DownloadReports } from './download-reports'
 import type { RevenueEntry, SectorEntry } from '@/types/views'
 
 export default async function AdminDashboard() {
-  const supabase = await createClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  const dashboardService = getDashboardService(supabase)
+ const supabase = await createClient()
+ const { data: claimsData, error: authErr } = await supabase.auth.getClaims()
+ const dashboardService = getDashboardService(supabase)
 
-  let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
-  let revenueHistory: RevenueEntry[] = []
-  let sectorData: SectorEntry[] = []
-  let fetchErrors: string[] = []
+ let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
+ let revenueHistory: RevenueEntry[] = []
+ let sectorData: SectorEntry[] = []
+ const fetchErrors: string[] = []
 
-  if (authErr || !user) {
-    fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
-  }
+ if (authErr || !claimsData) {
+ fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
+ }
 
   try { kpis = await dashboardService.getSummaryKPIs() } catch (e) { fetchErrors.push(`KPIs: ${e instanceof Error ? e.message : String(e)}`) }
   try { revenueHistory = await dashboardService.getRevenueHistory() } catch (e) { fetchErrors.push(`Ingresos: ${e instanceof Error ? e.message : String(e)}`) }

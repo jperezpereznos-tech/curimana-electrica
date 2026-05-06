@@ -7,10 +7,10 @@ import { redirect } from 'next/navigation'
 
 export default async function CashierDashboard() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+ const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims()
+ if (claimsErr || !claimsData) redirect('/login')
 
-  const userId = user.id
+ const userId = claimsData.claims.sub
   const svc = getCashClosureService(supabase)
   const activeClosure = await svc.getActiveClosure(userId)
 

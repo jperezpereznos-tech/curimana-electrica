@@ -30,11 +30,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refrescar sesión y obtener usuario
-  const { data: { user } } = await supabase.auth.getUser()
+ const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
+ if (claimsError) console.error('[PROXY] getClaims error:', claimsError.message)
+ const user = claimsData ? { sub: claimsData.claims.sub, role: claimsData.claims.role } : null
+ console.log('[PROXY] claims:', claimsData ? `sub=${claimsData.claims.sub} role=${claimsData.claims.role}` : 'null')
 
-  // 1. Si no hay usuario y no está en /login, redirigir a /login
-  if (!user && url.pathname !== '/login') {
+ // 1. Si no hay usuario y no está en /login, redirigir a /login
+ if (!user && url.pathname !== '/login') {
     url.pathname = '/login'
     const response = NextResponse.redirect(url)
     supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
