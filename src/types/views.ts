@@ -28,7 +28,7 @@ export type ReaderProfilePartial = {
 
 export type ReceiptWithPeriod = ReceiptRow & {
   billing_periods: { name: string } | null
-  customers: { full_name: string; supply_number: string } | null
+  customers: { full_name: string; supply_number: string; address?: string | null; sector?: string | null } | null
 }
 
 export type ReceiptForCustomer = ReceiptRow & {
@@ -40,7 +40,7 @@ export type ReceiptWithFullDetails = ReceiptRow & {
   customers: CustomerRow & {
     tariffs: TariffRow & { tariff_tiers: TariffTierRow[] } | null
   } | null
-  readings: DB['readings']['Row'][] | null
+  readings: DB['readings']['Row'] | null
 }
 
 export type PaymentWithDetails = PaymentRow & {

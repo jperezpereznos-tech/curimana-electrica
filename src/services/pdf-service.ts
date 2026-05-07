@@ -2,44 +2,48 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
+interface ConceptBreakdownItem {
+  name: string
+  amount: number
+}
+
 interface ReceiptPdfData {
-  customers?: { supply_number?: string; full_name?: string; address?: string; sector?: string } | null
+  customers?: { supply_number?: string | null; full_name?: string | null; address?: string | null; sector?: string | null } | null
   billing_periods: { name: string } | null
   receipt_number: string | number
   total_amount: number
   due_date: string
   energy_amount: number
   fixed_charges: number
-  igv?: number | null
   previous_debt: number | null
-  municipality_config?: { ruc?: string; name?: string }
+  subtotal: number
+  municipality_config?: { ruc?: string; name?: string } | null
+  conceptsBreakdown?: ConceptBreakdownItem[]
 }
 
 export class PdfService {
   generateReceiptPdf(data: ReceiptPdfData) {
-    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, previous_debt, municipality_config } = data
+    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, previous_debt, subtotal, municipality_config, conceptsBreakdown } = data
 
     const ruc = municipality_config?.ruc || '20123456789'
     const municipalityName = municipality_config?.name || 'MUNICIPALIDAD DE CURIMANA'
-    
-    const doc = new jsPDF()
-    const primaryColor = [0, 102, 204] // Azul municipal
 
-    // Header
+    const doc = new jsPDF()
+    const primaryColor = [0, 102, 204]
+
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
     doc.rect(0, 0, 210, 40, 'F')
-    
+
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(22)
-  doc.text(municipalityName, 15, 20)
-  doc.setFontSize(10)
-  doc.text('SISTEMA ELÉCTRICO MUNICIPAL', 15, 28)
-  doc.text(`RUC: ${ruc}`, 15, 34)
+    doc.text(municipalityName, 15, 20)
+    doc.setFontSize(10)
+    doc.text('SISTEMA ELÉCTRICO MUNICIPAL', 15, 28)
+    doc.text(`RUC: ${ruc}`, 15, 34)
 
     doc.setFontSize(16)
     doc.text(`RECIBO N° ${receipt_number}`, 140, 25)
 
-    // Datos del Cliente
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
@@ -56,31 +60,41 @@ export class PdfService {
     doc.text(`Periodo: ${billing_periods?.name || ''}`, 140, 60)
     doc.text(`Vencimiento: ${formatDate(due_date)}`, 140, 66)
 
-    // Detalle de Consumo
     doc.setFont('helvetica', 'bold')
     doc.text('DETALLE DE CONSUMO Y CARGOS', 15, 90)
-    
+
+    const bodyRows: string[][] = [
+      ['Consumo de Energía', formatCurrency(energy_amount).replace('S/ ', '')],
+    ]
+
+    if (conceptsBreakdown && conceptsBreakdown.length > 0) {
+      for (const c of conceptsBreakdown) {
+        bodyRows.push([c.name, formatCurrency(c.amount).replace('S/ ', '')])
+      }
+    } else {
+      bodyRows.push(['Cargos Fijos y Otros', formatCurrency(fixed_charges).replace('S/ ', '')])
+    }
+
+    bodyRows.push(['Subtotal del Mes', formatCurrency(subtotal).replace('S/ ', '')])
+    bodyRows.push(['Deuda Anterior', formatCurrency(previous_debt ?? 0).replace('S/ ', '')])
+
     autoTable(doc, {
       startY: 94,
       head: [['Descripción', 'Importe (S/)']],
-      body: [
-        ['Consumo de Energía', formatCurrency(energy_amount).replace('S/ ', '')],
-        ['Cargos Fijos y Otros', formatCurrency(fixed_charges).replace('S/ ', '')],
-        ['Deuda Anterior', formatCurrency(previous_debt).replace('S/ ', '')],
-      ],
+      body: bodyRows,
       theme: 'striped',
       headStyles: { fillColor: primaryColor as unknown as number },
-      columnStyles: { 1: { halign: 'right' } }
+      columnStyles: {
+        1: { halign: 'right' }
+      }
     })
 
-    // Total
     const finalY = (doc as unknown as Record<string, { finalY: number }>).lastAutoTable.finalY + 10
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.text('TOTAL A PAGAR:', 120, finalY)
     doc.text(formatCurrency(total_amount), 170, finalY, { align: 'right' })
 
-    // Footer
     doc.setFontSize(8)
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(100, 100, 100)
@@ -88,7 +102,6 @@ export class PdfService {
     doc.text('Este documento es un comprobante de facturación interna de la Municipalidad de Curimana.', 105, footerY, { align: 'center' })
     doc.text('Si usted ya realizó el pago, por favor omita este recibo.', 105, footerY + 5, { align: 'center' })
 
-    // Save
     doc.save(`recibo_${customers?.supply_number || 'unknown'}_${(billing_periods?.name || 'periodo').replace(' ', '_')}.pdf`)
   }
 }

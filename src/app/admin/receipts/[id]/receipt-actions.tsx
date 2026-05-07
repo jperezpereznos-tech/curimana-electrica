@@ -7,16 +7,34 @@ import { pdfService } from '@/services/pdf-service'
 import { cancelReceiptAction } from '../actions'
 import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import type { ReceiptWithPeriod } from '@/types/views'
+import type { ReceiptWithFullDetails } from '@/types/views'
+import type { Database } from '@/types/database'
 
-export function ReceiptDetailActions({ receipt }: { receipt: ReceiptWithPeriod }) {
- const router = useRouter()
- const [cancelError, setCancelError] = useState<string | null>(null)
- const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+type MunicipalityConfig = Database['public']['Tables']['municipality_config']['Row']
 
- const handleDownload = () => {
- pdfService.generateReceiptPdf(receipt)
- }
+interface ConceptBreakdownItem {
+  name: string
+  amount: number
+}
+
+export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBreakdown }: { receipt: ReceiptWithFullDetails; municipalityConfig?: MunicipalityConfig | null; conceptsBreakdown?: ConceptBreakdownItem[] }) {
+  const router = useRouter()
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+
+  const handleDownload = () => {
+    pdfService.generateReceiptPdf({
+      ...receipt,
+      customers: receipt.customers ? {
+        supply_number: receipt.customers.supply_number,
+        full_name: receipt.customers.full_name,
+        address: receipt.customers.address ?? undefined,
+        sector: receipt.customers.sector ?? undefined,
+      } : null,
+      municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,
+      conceptsBreakdown,
+    })
+  }
 
  const handleCancel = async () => {
  setCancelError(null)

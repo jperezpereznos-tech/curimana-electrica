@@ -14,7 +14,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
   }) {
     let query = this.supabase
       .from('receipts')
-      .select('*, customers(full_name, supply_number), billing_periods(name)')
+          .select('*, customers(full_name, supply_number, address, sector), billing_periods(name)')
       .order('receipt_number', { ascending: false })
 
     if (filters?.periodId) query = query.eq('billing_period_id', filters.periodId)

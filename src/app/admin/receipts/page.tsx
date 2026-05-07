@@ -3,6 +3,9 @@ import { getPeriodService } from '@/services/period-service'
 import { createClient } from '@/lib/supabase/server'
 import { ReceiptsList } from './receipts-list'
 import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
+import type { Database } from '@/types/database'
+
+type MunicipalityConfig = Database['public']['Tables']['municipality_config']['Row']
 
 export default async function ReceiptsPage({
   searchParams,
@@ -28,6 +31,12 @@ export default async function ReceiptsPage({
 
   try { periods = await periodService.getAllPeriods() } catch (e) { errorMsg += (errorMsg ? ' | ' : '') + (e instanceof Error ? e.message : String(e)) }
 
+  let municipalityConfig: MunicipalityConfig | null = null
+  try {
+    const { data } = await supabase.from('municipality_config').select('*').limit(1).single()
+    municipalityConfig = data
+  } catch {}
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
@@ -47,6 +56,7 @@ export default async function ReceiptsPage({
         initialReceipts={receipts || []}
         periods={periods}
         currentFilters={params}
+        municipalityConfig={municipalityConfig}
       />
     </>
   )

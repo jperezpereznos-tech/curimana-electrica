@@ -33,6 +33,12 @@ export default async function ReceiptDetailsPage({
   const conceptService = getConceptService(supabase)
   const concepts = await conceptService.getActiveConcepts()
 
+  const { data: municipalityConfig } = await supabase
+    .from('municipality_config')
+    .select('*')
+    .limit(1)
+    .single()
+
   const tariffTiers = receipt.customers?.tariffs?.tariff_tiers ?? []
   const sortedTiers = [...tariffTiers].sort((a, b) => a.min_kwh - b.min_kwh)
 
@@ -101,7 +107,7 @@ export default async function ReceiptDetailsPage({
             <Badge variant="secondary">{receipt.billing_periods?.name ?? '-'}</Badge>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
+            <div id="receipt-printable" className="space-y-6">
               <div className="grid grid-cols-3 gap-4 bg-muted/50 p-4 rounded-lg">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground font-semibold uppercase">Lect. Anterior</p>
@@ -118,21 +124,21 @@ export default async function ReceiptDetailsPage({
               </div>
 
               <div className="space-y-2">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Energia Activa</span>
-                <span className="font-medium">{formatCurrency(receipt.energy_amount)}</span>
-              </div>
-              {breakdown.conceptsBreakdown.map((c, i) => (
-                <div key={i} className="flex justify-between items-center py-2 border-b">
-                  <span className="pl-6">{c.name}</span>
-                  <span className="font-medium">{formatCurrency(c.amount)}</span>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Energia Activa</span>
+                  <span className="font-medium">{formatCurrency(receipt.energy_amount)}</span>
                 </div>
-              ))}
-              <div className="flex justify-between items-center py-2 border-b font-semibold bg-muted/20 px-2 rounded">
-                <span>Subtotal del Mes</span>
-                <span>{formatCurrency(receipt.subtotal)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 text-destructive">
+                {breakdown.conceptsBreakdown.map((c, i) => (
+                  <div key={i} className="flex justify-between items-center py-2 border-b">
+                    <span className="pl-6">{c.name}</span>
+                    <span className="font-medium">{formatCurrency(c.amount)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center py-2 border-b font-semibold bg-muted/20 px-2 rounded">
+                  <span>Subtotal del Mes</span>
+                  <span>{formatCurrency(receipt.subtotal)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 text-destructive">
                   <span>Deuda de Meses Anteriores</span>
                   <span className="font-medium">{formatCurrency(receipt.previous_debt)}</span>
                 </div>
@@ -144,11 +150,11 @@ export default async function ReceiptDetailsPage({
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between border-t pt-6 bg-muted/10">
+          <CardFooter className="flex justify-between border-t pt-6 bg-muted/10 no-print">
             <div className="text-sm text-muted-foreground">
               <p><strong>Fecha Vencimiento:</strong> {formatDate(receipt.due_date)}</p>
             </div>
-            <ReceiptDetailActions receipt={receipt} />
+            <ReceiptDetailActions receipt={receipt} municipalityConfig={municipalityConfig} conceptsBreakdown={breakdown.conceptsBreakdown} />
           </CardFooter>
         </Card>
       </div>

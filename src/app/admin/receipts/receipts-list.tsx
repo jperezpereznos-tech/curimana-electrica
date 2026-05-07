@@ -31,12 +31,15 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { pdfService } from '@/services/pdf-service'
 import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
+import type { Database } from '@/types/database'
+
+type MunicipalityConfig = Database['public']['Tables']['municipality_config']['Row']
 
 const PAGE_SIZE = 25
 
 type ReceiptFilters = { q?: string; period?: string; status?: string }
 
-export function ReceiptsList({ initialReceipts, periods, currentFilters }: { initialReceipts: ReceiptWithPeriod[]; periods: PeriodRow[]; currentFilters: ReceiptFilters }) {
+export function ReceiptsList({ initialReceipts, periods, currentFilters, municipalityConfig }: { initialReceipts: ReceiptWithPeriod[]; periods: PeriodRow[]; currentFilters: ReceiptFilters; municipalityConfig?: MunicipalityConfig | null }) {
   const router = useRouter()
   const [q, setQ] = useState(currentFilters.q || '')
   const [page, setPage] = useState(1)
@@ -54,7 +57,10 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters }: { ini
   }
 
   const handleDownload = (receipt: ReceiptWithPeriod) => {
-    pdfService.generateReceiptPdf(receipt)
+    pdfService.generateReceiptPdf({
+      ...receipt,
+      municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,
+    })
   }
 
   return (
