@@ -49,7 +49,9 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
   const submittingRef = useRef(false)
 
   const isFullPayment = Math.abs(amountToPay - remaining) < 0.01
-  const change = Number(received) > amountToPay ? Number(received) - amountToPay : 0
+  const receivedNum = Number(received)
+  const change = receivedNum > amountToPay ? receivedNum - amountToPay : 0
+  const receivedIsEnough = receivedNum >= amountToPay
 
   const handlePayment = async () => {
     if (submittingRef.current) return
@@ -64,6 +66,14 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
       setError('El monto excede el saldo pendiente')
       return
     }
+    if (!received && rounded < remaining) {
+      setError('Ingresa el monto recibido en efectivo')
+      return
+    }
+    if (received && !receivedIsEnough) {
+      setError('El monto recibido debe ser mayor o igual al monto a cobrar')
+      return
+    }
 
     submittingRef.current = true
     setLoading(true)
@@ -74,7 +84,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
         cashClosureId: closureId,
         amount: rounded,
         paymentMethod: 'cash',
-        receivedAmount: Number(received) || rounded,
+        receivedAmount: receivedNum || rounded,
         changeAmount: change,
       })
 
@@ -133,33 +143,40 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
-            <Input
-              id="received"
-              type="number"
-              placeholder="0.00"
-              value={received}
-              onChange={(e) => setReceived(e.target.value)}
-            />
-          </div>
+  <div className="space-y-2">
+    <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
+    <Input
+      id="received"
+      type="number"
+      placeholder="0.00"
+      value={received}
+      onChange={(e) => setReceived(e.target.value)}
+    />
+  </div>
 
-          {Number(received) > 0 && (
-            <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
-              <span className="font-medium">Vuelto:</span>
-              <span className="text-2xl font-black">{formatCurrency(change)}</span>
-            </div>
-          )}
+  {receivedNum > 0 && !receivedIsEnough && (
+    <div className="flex justify-between items-center p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
+      <span className="font-medium">Falta:</span>
+      <span className="text-xl font-black">{formatCurrency(amountToPay - receivedNum)}</span>
+    </div>
+  )}
 
-          <DialogFooter>
-            <Button
-              className="w-full h-12 text-lg gap-2"
-              onClick={handlePayment}
-              disabled={loading || !amountToPay}
-            >
-              {loading ? 'Procesando...' : (
-                <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
-              )}
+  {receivedNum > 0 && receivedIsEnough && (
+    <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
+      <span className="font-medium">Vuelto:</span>
+      <span className="text-2xl font-black">{formatCurrency(change)}</span>
+    </div>
+  )}
+
+  <DialogFooter>
+    <Button
+      className="w-full h-12 text-lg gap-2"
+      onClick={handlePayment}
+      disabled={loading || !amountToPay || (receivedNum > 0 && !receivedIsEnough)}
+    >
+      {loading ? 'Procesando...' : (
+        <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
+      )}
             </Button>
           </DialogFooter>
         </div>
