@@ -35,9 +35,9 @@ export class ConceptService {
           record_id: result.id,
           action: 'INSERT',
           new_data: { code: concept.code, name: concept.name, type: concept.type, amount: concept.amount },
-          user_id: userId
-        })
-      } catch {}
+        user_id: userId
+      })
+    } catch (e) { console.error('Audit log failed for createConcept:', e) }
     }
 
     return result
@@ -55,7 +55,7 @@ export class ConceptService {
           new_data: concept,
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for updateConcept:', e) }
     }
 
     return result
@@ -73,7 +73,7 @@ export class ConceptService {
           new_data: { is_active: isActive },
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for toggleConceptStatus:', e) }
     }
 
     return result
@@ -89,9 +89,9 @@ export class ConceptService {
           record_id: id,
           action: 'DELETE',
           old_data: { id },
-          user_id: userId
-        })
-      } catch {}
+        user_id: userId
+      })
+    } catch (e) { console.error('Audit log failed for deleteConcept:', e) }
     }
 
     return result

@@ -11,9 +11,9 @@ import {
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 
 export default function SyncPage() {
- const {
- isOnline, pendingSyncCount, syncStatus, lastSyncTime, syncNow
- } = useOfflineSync()
+  const {
+    isOnline, pendingSyncCount, exhaustedSyncCount, syncStatus, lastSyncTime, syncNow
+  } = useOfflineSync()
 
  const [hasMounted, setHasMounted] = useState(false)
 
@@ -69,36 +69,54 @@ export default function SyncPage() {
  <div className="h-20 animate-pulse bg-muted rounded-lg" />
  </div>
  ) : (
- <div className="grid grid-cols-2 gap-3">
- <Card>
- <CardContent className="p-4">
- <div className="flex items-center gap-3">
- <div className="p-2 bg-blue-100 rounded-full">
- <Database className="h-5 w-5 text-blue-600" />
- </div>
- <div>
- <p className="text-2xl font-bold">{pendingSyncCount}</p>
- <p className="text-xs text-muted-foreground">Pendientes</p>
- </div>
- </div>
- </CardContent>
- </Card>
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-full">
+                <Database className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{pendingSyncCount}</p>
+                <p className="text-xs text-muted-foreground">Pendientes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
- <Card>
- <CardContent className="p-4">
- <div className="flex items-center gap-3">
- <div className="p-2 bg-green-100 rounded-full">
- <CheckCircle2 className="h-5 w-5 text-green-600" />
- </div>
- <div>
- <p className="text-sm font-medium">{formatLastSync()}</p>
- <p className="text-xs text-muted-foreground">Última sync</p>
- </div>
- </div>
- </CardContent>
- </Card>
- </div>
- )}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{formatLastSync()}</p>
+                <p className="text-xs text-muted-foreground">Última sync</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      )}
+
+      {hasMounted && exhaustedSyncCount > 0 && (
+        <Card className="border-amber-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-full">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-medium text-amber-700">{exhaustedSyncCount} lecturas sin reintentos</p>
+                <p className="text-xs text-muted-foreground">
+                  Alcanzaron el máximo de intentos. Reinténtalas manualmente desde Lecturas Pendientes.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
  <Card>
  <CardContent className="p-4 space-y-4">

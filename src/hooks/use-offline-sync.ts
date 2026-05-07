@@ -12,6 +12,7 @@ type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 const MAX_RETRIES = 5
 const BASE_SYNC_INTERVAL_MS = 30_000
 const MAX_SYNC_INTERVAL_MS = 300_000
+const IDLE_SYNC_INTERVAL_MS = 120_000
 const PHOTO_UPLOAD_TIMEOUT_MS = 20_000
 const READING_INSERT_TIMEOUT_MS = 15_000
 const CACHE_SYNC_TIMEOUT_MS = 10_000
@@ -34,6 +35,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [pendingCount, setPendingCount] = useState(0)
+  const [exhaustedCount, setExhaustedCount] = useState(0)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null)
   const { user } = useAuth()
@@ -44,6 +46,11 @@ export function useOfflineSync() {
     const pending = await db.pending_readings
       .where('status').anyOf(['pending', 'failed']).count()
     setPendingCount(pending)
+    const exhausted = await db.pending_readings
+      .where('status').equals('failed')
+      .filter(r => (r.retry_count || 0) >= MAX_RETRIES)
+      .count()
+    setExhaustedCount(exhausted)
   }, [])
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -160,10 +167,13 @@ const syncCustomerCache = useCallback(async () => {
 
       let hasError = false
 
-      for (const reading of pending) {
-        if (!isManual && (reading.retry_count || 0) >= MAX_RETRIES) {
-          continue
-        }
+  for (const reading of pending) {
+    if (!isManual && (reading.retry_count || 0) >= MAX_RETRIES) {
+      if (!reading.needs_review) {
+        await db.pending_readings.update(reading.id!, { needs_review: true })
+      }
+      continue
+    }
 
         try {
         if (assignedSectorIdRef.current && reading.sector_id && reading.sector_id !== assignedSectorIdRef.current) {
@@ -273,18 +283,31 @@ const syncCustomerCache = useCallback(async () => {
     let timeoutId: ReturnType<typeof setTimeout>
     let cancelled = false
 
-    const scheduleNext = async () => {
-      const failed = await db.pending_readings
-        .where('status').equals('failed')
-        .sortBy('retry_count')
-      const maxRetry = failed.length > 0 ? (failed[failed.length - 1].retry_count || 0) : 0
-      const delay = failed.length > 0 ? getBackoffDelay(maxRetry) : BASE_SYNC_INTERVAL_MS
+  const scheduleNext = async () => {
+    const pendingReadable = await db.pending_readings
+      .where('status').equals('pending')
+      .count()
+    const retryableFailed = await db.pending_readings
+      .where('status').equals('failed')
+      .filter(r => (r.retry_count || 0) < MAX_RETRIES)
+      .sortBy('retry_count')
+    const hasWork = pendingReadable > 0 || retryableFailed.length > 0
 
-      if (cancelled) return
-      timeoutId = setTimeout(() => {
-        if (!cancelled) void syncNow(false).then(scheduleNext)
-      }, delay)
+    let delay: number
+    if (!hasWork) {
+      delay = IDLE_SYNC_INTERVAL_MS
+    } else if (retryableFailed.length > 0) {
+      const maxRetry = retryableFailed[retryableFailed.length - 1].retry_count || 0
+      delay = getBackoffDelay(maxRetry)
+    } else {
+      delay = BASE_SYNC_INTERVAL_MS
     }
+
+    if (cancelled) return
+    timeoutId = setTimeout(() => {
+      if (!cancelled) void syncNow(false).then(scheduleNext)
+    }, delay)
+  }
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void syncNow(false).then(scheduleNext)
@@ -294,6 +317,7 @@ const syncCustomerCache = useCallback(async () => {
   return {
     isOnline,
     pendingSyncCount: pendingCount,
+    exhaustedSyncCount: exhaustedCount,
     syncStatus,
     lastSyncTime,
     syncNow: () => syncNow(true)

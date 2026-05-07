@@ -38,3 +38,11 @@ export async function updateCustomerAction(id: string, data: unknown) {
   revalidatePath('/admin/customers')
   return result
 }
+
+export async function deleteCustomerAction(id: string) {
+  const { supabase, userId } = await requireAdminAuth()
+  const customerService = getCustomerService(supabase)
+
+  await customerService.deleteCustomer(id, userId)
+  revalidatePath('/admin/customers')
+}

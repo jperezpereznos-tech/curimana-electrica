@@ -28,11 +28,17 @@ export async function adminSearchCustomerReceiptsAction(query: string) {
 }
 
 export async function voidPaymentAction(paymentId: string) {
- const { supabase, userId } = await requireAdminAuth()
- const paymentService = getPaymentService(supabase)
+  const { supabase, userId } = await requireAdminAuth()
+  const paymentService = getPaymentService(supabase)
 
- const result = await paymentService.voidPayment(paymentId, userId)
- revalidatePath('/admin/payments')
- revalidatePath('/admin/receipts')
- return result
+  const result = await paymentService.voidPayment(paymentId, userId)
+  revalidatePath('/admin/payments')
+  revalidatePath('/admin/receipts')
+  return result
+}
+
+export async function getPaymentDetailsAction(paymentId: string) {
+  const { supabase } = await requireAdminAuth()
+  const paymentService = getPaymentService(supabase)
+  return await paymentService.getPaymentDetails(paymentId)
 }

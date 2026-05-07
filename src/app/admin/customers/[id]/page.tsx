@@ -1,11 +1,11 @@
-import { getCustomerService } from '@/services/customer-service'
+﻿import { getCustomerService } from '@/services/customer-service'
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { MapPin, Phone, User, CreditCard, Activity } from 'lucide-react'
@@ -30,11 +30,14 @@ export default async function CustomerDetailsPage({
   const { customer, readings, receipts } = data
 
   let payments: PaymentForCustomer[] = []
+  let paymentsError: string | null = null
   try {
     const paymentService = getPaymentService(supabase)
     const allPayments = await paymentService.getPaymentsByCustomer(customer.id)
     payments = allPayments || []
-  } catch {}
+  } catch (e: unknown) {
+    paymentsError = e instanceof Error ? e.message : 'Error al cargar pagos'
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,6 +103,12 @@ export default async function CustomerDetailsPage({
         </Card>
       </div>
 
+      {paymentsError && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+          {paymentsError}
+        </div>
+      )}
+
       <Tabs defaultValue="readings" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="readings">Lecturas</TabsTrigger>
@@ -123,10 +132,10 @@ export default async function CustomerDetailsPage({
                 {readings.length === 0 ? (
                   <TableRow><TableCell colSpan={5} className="text-center">No hay registros</TableCell></TableRow>
                 ) : (
-  readings.map((r: ReadingWithBillingPeriod) => (
-  <TableRow key={r.id}>
-  <TableCell>{formatDate(r.reading_date)}</TableCell>
-  <TableCell>{r.billing_periods?.name}</TableCell>
+                  readings.map((r: ReadingWithBillingPeriod) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{formatDate(r.reading_date)}</TableCell>
+                      <TableCell>{r.billing_periods?.name}</TableCell>
                       <TableCell>{r.previous_reading}</TableCell>
                       <TableCell>{r.current_reading}</TableCell>
                       <TableCell className="font-bold">{r.consumption}</TableCell>
@@ -140,8 +149,8 @@ export default async function CustomerDetailsPage({
 
         <TabsContent value="receipts" className="mt-4">
           <Card className="p-4">
-        <CustomerReceiptsTab
-  receipts={receipts as ReceiptForCustomer[]}
+            <CustomerReceiptsTab
+              receipts={receipts as ReceiptForCustomer[]}
               customer={{ id: customer.id, full_name: customer.full_name }}
             />
           </Card>
@@ -164,10 +173,10 @@ export default async function CustomerDetailsPage({
                 {payments.length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="text-center">No hay pagos registrados</TableCell></TableRow>
                 ) : (
-  payments.map((p: PaymentForCustomer) => (
-  <TableRow key={p.id}>
-  <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
-  <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
+                  payments.map((p: PaymentForCustomer) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono">{p.receipts?.receipt_number ?? '-'}</TableCell>
+                      <TableCell>{p.receipts?.billing_periods?.name ?? '-'}</TableCell>
                       <TableCell>{formatDate(p.payment_date, { includeTime: true })}</TableCell>
                       <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
                       <TableCell className="capitalize">{p.method}</TableCell>

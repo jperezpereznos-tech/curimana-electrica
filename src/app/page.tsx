@@ -55,14 +55,7 @@ export default function Home() {
             <li>Hubo un problema al crear tu perfil</li>
           </ul>
 
-          <div className="bg-muted p-3 rounded mb-6 font-mono text-xs">
-            <p>User ID: {user?.id || 'N/A'}</p>
-            <p>Email: {user?.email || 'N/A'}</p>
-            <p>Rol: {role || 'No asignado'}</p>
-            {profileError && <p className="text-destructive mt-2">Detalle del error: {profileError}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
             <Button onClick={() => signOut()} variant="destructive" className="w-full">
               Cerrar Sesión
             </Button>

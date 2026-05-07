@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS municipality_config (
 CREATE TABLE IF NOT EXISTS tariffs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  connection_type TEXT DEFAULT 'monofásico',
+  connection_type TEXT DEFAULT 'monofásico' CHECK (connection_type IN ('monofásico', 'trifásico')),
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS customers (
   sector_id UUID REFERENCES sectors(id),
   phone TEXT,
   tariff_id UUID REFERENCES tariffs(id),
-  connection_type TEXT DEFAULT 'monofásico',
+  connection_type TEXT DEFAULT 'monofásico' CHECK (connection_type IN ('monofásico', 'trifásico')),
   is_active BOOLEAN DEFAULT true,
   current_debt NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -160,15 +160,15 @@ CREATE TABLE IF NOT EXISTS readings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id),
   billing_period_id UUID REFERENCES billing_periods(id),
-  previous_reading NUMERIC NOT NULL,
-  current_reading NUMERIC NOT NULL,
-  consumption NUMERIC NOT NULL DEFAULT 0,
+  previous_reading NUMERIC NOT NULL CHECK (previous_reading >= 0),
+  current_reading NUMERIC NOT NULL CHECK (current_reading >= 0),
+  consumption NUMERIC NOT NULL DEFAULT 0 CHECK (consumption >= 0),
   needs_review BOOLEAN DEFAULT false,
   reading_date DATE DEFAULT CURRENT_DATE,
   photo_url TEXT,
   notes TEXT,
   is_estimated BOOLEAN DEFAULT false,
-  meter_reader_id UUID REFERENCES profiles(id),
+  meter_reader_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   sync_id TEXT,
   is_synced BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -189,12 +189,12 @@ CREATE TABLE IF NOT EXISTS receipts (
   consumption_kwh NUMERIC NOT NULL,
   period_start DATE NOT NULL,
   period_end DATE NOT NULL,
-  energy_amount NUMERIC NOT NULL,
+  energy_amount NUMERIC NOT NULL CHECK (energy_amount >= 0),
   fixed_charges NUMERIC NOT NULL,
   subtotal NUMERIC NOT NULL,
   igv NUMERIC DEFAULT 0,
   previous_debt NUMERIC DEFAULT 0,
-  total_amount NUMERIC NOT NULL,
+  total_amount NUMERIC NOT NULL CHECK (total_amount >= 0),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),
   issue_date DATE DEFAULT CURRENT_DATE,
   due_date DATE NOT NULL,
@@ -209,10 +209,10 @@ CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   receipt_id UUID REFERENCES receipts(id),
   customer_id UUID REFERENCES customers(id),
-  amount NUMERIC NOT NULL,
+  amount NUMERIC NOT NULL CHECK (amount > 0),
   method TEXT DEFAULT 'cash' CHECK (method = 'cash'),
   reference TEXT,
-  cashier_id UUID REFERENCES profiles(id),
+  cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   cash_closure_id UUID REFERENCES cash_closures(id),
   received_amount NUMERIC DEFAULT 0,
   change_amount NUMERIC DEFAULT 0,
@@ -225,9 +225,9 @@ CREATE TABLE IF NOT EXISTS payments (
 -- Cierre de caja
 CREATE TABLE IF NOT EXISTS cash_closures (
 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-cashier_id UUID REFERENCES profiles(id) DEFAULT auth.uid(),
+  cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL DEFAULT auth.uid(),
 closure_date DATE DEFAULT CURRENT_DATE,
-opening_amount NUMERIC NOT NULL,
+  opening_amount NUMERIC NOT NULL CHECK (opening_amount >= 0),
 total_collected NUMERIC DEFAULT 0,
 total_receipts INT DEFAULT 0,
 status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
@@ -461,16 +461,23 @@ DECLARE
   v_receipt RECORD;
   v_new_paid_amount NUMERIC;
   v_new_status TEXT;
+  v_user_role TEXT;
 BEGIN
+  SELECT role INTO v_user_role FROM profiles WHERE id = p_user_id;
+
+  IF v_user_role NOT IN ('admin', 'cashier') THEN
+    RAISE EXCEPTION 'Permiso denegado: solo administradores o cajeros pueden anular pagos';
+  END IF;
+
   SELECT id, receipt_id, amount, status INTO v_payment
   FROM payments WHERE id = p_payment_id;
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Pago no encontrado';
+    RAISE EXCEPTION 'Pago no encontrado (id: %)', p_payment_id;
   END IF;
 
   IF v_payment.status = 'voided' THEN
-    RAISE EXCEPTION 'El pago ya esta anulado';
+    RAISE EXCEPTION 'El pago ya esta anulado (id: %)', p_payment_id;
   END IF;
 
   UPDATE payments SET status = 'voided', voided_at = now()
@@ -623,7 +630,19 @@ CREATE TRIGGER customers_updated_at BEFORE UPDATE ON customers
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 CREATE TRIGGER receipts_updated_at BEFORE UPDATE ON receipts
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER sectors_updated_at BEFORE UPDATE ON sectors
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER tariffs_updated_at BEFORE UPDATE ON tariffs
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER billing_concepts_updated_at BEFORE UPDATE ON billing_concepts
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER municipality_config_updated_at BEFORE UPDATE ON municipality_config
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 CREATE INDEX IF NOT EXISTS idx_customers_supply_number ON customers(supply_number);
@@ -647,6 +666,15 @@ CREATE INDEX IF NOT EXISTS idx_profiles_assigned_sector_id ON profiles(assigned_
 CREATE INDEX IF NOT EXISTS idx_customers_is_active ON customers(is_active);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_readings_customer_date ON readings(customer_id, reading_date DESC);
+CREATE INDEX IF NOT EXISTS idx_readings_customer_period ON readings(customer_id, billing_period_id);
+CREATE INDEX IF NOT EXISTS idx_readings_meter_reader_id ON readings(meter_reader_id);
+CREATE INDEX IF NOT EXISTS idx_payments_cash_closure_id ON payments(cash_closure_id);
+CREATE INDEX IF NOT EXISTS idx_cash_closures_status ON cash_closures(status);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_table_name ON audit_logs(table_name);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_customers_is_active_sector ON customers(is_active, sector_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_status ON receipts(status);
+CREATE INDEX IF NOT EXISTS idx_receipts_due_date ON receipts(due_date);
 
 -- ============================================================================
 -- 6. RLS (Row Level Security) - Activar en todas las tablas
@@ -673,8 +701,21 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- ── roles ──
 CREATE POLICY "roles_select_authenticated" ON roles
-  FOR SELECT TO authenticated
-  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+FOR SELECT TO authenticated
+USING ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
+
+CREATE POLICY "Admin insert roles" ON roles
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Admin update roles" ON roles
+FOR UPDATE TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin')
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Admin delete roles" ON roles
+FOR DELETE TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin');
 
 -- ── sectors ──
 CREATE POLICY "Admin CRUD sectors" ON sectors
@@ -860,8 +901,18 @@ USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'))
 WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
 
 CREATE POLICY "Users read payments" ON payments
-  FOR SELECT TO authenticated
-  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+FOR SELECT TO authenticated
+USING (
+  (SELECT public.get_user_role()) IN ('admin', 'cashier')
+  OR (
+    (SELECT public.get_user_role()) = 'meter_reader'
+    AND EXISTS (
+      SELECT 1 FROM receipts
+      WHERE receipts.id = payments.receipt_id
+      AND (SELECT sector_id FROM customers WHERE customers.id = receipts.customer_id) = (SELECT public.get_user_sector_id())
+    )
+  )
+);
 
 -- ── cash_closures ──
 CREATE POLICY "Admin CRUD cash_closures" ON cash_closures

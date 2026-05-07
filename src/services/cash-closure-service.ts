@@ -45,7 +45,7 @@ export class CashClosureService {
         new_data: { opening_amount: initialAmount, status: 'open' },
         user_id: userId
       })
-    } catch {}
+    } catch (e) { console.error('Audit log failed for openClosure:', e) }
 
     return closure
   }
@@ -82,10 +82,10 @@ export class CashClosureService {
           record_id: id,
           action: 'UPDATE',
           new_data: { status: 'closed', total_collected: summary.total, total_receipts: summary.count },
-          user_id: userId
-        })
-      } catch {}
-    }
+        user_id: userId
+      })
+    } catch (e) { console.error('Audit log failed for closeClosure:', e) }
+  }
 
     return result
   }

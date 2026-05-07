@@ -9,6 +9,7 @@ import { Search, MapPin, CheckCircle2, Circle, AlertTriangle, Loader2, RotateCcw
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
+import { toast } from 'sonner'
 
 import { PendingReadingItem } from '@/types/views'
 
@@ -16,6 +17,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   pending: { label: 'Pendiente', variant: 'secondary', icon: Circle, className: '' },
   syncing: { label: 'Sincronizando', variant: 'outline', icon: Loader2, className: 'animate-spin' },
   failed: { label: 'Fallido', variant: 'destructive', icon: AlertTriangle, className: '' },
+  exhausted: { label: 'Sin reintentos', variant: 'destructive', icon: AlertTriangle, className: '' },
 }
 
 export default function PendingReadingsPage() {
@@ -34,7 +36,7 @@ export default function PendingReadingsPage() {
       address: r.address || 'Sin dirección',
       sector: r.sector || 'Sin sector',
       has_photo: !!r.photo_base64,
-      status: r.status || 'pending',
+      status: r.status === 'failed' && (r.retry_count || 0) >= 5 ? 'exhausted' : (r.status || 'pending'),
       retry_count: r.retry_count || 0,
     }))
   }, [])
@@ -66,11 +68,13 @@ export default function PendingReadingsPage() {
   const handleRetry = useCallback(async (readingId: string) => {
     setRetryingId(readingId)
     try {
-      await db.pending_readings.update(Number(readingId), { status: 'pending', retry_count: 0, last_attempt_time: undefined })
+      await db.pending_readings.update(Number(readingId), { status: 'pending', retry_count: 0, last_attempt_time: undefined, needs_review: undefined })
       const formatted = await loadReadings()
       setPendingReadings(formatted)
       syncNow()
-    } catch {} finally {
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al reintentar')
+    } finally {
       setRetryingId(null)
     }
   }, [loadReadings, syncNow])
@@ -81,6 +85,7 @@ export default function PendingReadingsPage() {
   )
 
   const failedCount = pendingReadings.filter(r => r.status === 'failed').length
+  const exhaustedCount = pendingReadings.filter(r => r.status === 'exhausted').length
   const completedCount = pendingReadings.filter(r => r.has_photo).length
   const totalCount = pendingReadings.length
 
@@ -88,12 +93,17 @@ export default function PendingReadingsPage() {
     <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Lecturas Pendientes</h2>
-          <div className="flex items-center gap-2">
-            {failedCount > 0 && (
-              <Badge variant="destructive" className="text-sm">
-                {failedCount} Fallidas
-              </Badge>
-            )}
+      <div className="flex items-center gap-2">
+        {exhaustedCount > 0 && (
+          <Badge variant="destructive" className="text-sm">
+            {exhaustedCount} Sin reintentos
+          </Badge>
+        )}
+        {failedCount > 0 && (
+          <Badge variant="destructive" className="text-sm">
+            {failedCount} Fallidas
+          </Badge>
+        )}
             <Badge variant="secondary" className="text-sm">
               {completedCount}/{totalCount} Completadas
             </Badge>
@@ -129,15 +139,16 @@ export default function PendingReadingsPage() {
               const StatusIcon = config.icon
               return (
                 <Card key={reading.id} className={
+                  reading.status === 'exhausted' ? 'border-red-300 bg-red-50/70' :
                   reading.status === 'failed' ? 'border-red-200 bg-red-50/50' :
                   reading.has_photo ? 'border-green-200 bg-green-50/50' : ''
                 }>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      {reading.has_photo && reading.status !== 'failed' ? (
+                      {reading.has_photo && reading.status !== 'failed' && reading.status !== 'exhausted' ? (
                         <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                       ) : (
-                        <StatusIcon className={`h-5 w-5 ${reading.status === 'failed' ? 'text-red-500' : 'text-muted-foreground'} mt-0.5 ${config.className}`} />
+                        <StatusIcon className={`h-5 w-5 ${(reading.status === 'failed' || reading.status === 'exhausted') ? 'text-red-500' : 'text-muted-foreground'} mt-0.5 ${config.className}`} />
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
@@ -158,33 +169,33 @@ export default function PendingReadingsPage() {
                               </Badge>
                             )}
                           </div>
-                        <div className="flex items-center gap-1">
-                          {reading.status === 'failed' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs text-destructive hover:text-destructive"
-                              disabled={retryingId === reading.id}
-                              onClick={() => handleRetry(reading.id)}
-                            >
-                              {retryingId === reading.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                              Reintentar
-                            </Button>
-                          )}
-                          <Link href={`/reader/new?supply=${reading.supply_number}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs">
-                              {reading.has_photo ? 'Editar' : 'Tomar Lectura'}
-                            </Button>
-                          </Link>
-                        </div>
+                          <div className="flex items-center gap-1">
+                            {(reading.status === 'failed' || reading.status === 'exhausted') && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-destructive hover:text-destructive"
+                                disabled={retryingId === reading.id}
+                                onClick={() => handleRetry(reading.id)}
+                              >
+                                {retryingId === reading.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                                Reintentar
+                              </Button>
+                            )}
+                            <Link href={`/reader/new?supply=${reading.supply_number}`}>
+                              <Button variant="ghost" size="sm" className="h-7 text-xs">
+                                {reading.has_photo ? 'Editar' : 'Tomar Lectura'}
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+        </Card>
+        )
+      })}
+    </div>
         )}
       </div>
   )

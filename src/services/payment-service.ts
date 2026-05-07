@@ -73,7 +73,7 @@ export class PaymentService {
         new_data: { amount, method: 'cash', receipt_id: receiptId },
         user_id: data.cashierUserId || closure.cashier_id
       })
-    } catch {}
+    } catch (e) { console.error('Audit log failed for processPayment:', e) }
 
     return payment
   }
@@ -152,10 +152,10 @@ export class PaymentService {
           action: 'UPDATE',
           old_data: { status: 'completed' },
           new_data: { status: 'voided' },
-          user_id: userId,
-        })
-      } catch {}
-    }
+        user_id: userId,
+      })
+    } catch (e) { console.error('Audit log failed for voidPayment:', e) }
+  }
   }
 
   async getAllPayments(filters?: { cashierId?: string; from?: string; to?: string }) {
@@ -164,6 +164,10 @@ export class PaymentService {
 
   async getPaymentsByCustomer(customerId: string) {
     return await this.paymentRepo.getPaymentsByCustomer(customerId)
+  }
+
+  async getPaymentDetails(paymentId: string) {
+    return await this.paymentRepo.getByIdWithDetails(paymentId)
   }
 }
 

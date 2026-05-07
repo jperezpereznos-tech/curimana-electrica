@@ -66,7 +66,7 @@ export class TariffService {
           new_data: { name: tariff.name, tiers_count: tiers.length },
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for createTariffWithValidation:', e) }
     }
 
     return result
@@ -88,7 +88,7 @@ export class TariffService {
           new_data: { is_active: isActive },
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for toggleTariffStatus:', e) }
     }
 
     return result
@@ -106,7 +106,7 @@ export class TariffService {
           old_data: { id },
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for deleteTariff:', e) }
     }
 
     return result
@@ -135,7 +135,7 @@ export class TariffService {
           new_data: { ...tariff, tiers_count: tiers.length },
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for updateTariffWithTiers:', e) }
     }
 
     return result

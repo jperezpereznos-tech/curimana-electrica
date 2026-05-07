@@ -109,7 +109,7 @@ export default function LoginPage() {
           </Form>
         </CardContent>
         <CardFooter className="text-center text-sm text-muted-foreground flex justify-center">
-          © 2026 Municipalidad Distrital de Curimana
+          © {new Date().getFullYear()} Municipalidad Distrital de Curimana
         </CardFooter>
       </Card>
     </div>

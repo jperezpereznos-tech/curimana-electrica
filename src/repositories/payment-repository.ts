@@ -31,6 +31,23 @@ export class PaymentRepository extends BaseRepository<'payments'> {
     return data
   }
 
+  async getByIdWithDetails(paymentId: string) {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select(`*,
+        receipts(receipt_number, total_amount, paid_amount, status, issue_date, due_date,
+          customers(full_name, supply_number, address, sector),
+          billing_periods(name)
+        ),
+        cashier:profiles!cashier_id(full_name)
+      `)
+      .eq('id', paymentId)
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
   async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {
     let query = this.supabase
       .from('payments')

@@ -35,10 +35,10 @@ export class CustomerService {
           record_id: customer.id,
           action: 'INSERT',
           new_data: { supply_number: customerData.supply_number, full_name: customerData.full_name },
-          user_id: userId
-        })
-      } catch {}
-    }
+        user_id: userId
+      })
+    } catch (e) { console.error('Audit log failed for registerCustomer:', e) }
+  }
 
     return customer
   }
@@ -55,10 +55,39 @@ export class CustomerService {
           new_data: customerData,
           user_id: userId
         })
-      } catch {}
+      } catch (e) { console.error('Audit log failed for updateCustomer:', e) }
     }
 
     return customer
+  }
+
+  async deleteCustomer(id: string, userId?: string) {
+    const customer = await this.customerRepo.getById(id)
+    if (!customer) throw new Error('Cliente no encontrado')
+
+    const { data: receipts } = await this.supabase
+      .from('receipts')
+      .select('id')
+      .eq('customer_id', id)
+      .limit(1)
+
+    if (receipts && receipts.length > 0) {
+      throw new Error('No se puede eliminar un cliente con recibos. Desactívelo en su lugar.')
+    }
+
+    await this.customerRepo.delete(id)
+
+    if (userId) {
+      try {
+        await this.auditSvc.log({
+          table_name: 'customers',
+          record_id: id,
+          action: 'DELETE',
+          old_data: { supply_number: customer.supply_number, full_name: customer.full_name },
+          user_id: userId
+        })
+      } catch (e) { console.error('Audit log failed for deleteCustomer:', e) }
+    }
   }
 
   async getTopDebtors(limit: number = 5) {

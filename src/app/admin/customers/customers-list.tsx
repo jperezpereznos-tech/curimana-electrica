@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
-import { updateCustomerAction } from './actions'
+import { updateCustomerAction, deleteCustomerAction } from './actions'
 import { EditCustomerDialog } from './edit-customer-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { CustomerWithRelations, TariffRow, SectorRow } from '@/types/views'
@@ -35,6 +35,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
   const [actionError, setActionError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [toggleTarget, setToggleTarget] = useState<{ id: string; isActive: boolean } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const router = useRouter()
 
   const customers = useMemo(() => initialCustomers, [initialCustomers])
@@ -49,6 +50,18 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
       router.refresh()
     } catch {
       setActionError(isActive ? 'Error al dar de baja el cliente.' : 'Error al reactivar el cliente.')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    setActionError(null)
+    try {
+      await deleteCustomerAction(id)
+      setDeleteTarget(null)
+      router.refresh()
+    } catch (e) {
+      setDeleteTarget(null)
+      setActionError(e instanceof Error ? e.message : 'Error al eliminar el cliente.')
     }
   }
 
@@ -150,15 +163,19 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                   }
                 />
           <DropdownMenuSeparator />
-          {customer.is_active ? (
-    <DropdownMenuItem className="text-destructive" onClick={() => setToggleTarget({ id: customer.id, isActive: false })}>
-              Dar de Baja
-            </DropdownMenuItem>
-            ) : (
-            <DropdownMenuItem onClick={() => setToggleTarget({ id: customer.id, isActive: true })}>
-              Reactivar
-            </DropdownMenuItem>
-          )}
+                {customer.is_active ? (
+                  <DropdownMenuItem className="text-destructive" onClick={() => setToggleTarget({ id: customer.id, isActive: false })}>
+                    Dar de Baja
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => setToggleTarget({ id: customer.id, isActive: true })}>
+                    Reactivar
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget({ id: customer.id, name: customer.full_name })}>
+                  Eliminar
+                </DropdownMenuItem>
               </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -181,15 +198,24 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
               <ChevronRight className="h-4 w-4" />
             </Button>
     </div>
-    <ConfirmDialog
-      open={!!toggleTarget}
-      onOpenChange={(open) => { if (!open) setToggleTarget(null) }}
-      title={toggleTarget?.isActive ? 'Reactivar Cliente' : 'Dar de Baja'}
-      description={toggleTarget?.isActive ? '¿Estás seguro de reactivar este cliente?' : '¿Estás seguro de dar de baja este cliente?'}
-      confirmLabel={toggleTarget?.isActive ? 'Reactivar' : 'Dar de Baja'}
-      destructive={!toggleTarget?.isActive}
-      onConfirm={() => toggleTarget && handleToggleActive(toggleTarget.id, toggleTarget.isActive)}
-    />
+        <ConfirmDialog
+          open={!!toggleTarget}
+          onOpenChange={(open) => { if (!open) setToggleTarget(null) }}
+          title={toggleTarget?.isActive ? 'Reactivar Cliente' : 'Dar de Baja'}
+          description={toggleTarget?.isActive ? '¿Estás seguro de reactivar este cliente?' : '¿Estás seguro de dar de baja este cliente?'}
+          confirmLabel={toggleTarget?.isActive ? 'Reactivar' : 'Dar de Baja'}
+          destructive={!toggleTarget?.isActive}
+          onConfirm={() => toggleTarget && handleToggleActive(toggleTarget.id, toggleTarget.isActive)}
+        />
+        <ConfirmDialog
+          open={!!deleteTarget}
+          onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+          title="Eliminar Cliente"
+          description={`¿Estás seguro de eliminar permanentemente a "${deleteTarget?.name}"? Solo se pueden eliminar clientes sin recibos.`}
+          confirmLabel="Eliminar"
+          destructive
+          onConfirm={() => deleteTarget && handleDelete(deleteTarget.id)}
+        />
   </div>
       )}
     </div>

@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+Table,
+TableBody,
+TableCell,
+TableHead,
+TableHeader,
+TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import { Calendar, Lock, Unlock, PlayCircle } from 'lucide-react'
 import { closePeriodAction } from './actions'
 import { formatDate } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { toast } from 'sonner'
 import type { PeriodRow } from '@/types/views'
 
 export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] }) {
@@ -41,9 +42,10 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
       let msg = `Periodo cerrado. Se generaron ${generated} recibos.`
       if (skipped > 0) msg += ` ${skipped} clientes sin lectura.`
       if (perCustomerErrors.length > 0) msg += ` Errores: ${perCustomerErrors.join('; ')}`
-      alert(msg)
-    } catch {
-      setError('Error al cerrar el periodo.')
+      toast.success(msg)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al cerrar el periodo.')
+      toast.error('Error al cerrar el periodo.')
     } finally {
       setLoading(null)
     }
@@ -93,9 +95,9 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
                 </TableCell>
                 <TableCell className="text-right">
                   {!period.is_closed && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="gap-2 border-primary text-primary hover:bg-primary/5"
                       onClick={() => setCloseTargetId(period.id)}
                       disabled={loading === period.id}
@@ -114,16 +116,16 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
             ))
           )}
         </TableBody>
-  </Table>
-    <ConfirmDialog
-      open={!!closeTargetId}
-      onOpenChange={(open) => { if (!open) setCloseTargetId(null) }}
-      title="Cerrar Periodo"
-      description="¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas."
-      confirmLabel="Cerrar y Generar Recibos"
-      destructive
-      onConfirm={() => closeTargetId && handleClosePeriod(closeTargetId)}
-    />
-  </div>
+      </Table>
+      <ConfirmDialog
+        open={!!closeTargetId}
+        onOpenChange={(open) => { if (!open) setCloseTargetId(null) }}
+        title="Cerrar Periodo"
+        description="¿Estás seguro de cerrar este periodo? Se generarán los recibos para todos los clientes y no se podrán editar más lecturas."
+        confirmLabel="Cerrar y Generar Recibos"
+        destructive
+        onConfirm={() => closeTargetId && handleClosePeriod(closeTargetId)}
+      />
+    </div>
   )
 }

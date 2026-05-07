@@ -153,7 +153,7 @@ const rows = initialPayments.map((p: PaymentWithDetails) => [
             ) : (
               paginated.map((payment: PaymentWithDetails) => (
                 <TableRow key={payment.id} className={payment.status === 'voided' ? 'opacity-50' : ''}>
-                  <TableCell className="font-mono text-xs">{payment.receipts?.receipt_number || 'N/A'}</TableCell>
+                  <TableCell className="font-mono text-xs"><a href={`/admin/payments/${payment.id}`} className="text-primary hover:underline">{payment.receipts?.receipt_number || 'N/A'}</a></TableCell>
                   <TableCell className="font-medium">{payment.receipts?.customers?.full_name || 'Desconocido'}</TableCell>
                   <TableCell className="font-mono text-xs">{payment.receipts?.customers?.supply_number || 'N/A'}</TableCell>
                   <TableCell className={payment.status === 'voided' ? 'line-through' : 'font-bold'}>{formatCurrency(payment.amount)}</TableCell>

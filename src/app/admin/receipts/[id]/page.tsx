@@ -1,4 +1,5 @@
 import { getReceiptService } from '@/services/receipt-service'
+import { getConceptService } from '@/services/concept-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -28,6 +29,25 @@ export default async function ReceiptDetailsPage({
   if (!receipt) {
     return notFound()
   }
+
+  const conceptService = getConceptService(supabase)
+  const concepts = await conceptService.getActiveConcepts()
+
+  const tariffTiers = receipt.customers?.tariffs?.tariff_tiers ?? []
+  const sortedTiers = [...tariffTiers].sort((a, b) => a.min_kwh - b.min_kwh)
+
+  const fixedConcepts = concepts.map(c => ({
+    name: c.name,
+    amount: c.amount,
+    type: c.type ?? 'fixed',
+  }))
+
+  const breakdown = receiptService.calculateBreakdown(
+    receipt.consumption_kwh ?? 0,
+    sortedTiers,
+    fixedConcepts,
+    receipt.previous_debt ?? 0
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -98,14 +118,16 @@ export default async function ReceiptDetailsPage({
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Energia Activa</span>
-                  <span className="font-medium">{formatCurrency(receipt.energy_amount)}</span>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Energia Activa</span>
+                <span className="font-medium">{formatCurrency(receipt.energy_amount)}</span>
+              </div>
+              {breakdown.conceptsBreakdown.map((c, i) => (
+                <div key={i} className="flex justify-between items-center py-2 border-b">
+                  <span className="pl-6">{c.name}</span>
+                  <span className="font-medium">{formatCurrency(c.amount)}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span>Cargos Fijos y Otros Conceptos</span>
-                  <span className="font-medium">{formatCurrency(receipt.fixed_charges)}</span>
-                </div>
+              ))}
                 <div className="flex justify-between items-center py-2 border-b font-semibold bg-muted/20 px-2 rounded">
                   <span>Subtotal del Mes</span>
                   <span>{formatCurrency(receipt.subtotal)}</span>

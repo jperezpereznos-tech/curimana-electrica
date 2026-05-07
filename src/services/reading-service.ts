@@ -47,9 +47,9 @@ export class ReadingService {
           action: 'INSERT',
           new_data: { customer_id: data.customer_id, previous_reading: previous, current_reading: current, consumption, needs_review: isMeterReset },
           user_id: userId,
-          user_role: 'meter_reader'
-        })
-      } catch {}
+        user_role: 'meter_reader'
+      })
+    } catch (e) { console.error('Audit log failed for registerReading:', e) }
     }
 
     return reading
@@ -103,9 +103,9 @@ export class ReadingService {
           action: 'UPDATE',
           new_data: { current_reading: current, previous_reading: previous, consumption, needs_review: isMeterReset },
           user_id: userId,
-          user_role: 'admin'
-        })
-      } catch {}
+        user_role: 'admin'
+      })
+    } catch (e) { console.error('Audit log failed for updateReading:', e) }
     }
 
     return updated

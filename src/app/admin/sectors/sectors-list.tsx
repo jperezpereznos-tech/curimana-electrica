@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MapPin, Users, Trash2, Power, PowerOff } from 'lucide-react'
 import { updateSectorAction, deleteSectorAction, assignReaderToSectorAction } from './actions'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { toast } from 'sonner'
 import type { Database } from '@/types/database'
 
 type Sector = Database['public']['Tables']['sectors']['Row']
@@ -17,6 +18,7 @@ type Reader = { id: string; full_name: string | null; email: string; assigned_se
 export function SectorsList({ initialSectors, readers }: { initialSectors: Sector[]; readers: Reader[] }) {
   const [sectors] = useState(initialSectors)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [toggleTarget, setToggleTarget] = useState<Sector | null>(null)
   const router = useRouter()
 
   const readersForSector = (sectorId: string) =>
@@ -27,23 +29,32 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
   const handleToggleActive = async (sector: Sector) => {
     try {
       await updateSectorAction(sector.id, { is_active: !sector.is_active })
+      toast.success(sector.is_active ? 'Sector desactivado' : 'Sector activado')
       router.refresh()
-    } catch {}
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al cambiar estado del sector')
+    }
   }
 
   const handleDelete = async (id: string) => {
     try {
       await deleteSectorAction(id)
       setDeleteTargetId(null)
+      toast.success('Sector eliminado')
       router.refresh()
-    } catch {}
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al eliminar sector')
+    }
   }
 
   const handleAssignReader = async (readerId: string, sectorId: string | null) => {
     try {
       await assignReaderToSectorAction(readerId, sectorId)
+      toast.success(sectorId ? 'Lecturador asignado' : 'Lecturador desasignado')
       router.refresh()
-    } catch {}
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Error al asignar lecturador')
+    }
   }
 
   return (
@@ -61,10 +72,10 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
                   {!sector.is_active && <Badge variant="secondary">Inactivo</Badge>}
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(sector)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={sector.is_active ? 'Desactivar sector' : 'Activar sector'} onClick={() => setToggleTarget(sector)}>
                     {sector.is_active ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTargetId(sector.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="Eliminar sector" onClick={() => setDeleteTargetId(sector.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -118,18 +129,27 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
 
       {sectors.length === 0 && (
         <div className="col-span-2 text-center py-12 text-muted-foreground">
-    No hay sectores registrados. Crea uno para empezar.
+          No hay sectores registrados. Crea uno para empezar.
+        </div>
+      )}
+      <ConfirmDialog
+        open={!!deleteTargetId}
+        onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}
+        title="Eliminar Sector"
+        description="¿Eliminar este sector? Los clientes asignados quedarán sin sector."
+        confirmLabel="Eliminar"
+        destructive
+        onConfirm={() => deleteTargetId && handleDelete(deleteTargetId)}
+      />
+      <ConfirmDialog
+        open={!!toggleTarget}
+        onOpenChange={(open) => { if (!open) setToggleTarget(null) }}
+        title={toggleTarget?.is_active ? 'Desactivar Sector' : 'Activar Sector'}
+        description={toggleTarget?.is_active ? '¿Desactivar este sector? Los lecturadores asignados no podrán ver suministros de este sector.' : '¿Activar este sector? Los lecturadores podrán ver suministros de este sector.'}
+        confirmLabel={toggleTarget?.is_active ? 'Desactivar' : 'Activar'}
+        destructive={!!toggleTarget?.is_active}
+        onConfirm={() => toggleTarget && handleToggleActive(toggleTarget)}
+      />
     </div>
-    )}
-    <ConfirmDialog
-      open={!!deleteTargetId}
-      onOpenChange={(open) => { if (!open) setDeleteTargetId(null) }}
-      title="Eliminar Sector"
-      description="¿Eliminar este sector? Los clientes asignados quedarán sin sector."
-      confirmLabel="Eliminar"
-      destructive
-      onConfirm={() => deleteTargetId && handleDelete(deleteTargetId)}
-    />
-  </div>
   )
 }
