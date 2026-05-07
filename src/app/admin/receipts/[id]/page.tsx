@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
 import { ReceiptDetailActions } from './receipt-actions'
+import './receipt-print.css'
 
 export default async function ReceiptDetailsPage({
   params,
@@ -57,7 +58,7 @@ export default async function ReceiptDetailsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 no-print">
         <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
           <h2 className="text-3xl font-bold tracking-tight">Recibo</h2>
@@ -71,7 +72,7 @@ export default async function ReceiptDetailsPage({
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div id="receipt-printable" className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -107,7 +108,7 @@ export default async function ReceiptDetailsPage({
             <Badge variant="secondary">{receipt.billing_periods?.name ?? '-'}</Badge>
           </CardHeader>
           <CardContent>
-            <div id="receipt-printable" className="space-y-6">
+            <div className="space-y-6">
               <div className="grid grid-cols-3 gap-4 bg-muted/50 p-4 rounded-lg">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground font-semibold uppercase">Lect. Anterior</p>
