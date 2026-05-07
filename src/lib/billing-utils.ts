@@ -28,11 +28,10 @@ export function calculateTotalReceipt(
   tiers: { min_kwh: number; max_kwh: number | null; price_per_kwh: number }[],
   fixedCharges: number,
   previousDebt: number
-): { energy_amount: number; fixed_charges: number; subtotal: number; igv: number; total_amount: number } {
+): { energy_amount: number; fixed_charges: number; subtotal: number; total_amount: number } {
   const energy_amount = calculateEnergyAmount(consumption, tiers)
   const subtotal = Math.round((energy_amount + fixedCharges) * 100) / 100
-  const igv = Math.round(subtotal * 0.18 * 100) / 100
-  const total_amount = Math.round((subtotal + igv + previousDebt) * 100) / 100
+  const total_amount = Math.round((subtotal + previousDebt) * 100) / 100
 
-  return { energy_amount, fixed_charges: fixedCharges, subtotal, igv, total_amount }
+  return { energy_amount, fixed_charges: fixedCharges, subtotal, total_amount }
 }

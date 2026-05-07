@@ -41,7 +41,7 @@ export class ReceiptService {
     const conceptsBreakdown = fixedConcepts.map(c => {
       let amount = 0
       if (c.type === 'fixed') amount = c.amount
-      if (c.type === 'percentage') amount = (energyAmount * c.amount) / 100
+      if (c.type === 'percentage') amount = ((energyAmount + totalFixed) * c.amount) / 100
       if (c.type === 'per_kwh') amount = consumption * c.amount
 
       totalFixed += amount
@@ -49,15 +49,13 @@ export class ReceiptService {
     })
 
     const subtotal = Math.round((energyAmount + totalFixed) * 100) / 100
-    const igv = Math.round(subtotal * 0.18 * 100) / 100
-    const total = Math.round((subtotal + igv + previousDebt) * 100) / 100
+    const total = Math.round((subtotal + previousDebt) * 100) / 100
 
     return {
       energyAmount,
       conceptsBreakdown,
       fixedCharges: Math.round(totalFixed * 100) / 100,
       subtotal,
-      igv,
       previousDebt,
       totalAmount: total
     }

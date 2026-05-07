@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   energy_amount NUMERIC NOT NULL CHECK (energy_amount >= 0),
   fixed_charges NUMERIC NOT NULL,
   subtotal NUMERIC NOT NULL,
-  igv NUMERIC DEFAULT 0,
+  igv NUMERIC DEFAULT 0, -- Exonerado en Ucayali; reservado para uso futuro
   previous_debt NUMERIC DEFAULT 0,
   total_amount NUMERIC NOT NULL CHECK (total_amount >= 0),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),

@@ -44,11 +44,11 @@ BEGIN
     END IF;
 
     -- 5. Conceptos de Cobro
-    INSERT INTO billing_concepts (code, name, amount, type, applies_to_tariff_id) VALUES
-    ('CF', 'Cargo Fijo', 3.50, 'fixed', v_tariff_id),
-    ('AP', 'Alumbrado Público', 4.20, 'fixed', NULL),
-    ('MT', 'Mantenimiento y Reposición', 1.50, 'fixed', NULL),
-    ('IGV', 'IGV (18%)', 18.00, 'percentage', NULL)
+INSERT INTO billing_concepts (code, name, amount, type, applies_to_tariff_id, is_active) VALUES
+      ('CF', 'Cargo Fijo', 3.50, 'fixed', v_tariff_id, true),
+      ('AP', 'Alumbrado Público', 4.20, 'fixed', NULL, true),
+      ('MT', 'Mantenimiento y Reposición', 1.50, 'fixed', NULL, true),
+      ('IGV', 'IGV (18%)', 18.00, 'percentage', NULL, false)
     ON CONFLICT (code) DO NOTHING;
 
 -- 6. Clientes de Prueba

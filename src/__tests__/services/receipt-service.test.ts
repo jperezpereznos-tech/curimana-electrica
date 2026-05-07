@@ -32,23 +32,21 @@ describe('ReceiptService - calculateBreakdown', () => {
     { name: 'Mantenimiento', amount: 1.50, type: 'fixed' }
   ]
 
-  it('debería calcular correctamente para 50 kWh con cargos fijos e IGV', () => {
+  it('debería calcular correctamente para 50 kWh con cargos fijos', () => {
     const result = service.calculateBreakdown(50, mockTiers, mockFixedConcepts)
 
     expect(result.energyAmount).toBe(21.70)
     expect(result.fixedCharges).toBe(9.20)
     expect(result.subtotal).toBe(30.90)
-    expect(result.igv).toBe(5.56)
-    expect(result.totalAmount).toBe(36.46)
+    expect(result.totalAmount).toBe(30.90)
   })
 
-  it('debería calcular correctamente para 0 kWh (solo cargos fijos + IGV)', () => {
+  it('debería calcular correctamente para 0 kWh (solo cargos fijos)', () => {
     const result = service.calculateBreakdown(0, mockTiers, mockFixedConcepts)
 
     expect(result.energyAmount).toBe(0)
     expect(result.subtotal).toBe(9.20)
-    expect(result.igv).toBe(1.66)
-    expect(result.totalAmount).toBe(10.86)
+    expect(result.totalAmount).toBe(9.20)
   })
 
   it('debería incluir la deuda anterior en el total', () => {
@@ -56,9 +54,8 @@ describe('ReceiptService - calculateBreakdown', () => {
     const result = service.calculateBreakdown(50, mockTiers, mockFixedConcepts, previousDebt)
 
     expect(result.subtotal).toBe(30.90)
-    expect(result.igv).toBe(5.56)
     expect(result.previousDebt).toBe(15.50)
-    expect(result.totalAmount).toBe(51.96)
+    expect(result.totalAmount).toBe(46.40)
   })
 
   it('debería manejar conceptos porcentuales adicionales', () => {
@@ -69,7 +66,7 @@ describe('ReceiptService - calculateBreakdown', () => {
     const result = service.calculateBreakdown(50, mockTiers, conceptsWithExtra)
 
     const extra = result.conceptsBreakdown.find(c => c.name === 'Fondo de Compensación')
-    expect(extra?.amount).toBe(1.09)
+    expect(extra?.amount).toBe(1.55)
   })
 })
 

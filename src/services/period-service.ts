@@ -142,12 +142,12 @@ export class PeriodService {
     const activeConcepts = await this.conceptRepo.getAllActive()
     const allReadings = await this.readingRepo.getReadingsByPeriod(id)
 
-    const receiptPayloads: {
-      customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
-      consumption_kwh: number; period_start: string; period_end: string; energy_amount: number;
-      fixed_charges: number; subtotal: number; igv: number; previous_debt: number;
-      total_amount: number; issue_date: string; due_date: string
-    }[] = []
+  const receiptPayloads: {
+    customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
+    consumption_kwh: number; period_start: string; period_end: string; energy_amount: number;
+    fixed_charges: number; subtotal: number; previous_debt: number;
+    total_amount: number; issue_date: string; due_date: string
+  }[] = []
     const skippedCustomers: string[] = []
     const errors: string[] = []
 
@@ -205,23 +205,22 @@ export class PeriodService {
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + graceDays)
 
-        receiptPayloads.push({
-          customer_id: customer.id,
-          reading_id: customerReading.id,
-          previous_reading: customerReading.previous_reading || 0,
-          current_reading: customerReading.current_reading || 0,
-          consumption_kwh: consumption,
-          period_start: period.start_date,
-          period_end: period.end_date,
-          energy_amount: receipt.energy_amount,
-          fixed_charges: receipt.fixed_charges,
-          subtotal: receipt.subtotal,
-          igv: receipt.igv,
-          previous_debt: previousDebt,
-          total_amount: receipt.total_amount,
-          issue_date: new Date().toISOString().split('T')[0],
-          due_date: dueDate.toISOString().split('T')[0],
-        })
+    receiptPayloads.push({
+      customer_id: customer.id,
+      reading_id: customerReading.id,
+      previous_reading: customerReading.previous_reading || 0,
+      current_reading: customerReading.current_reading || 0,
+      consumption_kwh: consumption,
+      period_start: period.start_date,
+      period_end: period.end_date,
+      energy_amount: receipt.energy_amount,
+      fixed_charges: receipt.fixed_charges,
+      subtotal: receipt.subtotal,
+      previous_debt: previousDebt,
+      total_amount: receipt.total_amount,
+      issue_date: new Date().toISOString().split('T')[0],
+      due_date: dueDate.toISOString().split('T')[0],
+    })
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         errors.push(`Cliente ${customer.id}: ${msg}`)

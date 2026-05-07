@@ -17,7 +17,7 @@ interface ReceiptPdfData {
 
 export class PdfService {
   generateReceiptPdf(data: ReceiptPdfData) {
-    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, igv, previous_debt, municipality_config } = data
+    const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, previous_debt, municipality_config } = data
 
     const ruc = municipality_config?.ruc || '20123456789'
     const municipalityName = municipality_config?.name || 'MUNICIPALIDAD DE CURIMANA'
@@ -66,7 +66,6 @@ export class PdfService {
       body: [
         ['Consumo de Energía', formatCurrency(energy_amount).replace('S/ ', '')],
         ['Cargos Fijos y Otros', formatCurrency(fixed_charges).replace('S/ ', '')],
-        ['IGV (18%)', formatCurrency(igv || 0).replace('S/ ', '')],
         ['Deuda Anterior', formatCurrency(previous_debt).replace('S/ ', '')],
       ],
       theme: 'striped',

@@ -88,29 +88,27 @@ serve(async (req) => {
           }
         }
 
-        fixedCharges = Math.round(fixedCharges * 100) / 100
-        const previousDebt = customer.current_debt || 0
+      fixedCharges = Math.round(fixedCharges * 100) / 100
+      const previousDebt = customer.current_debt || 0
 
-        const subtotal = Math.round((energy_amount + fixedCharges) * 100) / 100
-        const igv = Math.round(subtotal * 0.18 * 100) / 100
-        const total_amount = Math.round((subtotal + igv + previousDebt) * 100) / 100
+      const subtotal = Math.round((energy_amount + fixedCharges) * 100) / 100
+      const total_amount = Math.round((subtotal + previousDebt) * 100) / 100
 
-        const dueDate = new Date(period.end_date)
-        dueDate.setDate(dueDate.getDate() + graceDays)
+      const dueDate = new Date(period.end_date)
+      dueDate.setDate(dueDate.getDate() + graceDays)
 
-        const receipt = {
-          customer_id: customer.id,
-          reading_id: reading.id,
-          billing_period_id: period_id,
-          previous_reading: reading.previous_reading || 0,
-          current_reading: reading.current_reading || 0,
-          consumption_kwh: consumption,
-          energy_amount,
-          fixed_charges: fixedCharges,
-          subtotal,
-          igv,
-          previous_debt: previousDebt,
-          total_amount,
+      const receipt = {
+        customer_id: customer.id,
+        reading_id: reading.id,
+        billing_period_id: period_id,
+        previous_reading: reading.previous_reading || 0,
+        current_reading: reading.current_reading || 0,
+        consumption_kwh: consumption,
+        energy_amount,
+        fixed_charges: fixedCharges,
+        subtotal,
+        previous_debt: previousDebt,
+        total_amount,
           paid_amount: 0,
           status: 'pending',
           issue_date: new Date().toISOString().split('T')[0],
