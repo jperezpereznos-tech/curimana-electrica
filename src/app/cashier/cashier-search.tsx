@@ -23,7 +23,7 @@ const statusLabel: Record<string, { text: string; variant: 'default' | 'secondar
   cancelled: { text: 'Anulado', variant: 'outline' },
 }
 
-export function CashierSearch({ closureId }: { closureId: string }) {
+export function CashierSearch({ closureId, municipalityConfig }: { closureId: string; municipalityConfig?: { ruc?: string; name?: string } | null }) {
   const [q, setQ] = useState('')
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [receipts, setReceipts] = useState<ReceiptItem[]>([])
@@ -59,7 +59,7 @@ export function CashierSearch({ closureId }: { closureId: string }) {
   }, [q])
 
   const totalDebt = useMemo(() =>
-    receipts.reduce((sum, r) => sum + (r.total_amount - (r.paid_amount || 0)), 0),
+    Math.round(receipts.reduce((sum, r) => sum + (r.total_amount - (r.paid_amount || 0)), 0) * 100) / 100,
     [receipts]
   )
 
@@ -119,13 +119,14 @@ export function CashierSearch({ closureId }: { closureId: string }) {
                   <p className="text-3xl font-black text-destructive">{formatCurrency(totalDebt)}</p>
                 </div>
                 {receipts.length > 1 && (
-                  <BatchPaymentModal
-                    receipts={receipts}
-                    customer={customer}
-                    closureId={closureId}
-                    totalDebt={totalDebt}
-                    onSuccess={handleSearch}
-                  />
+        <BatchPaymentModal
+          receipts={receipts}
+          customer={customer}
+          closureId={closureId}
+          totalDebt={totalDebt}
+          onSuccess={handleSearch}
+          municipalityConfig={municipalityConfig}
+        />
                 )}
               </div>
             </CardContent>
@@ -147,7 +148,7 @@ export function CashierSearch({ closureId }: { closureId: string }) {
               ) : (
                 <div className="space-y-3">
                   {receipts.map((receipt) => {
-                    const pending = receipt.total_amount - (receipt.paid_amount || 0)
+                    const pending = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
                     const st = statusLabel[receipt.status || 'pending'] || statusLabel.pending
                     return (
                       <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -170,12 +171,13 @@ export function CashierSearch({ closureId }: { closureId: string }) {
                             <p className="text-xs text-muted-foreground uppercase">Pendiente</p>
                             <p className="text-xl font-bold">{formatCurrency(pending)}</p>
                           </div>
-                          <PaymentModal
-                            receipt={receipt}
-                            customer={customer}
-                            closureId={closureId}
-                            onSuccess={handleSearch}
-                          />
+                <PaymentModal
+                  receipt={receipt}
+                  customer={customer}
+                  closureId={closureId}
+                  onSuccess={handleSearch}
+                  municipalityConfig={municipalityConfig}
+                />
                         </div>
                       </div>
                     )

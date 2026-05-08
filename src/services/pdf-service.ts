@@ -21,6 +21,23 @@ interface ReceiptPdfData {
   conceptsBreakdown?: ConceptBreakdownItem[]
 }
 
+interface PaymentVoucherData {
+  paymentId: string
+  reference: string
+  paymentDate: string
+  amount: number
+  receivedAmount: number
+  changeAmount: number
+  receiptNumber: string | number
+  receiptTotal: number
+  receiptPaidAfter: number
+  receiptStatus: string
+  periodName: string
+  customer: { supplyNumber: string; fullName: string; address?: string | null; sector?: string | null }
+  municipality_config?: { ruc?: string; name?: string } | null
+  cashierName?: string | null
+}
+
 export class PdfService {
   generateReceiptPdf(data: ReceiptPdfData) {
     const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, previous_debt, subtotal, municipality_config, conceptsBreakdown } = data
@@ -103,6 +120,102 @@ export class PdfService {
     doc.text('Si usted ya realizó el pago, por favor omita este recibo.', 105, footerY + 5, { align: 'center' })
 
     doc.save(`recibo_${customers?.supply_number || 'unknown'}_${(billing_periods?.name || 'periodo').replace(' ', '_')}.pdf`)
+  }
+
+  generatePaymentVoucherPdf(data: PaymentVoucherData) {
+    const {
+      reference, paymentDate, amount, receivedAmount, changeAmount,
+      receiptNumber, receiptTotal, receiptPaidAfter, receiptStatus,
+      periodName, customer, municipality_config, cashierName,
+    } = data
+
+    const ruc = municipality_config?.ruc || '20123456789'
+    const municipalityName = municipality_config?.name || 'MUNICIPALIDAD DE CURIMANA'
+
+    const doc = new jsPDF()
+    const primaryColor = [0, 102, 204]
+
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+    doc.rect(0, 0, 210, 40, 'F')
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(22)
+    doc.text(municipalityName, 15, 20)
+    doc.setFontSize(10)
+    doc.text('SISTEMA ELÉCTRICO MUNICIPAL', 15, 28)
+    doc.text(`RUC: ${ruc}`, 15, 34)
+
+    doc.setFontSize(16)
+    doc.text('COMPROBANTE DE PAGO', 140, 20)
+    doc.setFontSize(10)
+    doc.text(`Ref: ${reference}`, 140, 28)
+    doc.text(`Fecha: ${formatDate(paymentDate)}`, 140, 34)
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('DATOS DEL CLIENTE', 15, 50)
+    doc.line(15, 52, 195, 52)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text(`Suministro: ${customer.supplyNumber}`, 15, 60)
+    doc.text(`Cliente: ${customer.fullName}`, 15, 66)
+    if (customer.address) doc.text(`Dirección: ${customer.address}`, 15, 72)
+    if (customer.sector) doc.text(`Sector: ${customer.sector}`, 15, 78)
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('DETALLE DEL PAGO', 15, customer.address || customer.sector ? 88 : 80)
+    const tableStartY = customer.address || customer.sector ? 92 : 84
+
+    const statusLabel = receiptStatus === 'paid' ? 'PAGADO' : receiptStatus === 'partial' ? 'PAGO PARCIAL' : receiptStatus
+
+    const bodyRows: string[][] = [
+      ['Recibo N°', String(receiptNumber)],
+      ['Periodo', periodName],
+      ['Total del Recibo', formatCurrency(receiptTotal).replace('S/ ', '')],
+      ['Monto Pagado', formatCurrency(amount).replace('S/ ', '')],
+      ['Total Pagado Acumulado', formatCurrency(receiptPaidAfter).replace('S/ ', '')],
+      ['Estado del Recibo', statusLabel],
+      ['Efectivo Recibido', formatCurrency(receivedAmount).replace('S/ ', '')],
+      ['Vuelto', formatCurrency(changeAmount).replace('S/ ', '')],
+    ]
+
+    if (cashierName) {
+      bodyRows.push(['Cajero', cashierName])
+    }
+
+    autoTable(doc, {
+      startY: tableStartY,
+      head: [['Descripción', 'Detalle']],
+      body: bodyRows,
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor as unknown as number },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        1: { halign: 'right' },
+      },
+    })
+
+    const finalY = (doc as unknown as Record<string, { finalY: number }>).lastAutoTable.finalY + 15
+
+    if (receiptStatus === 'partial') {
+      const remainingOnReceipt = receiptTotal - receiptPaidAfter
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(180, 80, 0)
+      doc.text(`SALDO PENDIENTE: ${formatCurrency(remainingOnReceipt)}`, 15, finalY)
+      doc.setTextColor(0, 0, 0)
+    }
+
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'italic')
+    doc.setTextColor(100, 100, 100)
+    const footerY = 280
+    doc.text('Comprobante de pago — Sistema Eléctrico Municipal — Municipalidad de Curimana.', 105, footerY, { align: 'center' })
+    doc.text('Conserve este documento como constancia de su pago.', 105, footerY + 5, { align: 'center' })
+
+    doc.save(`comprobante_${customer.supplyNumber}_${reference}.pdf`)
   }
 }
 

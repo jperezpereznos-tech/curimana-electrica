@@ -43,9 +43,9 @@ export class PaymentService {
     const receipt = await this.receiptRepo.getById(receiptId)
     if (!receipt) throw new Error('Recibo no encontrado')
 
-    const remaining = receipt.total_amount - (receipt.paid_amount || 0)
-    if (amount <= 0) throw new Error('El monto debe ser mayor a cero')
-    if (amount > remaining) throw new Error('El monto excede el saldo pendiente')
+  const remaining = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
+  if (amount <= 0) throw new Error('El monto debe ser mayor a cero')
+  if (amount - remaining > 0.005) throw new Error('El monto excede el saldo pendiente')
     if (receipt.status === 'cancelled' || receipt.status === 'paid') {
       throw new Error('El recibo no permite nuevos pagos')
     }

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { Database } from '@/types/database'
+import { PaymentVoucherDialog, type VoucherPaymentData, type VoucherCustomerData } from './payment-voucher-dialog'
 
 type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
   billing_periods: {
@@ -25,7 +26,7 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
 
 type PaymentModalProps = {
   receipt: ReceiptWithPeriod
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id'>
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'>
   closureId: string
   onSuccess: () => void
   onProcessPayment: (data: {
@@ -37,11 +38,15 @@ type PaymentModalProps = {
     receivedAmount: number
     changeAmount: number
   }) => Promise<unknown>
+  onGetVoucherData?: (paymentId: string) => Promise<Record<string, unknown> | null>
+  municipalityConfig?: { ruc?: string; name?: string } | null
 }
 
-export function PaymentModal({ receipt, customer, closureId, onSuccess, onProcessPayment }: PaymentModalProps) {
+export function PaymentModal({ receipt, customer, closureId, onSuccess, onProcessPayment, onGetVoucherData, municipalityConfig }: PaymentModalProps) {
   const [open, setOpen] = useState(false)
-  const remaining = receipt.total_amount - (receipt.paid_amount || 0)
+  const [voucherOpen, setVoucherOpen] = useState(false)
+  const [voucherPayment, setVoucherPayment] = useState<VoucherPaymentData | null>(null)
+  const remaining = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
   const [amountToPay, setAmountToPay] = useState(remaining)
   const [received, setReceived] = useState('')
   const [loading, setLoading] = useState(false)
@@ -50,8 +55,15 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
 
   const isFullPayment = Math.abs(amountToPay - remaining) < 0.01
   const receivedNum = Number(received)
-  const change = receivedNum > amountToPay ? receivedNum - amountToPay : 0
-  const receivedIsEnough = receivedNum >= amountToPay
+  const change = Math.round((receivedNum - amountToPay) * 100) / 100
+  const receivedIsEnough = Math.round((receivedNum - amountToPay) * 100) / 100 >= 0
+
+  const [voucherCustomer, setVoucherCustomer] = useState<VoucherCustomerData>({
+    supplyNumber: customer.supply_number || '',
+    fullName: customer.full_name || '',
+    address: customer.address,
+    sector: customer.sector,
+  })
 
   const handlePayment = async () => {
     if (submittingRef.current) return
@@ -62,7 +74,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
       return
     }
     const rounded = Math.round(amountToPay * 100) / 100
-    if (rounded > remaining) {
+    if (rounded - remaining > 0.005) {
       setError('El monto excede el saldo pendiente')
       return
     }
@@ -78,7 +90,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
     submittingRef.current = true
     setLoading(true)
     try {
-      await onProcessPayment({
+      const paymentResult = await onProcessPayment({
         receiptId: receipt.id,
         customerId: customer.id,
         cashClosureId: closureId,
@@ -86,10 +98,48 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
         paymentMethod: 'cash',
         receivedAmount: receivedNum || rounded,
         changeAmount: change,
-      })
+      }) as Record<string, unknown> | null
 
       setOpen(false)
       setReceived('')
+
+      if (paymentResult?.id && onGetVoucherData) {
+        try {
+          const details = await onGetVoucherData(paymentResult.id as string)
+          if (details) {
+            const receiptData = details.receipts as Record<string, unknown> | null
+            const custData = receiptData?.customers as Record<string, unknown> | null
+          const periodData = receiptData?.billing_periods as Record<string, unknown> | null
+
+            setVoucherPayment({
+              reference: (details.reference as string) || '',
+              paymentDate: (details.payment_date as string) || new Date().toISOString(),
+              amount: (details.amount as number) || rounded,
+              receivedAmount: (details.received_amount as number) || receivedNum || rounded,
+              changeAmount: (details.change_amount as number) || 0,
+              receiptNumber: (receiptData?.receipt_number as string | number) || receipt.receipt_number,
+              receiptTotal: (receiptData?.total_amount as number) || receipt.total_amount,
+              receiptPaidAfter: (receiptData?.paid_amount as number) || 0,
+              receiptStatus: (receiptData?.status as string) || '',
+              periodName: (periodData?.name as string) || receipt.billing_periods?.name || '',
+            })
+
+            if (custData) {
+              setVoucherCustomer({
+                supplyNumber: (custData.supply_number as string) || customer.supply_number || '',
+                fullName: (custData.full_name as string) || customer.full_name || '',
+                address: custData.address as string | null ?? customer.address,
+                sector: custData.sector as string | null ?? customer.sector,
+              })
+            }
+
+            setVoucherOpen(true)
+          }
+        } catch {
+          setVoucherOpen(true)
+        }
+      }
+
       onSuccess()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al procesar el pago')
@@ -100,87 +150,99 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button variant="outline" size="sm">
-          Registrar Pago
-        </Button>
-      } />
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Registrar Pago</DialogTitle>
-          <DialogDescription>
-            Recibo {receipt.receipt_number} - {receipt.billing_periods?.name ?? 'Periodo no disponible'}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger render={
+          <Button variant="outline" size="sm">
+            Registrar Pago
+          </Button>
+        } />
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Registrar Pago</DialogTitle>
+            <DialogDescription>
+              Recibo {receipt.receipt_number} - {receipt.billing_periods?.name ?? 'Periodo no disponible'}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          {error && (
-            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-              {error}
+          <div className="grid gap-4 py-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Total Recibo:</span>
+                <span>{formatCurrency(receipt.total_amount)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Pagado anteriormente:</span>
+                <span>{formatCurrency(receipt.paid_amount || 0)}</span>
+              </div>
+              <div className="flex justify-between font-bold border-t pt-2">
+                <span>Saldo Pendiente:</span>
+                <span className="text-destructive">{formatCurrency(remaining)}</span>
+              </div>
             </div>
-          )}
-          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Total Recibo:</span>
-              <span>{formatCurrency(receipt.total_amount)}</span>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
+              <Input id="amount" type="number" className="text-2xl font-bold" value={amountToPay} onChange={(e) => setAmountToPay(Number(e.target.value))} />
+              <p className={`text-xs font-medium ${isFullPayment ? 'text-success' : 'text-amber-600'}`}>
+                {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(remaining - amountToPay)}`}
+              </p>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Pagado anteriormente:</span>
-              <span>{formatCurrency(receipt.paid_amount || 0)}</span>
+
+            <div className="space-y-2">
+              <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
+              <Input
+                id="received"
+                type="number"
+                placeholder="0.00"
+                value={received}
+                onChange={(e) => setReceived(e.target.value)}
+              />
             </div>
-            <div className="flex justify-between font-bold border-t pt-2">
-              <span>Saldo Pendiente:</span>
-              <span className="text-destructive">{formatCurrency(remaining)}</span>
-            </div>
+
+            {receivedNum > 0 && !receivedIsEnough && (
+              <div className="flex justify-between items-center p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
+                <span className="font-medium">Falta:</span>
+                <span className="text-xl font-black">{formatCurrency(amountToPay - receivedNum)}</span>
+              </div>
+            )}
+
+            {receivedNum > 0 && receivedIsEnough && (
+              <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
+                <span className="font-medium">Vuelto:</span>
+                <span className="text-2xl font-black">{formatCurrency(change)}</span>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                className="w-full h-12 text-lg gap-2"
+                onClick={handlePayment}
+                disabled={loading || !amountToPay || (receivedNum > 0 && !receivedIsEnough)}
+              >
+                {loading ? 'Procesando...' : (
+                  <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
+                )}
+              </Button>
+            </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
-            <Input id="amount" type="number" className="text-2xl font-bold" value={amountToPay} onChange={(e) => setAmountToPay(Number(e.target.value))} />
-            <p className={`text-xs font-medium ${isFullPayment ? 'text-success' : 'text-amber-600'}`}>
-              {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(remaining - amountToPay)}`}
-            </p>
-          </div>
-
-  <div className="space-y-2">
-    <Label htmlFor="received">Monto Recibido (Efectivo)</Label>
-    <Input
-      id="received"
-      type="number"
-      placeholder="0.00"
-      value={received}
-      onChange={(e) => setReceived(e.target.value)}
-    />
-  </div>
-
-  {receivedNum > 0 && !receivedIsEnough && (
-    <div className="flex justify-between items-center p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
-      <span className="font-medium">Falta:</span>
-      <span className="text-xl font-black">{formatCurrency(amountToPay - receivedNum)}</span>
-    </div>
-  )}
-
-  {receivedNum > 0 && receivedIsEnough && (
-    <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
-      <span className="font-medium">Vuelto:</span>
-      <span className="text-2xl font-black">{formatCurrency(change)}</span>
-    </div>
-  )}
-
-  <DialogFooter>
-    <Button
-      className="w-full h-12 text-lg gap-2"
-      onClick={handlePayment}
-      disabled={loading || !amountToPay || (receivedNum > 0 && !receivedIsEnough)}
-    >
-      {loading ? 'Procesando...' : (
-        <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(amountToPay)}</>
+      {voucherPayment && (
+        <PaymentVoucherDialog
+          open={voucherOpen}
+          onOpenChange={setVoucherOpen}
+          payment={voucherPayment}
+          customer={voucherCustomer}
+          municipalityConfig={municipalityConfig}
+        />
       )}
-            </Button>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </>
   )
 }
