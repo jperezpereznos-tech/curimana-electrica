@@ -82,7 +82,10 @@ export class PaymentRepository extends BaseRepository<'payments'> {
   async getPaymentsByCustomer(customerId: string) {
     const { data, error } = await this.supabase
       .from('payments')
-      .select('*, receipts(receipt_number, billing_periods(name))')
+      .select(`*, receipts(receipt_number, total_amount, paid_amount, status,
+        customers(full_name, supply_number, address, sector),
+        billing_periods(name)
+      ), cashier:profiles!cashier_id(full_name)`)
       .eq('customer_id', customerId)
       .neq('status', 'voided')
       .order('payment_date', { ascending: false })

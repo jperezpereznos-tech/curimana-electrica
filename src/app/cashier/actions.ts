@@ -79,6 +79,12 @@ export async function searchCashierCustomerAction(query: string) {
   return { customer, receipts }
 }
 
+export async function getCustomerPaymentsAction(customerId: string) {
+  const { supabase } = await requireCashierAuth()
+  const paymentService = getPaymentService(supabase)
+  return await paymentService.getPaymentsByCustomer(customerId)
+}
+
 export async function getPaymentVoucherDataAction(paymentId: string) {
   const { supabase } = await requireCashierAuth()
   const paymentService = getPaymentService(supabase)

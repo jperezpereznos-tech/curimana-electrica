@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, User, MapPin, AlertCircle, Receipt } from 'lucide-react'
-import { searchCashierCustomerAction } from './actions'
-import { formatCurrency } from '@/lib/utils'
+import { Search, User, MapPin, AlertCircle, Receipt, Printer, FileText } from 'lucide-react'
+import { searchCashierCustomerAction, getCustomerPaymentsAction } from './actions'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { PaymentModal } from './payment-modal'
 import { BatchPaymentModal } from './batch-payment-modal'
+import { pdfService } from '@/services/pdf-service'
 import type { CustomerWithRelations, ReceiptWithPeriod } from '@/types/views'
 
 type Customer = CustomerWithRelations
@@ -27,6 +28,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
   const [q, setQ] = useState('')
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [receipts, setReceipts] = useState<ReceiptItem[]>([])
+  const [payments, setPayments] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const searchVersionRef = useRef(0)
@@ -43,9 +45,16 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
       if (result) {
         setCustomer(result.customer)
         setReceipts(result.receipts)
+
+        getCustomerPaymentsAction(result.customer.id).then(p => {
+          if (version === searchVersionRef.current) {
+            setPayments((p as Record<string, unknown>[]) || [])
+          }
+        }).catch(() => {})
       } else {
         setCustomer(null)
         setReceipts([])
+        setPayments([])
         setNotFound(true)
       }
     } catch {
@@ -62,6 +71,35 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
     Math.round(receipts.reduce((sum, r) => sum + (r.total_amount - (r.paid_amount || 0)), 0) * 100) / 100,
     [receipts]
   )
+
+  const handlePrintVoucher = useCallback((payment: Record<string, unknown>) => {
+    const receiptData = payment.receipts as Record<string, unknown> | null
+    const custData = receiptData?.customers as Record<string, unknown> | null
+    const periodData = receiptData?.billing_periods as Record<string, unknown> | null
+    const cashierData = payment.cashier as Record<string, unknown> | null
+
+    pdfService.generatePaymentVoucherPdf({
+      paymentId: payment.id as string,
+      reference: (payment.reference as string) || '',
+      paymentDate: (payment.payment_date as string) || '',
+      amount: Math.round((payment.amount as number) * 100) / 100,
+      receivedAmount: Math.round(((payment.received_amount as number) || 0) * 100) / 100,
+      changeAmount: Math.round(((payment.change_amount as number) || 0) * 100) / 100,
+      receiptNumber: (receiptData?.receipt_number as string | number) || '',
+      receiptTotal: Math.round(((receiptData?.total_amount as number) || 0) * 100) / 100,
+      receiptPaidAfter: Math.round(((receiptData?.paid_amount as number) || 0) * 100) / 100,
+      receiptStatus: (receiptData?.status as string) || '',
+      periodName: (periodData?.name as string) || '',
+      customer: {
+        supplyNumber: (custData?.supply_number as string) || customer?.supply_number || '',
+        fullName: (custData?.full_name as string) || customer?.full_name || '',
+        address: (custData?.address as string | null) ?? customer?.address ?? null,
+        sector: (custData?.sector as string | null) ?? customer?.sector ?? null,
+      },
+      municipality_config: municipalityConfig,
+      cashierName: (cashierData?.full_name as string) || null,
+    })
+  }, [customer, municipalityConfig])
 
   return (
     <div className="space-y-6">
@@ -184,10 +222,57 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* Historial de Pagos */}
+      {payments.length > 0 && (
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Comprobantes de Pago
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {payments.map((p) => {
+                const r = p.receipts as Record<string, unknown> | null
+                const period = r?.billing_periods as Record<string, unknown> | null
+                return (
+                  <div key={p.id as string} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono font-semibold text-sm">Recibo {String(r?.receipt_number ?? '-')}</p>
+                          <Badge variant="default" className="text-xs">Pagado</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {period?.name ? String(period.name) : 'Sin periodo'} &middot; {formatDate(p.payment_date as string)} &middot; Ref: {String(p.reference || '-')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-bold">{formatCurrency(p.amount as number)}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => handlePrintVoucher(p)}
+                      >
+                        <Printer className="h-3.5 w-3.5" /> Imprimir
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
+  )}
+</div>
   )
 }
