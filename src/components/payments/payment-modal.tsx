@@ -103,27 +103,24 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
       setOpen(false)
       setReceived('')
 
-      if (paymentResult?.id && onGetVoucherData) {
+      const paymentId = paymentResult?.id as string | undefined
+      let voucherRef = ''
+      let voucherDate = new Date().toISOString()
+      let voucherReceiptPaidAfter = Math.round(((receipt.paid_amount || 0) + rounded) * 100) / 100
+      let voucherReceiptStatus = isFullPayment ? 'paid' : 'partial'
+
+      if (paymentId && onGetVoucherData) {
         try {
-          const details = await onGetVoucherData(paymentResult.id as string)
+          const details = await onGetVoucherData(paymentId)
           if (details) {
+            voucherRef = (details.reference as string) || voucherRef
+            voucherDate = (details.payment_date as string) || voucherDate
             const receiptData = details.receipts as Record<string, unknown> | null
+            if (receiptData) {
+              voucherReceiptPaidAfter = Math.round(((receiptData.paid_amount as number) || 0) * 100) / 100
+              voucherReceiptStatus = (receiptData.status as string) || voucherReceiptStatus
+            }
             const custData = receiptData?.customers as Record<string, unknown> | null
-          const periodData = receiptData?.billing_periods as Record<string, unknown> | null
-
-            setVoucherPayment({
-              reference: (details.reference as string) || '',
-              paymentDate: (details.payment_date as string) || new Date().toISOString(),
-              amount: (details.amount as number) || rounded,
-              receivedAmount: (details.received_amount as number) || receivedNum || rounded,
-              changeAmount: (details.change_amount as number) || 0,
-              receiptNumber: (receiptData?.receipt_number as string | number) || receipt.receipt_number,
-              receiptTotal: (receiptData?.total_amount as number) || receipt.total_amount,
-              receiptPaidAfter: (receiptData?.paid_amount as number) || 0,
-              receiptStatus: (receiptData?.status as string) || '',
-              periodName: (periodData?.name as string) || receipt.billing_periods?.name || '',
-            })
-
             if (custData) {
               setVoucherCustomer({
                 supplyNumber: (custData.supply_number as string) || customer.supply_number || '',
@@ -132,13 +129,23 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
                 sector: custData.sector as string | null ?? customer.sector,
               })
             }
-
-            setVoucherOpen(true)
           }
-        } catch {
-          setVoucherOpen(true)
-        }
+        } catch { /* use defaults */ }
       }
+
+      setVoucherPayment({
+        reference: voucherRef || `PAY-${Date.now()}`,
+        paymentDate: voucherDate,
+        amount: rounded,
+        receivedAmount: receivedNum || rounded,
+        changeAmount: Math.max(0, change),
+        receiptNumber: receipt.receipt_number,
+        receiptTotal: Math.round(receipt.total_amount * 100) / 100,
+        receiptPaidAfter: voucherReceiptPaidAfter,
+        receiptStatus: voucherReceiptStatus,
+        periodName: receipt.billing_periods?.name || '',
+      })
+      setVoucherOpen(true)
 
       onSuccess()
     } catch (err: unknown) {
@@ -234,15 +241,13 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
         </DialogContent>
       </Dialog>
 
-      {voucherPayment && (
-        <PaymentVoucherDialog
+      {voucherPayment && <PaymentVoucherDialog
           open={voucherOpen}
           onOpenChange={setVoucherOpen}
           payment={voucherPayment}
           customer={voucherCustomer}
           municipalityConfig={municipalityConfig}
-        />
-      )}
+      />}
     </>
   )
 }
