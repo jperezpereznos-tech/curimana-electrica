@@ -28,6 +28,7 @@ export function ConfigForm({ config }: { config: ConfigRow | null }) {
 
     if (!name.trim()) { setError('El nombre es obligatorio'); return }
     if (!ruc.trim()) { setError('El RUC es obligatorio'); return }
+if (!/^\d{11}$/.test(ruc.trim())) { setError('El RUC debe tener exactamente 11 digitos'); return }
     if (!address.trim()) { setError('La direccion es obligatoria'); return }
     const cutDay = parseInt(billingCutDay)
     const graceDays = parseInt(paymentGraceDays)
