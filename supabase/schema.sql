@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS municipality_config (
   logo_url TEXT,
   billing_cut_day INT DEFAULT 25,
   payment_grace_days INT DEFAULT 15,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Tarifas eléctricas

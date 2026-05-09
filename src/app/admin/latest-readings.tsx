@@ -83,7 +83,7 @@ export async function LatestReadings() {
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-mono">{reading.supply_number}</span>
                     {reading.has_photo && (
-                      <Badge variant="default" className="text-[10px] px-1">📷</Badge>
+                      <Badge variant="default" className="text-[10px] px-1"><Camera className="h-3 w-3" /></Badge>
                     )}
                   </div>
                 </div>
