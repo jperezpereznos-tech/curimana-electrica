@@ -37,7 +37,7 @@ if (!/^\d{11}$/.test(ruc.trim())) { setError('El RUC debe tener exactamente 11 d
 
     setLoading(true)
     try {
-      await updateMunicipalityConfigAction({
+      const result = await updateMunicipalityConfigAction({
         name: name.trim(),
         ruc: ruc.trim(),
         address: address.trim(),
@@ -45,8 +45,12 @@ if (!/^\d{11}$/.test(ruc.trim())) { setError('El RUC debe tener exactamente 11 d
         payment_grace_days: graceDays,
         logo_url: logoUrl.trim() || null,
       })
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 3000)
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al guardar')
     } finally {

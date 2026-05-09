@@ -10,16 +10,18 @@ export async function updateMunicipalityConfigAction(data: {
   billing_cut_day: number
   payment_grace_days: number
   logo_url?: string | null
-}) {
+}): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient()
 
-  const { data: existing } = await supabase
+  const { data: existing, error: fetchError } = await supabase
     .from('municipality_config')
     .select('id')
     .limit(1)
     .single()
 
-  if (!existing) throw new Error('No existe registro de configuracion municipal')
+  if (fetchError || !existing) {
+    return { success: false, error: 'No existe registro de configuracion municipal' }
+  }
 
   const { error } = await supabase
     .from('municipality_config')
@@ -33,7 +35,9 @@ export async function updateMunicipalityConfigAction(data: {
     })
     .eq('id', existing.id)
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    return { success: false, error: error.message }
+  }
 
   revalidatePath('/admin/config')
   revalidatePath('/cashier')
