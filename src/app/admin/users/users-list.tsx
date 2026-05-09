@@ -25,40 +25,46 @@ export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sect
  const [deleting, setDeleting] = useState(false)
  const router = useRouter()
 
- const handleRoleChange = async (userId: string, role: string) => {
- setError(null)
- try {
- await updateUserRoleAction(userId, role)
- router.refresh()
- } catch (e: unknown) {
- setError(e instanceof Error ? e.message : 'Error al cambiar rol')
- }
- }
+  const handleRoleChange = async (userId: string, role: string) => {
+    setError(null)
+    try {
+      const result = await updateUserRoleAction(userId, role)
+      if (result.error) setError(result.error)
+      else router.refresh()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al cambiar rol')
+    }
+  }
 
- const handleSectorChange = async (userId: string, sectorId: string | null) => {
- setError(null)
- try {
- await assignSectorToUserAction(userId, sectorId)
- router.refresh()
- } catch (e: unknown) {
- setError(e instanceof Error ? e.message : 'Error al asignar sector')
- }
- }
+  const handleSectorChange = async (userId: string, sectorId: string | null) => {
+    setError(null)
+    try {
+      const result = await assignSectorToUserAction(userId, sectorId)
+      if (result.error) setError(result.error)
+      else router.refresh()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al asignar sector')
+    }
+  }
 
- const handleDelete = async () => {
- if (!deleteTarget) return
- setDeleting(true)
- setError(null)
- try {
- await deleteUserAction(deleteTarget.id)
- setDeleteTarget(null)
- router.refresh()
- } catch (e: unknown) {
- setError(e instanceof Error ? e.message : 'Error al eliminar usuario')
- } finally {
- setDeleting(false)
- }
- }
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setError(null)
+    try {
+      const result = await deleteUserAction(deleteTarget.id)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setDeleteTarget(null)
+        router.refresh()
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al eliminar usuario')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
  const getRoleBadge = (role: string) => {
  const r = ROLES.find(ro => ro.id === role)

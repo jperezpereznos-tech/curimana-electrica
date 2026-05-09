@@ -17,9 +17,10 @@ import { inviteUserAction } from './actions'
 import type { SectorRow } from '@/types/views'
 
 const inviteSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Email invalido'),
   full_name: z.string().min(3, 'Nombre requerido'),
   role: z.string().min(1, 'Rol requerido'),
+  sectorId: z.string().optional(),
 })
 
 type InviteFormValues = z.infer<typeof inviteSchema>
@@ -33,22 +34,37 @@ const ROLES = [
 export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { email: '', full_name: '', role: 'meter_reader' },
+    defaultValues: { email: '', full_name: '', role: 'meter_reader', sectorId: '' },
   })
+
+  const watchRole = form.watch('role')
 
   const onSubmit = async (values: InviteFormValues) => {
     setServerError(null)
+    setLoading(true)
     try {
-      await inviteUserAction(values.email, values.full_name, values.role)
-      setOpen(false)
-      form.reset()
-      router.refresh()
+      const result = await inviteUserAction(
+        values.email,
+        values.full_name,
+        values.role,
+        values.role === 'meter_reader' && values.sectorId ? values.sectorId : undefined
+      )
+      if (result.error) {
+        setServerError(result.error)
+      } else {
+        setOpen(false)
+        form.reset()
+        router.refresh()
+      }
     } catch (e: unknown) {
       setServerError(e instanceof Error ? e.message : 'Error al invitar usuario')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -62,9 +78,9 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Invitar Usuario</DialogTitle>
-        <DialogDescription>
-          Envia una invitación por correo electrónico. El usuario establecerá su propia contraseña.
-        </DialogDescription>
+          <DialogDescription>
+            Envia una invitacion por correo electronico. El usuario establecera su propia contrasena.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -77,17 +93,26 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
           <div className="space-y-2">
             <Label htmlFor="full_name">Nombre Completo</Label>
             <Input id="full_name" {...form.register('full_name')} />
+            {form.formState.errors.full_name && (
+              <p className="text-xs text-destructive">{form.formState.errors.full_name.message}</p>
+            )}
           </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="email">Correo Electrónico</Label>
-          <Input id="email" type="email" {...form.register('email')} />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo Electronico</Label>
+            <Input id="email" type="email" {...form.register('email')} />
+            {form.formState.errors.email && (
+              <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+            )}
+          </div>
 
-        <div className="space-y-2">
+          <div className="space-y-2">
             <Label>Rol</Label>
             <Select
-              onValueChange={(val) => form.setValue('role', (val ?? '') as string)}
+              onValueChange={(val) => {
+                form.setValue('role', (val ?? '') as string)
+                if (val !== 'meter_reader') form.setValue('sectorId', '')
+              }}
               value={form.watch('role')}
             >
               <SelectTrigger className="w-full">
@@ -103,9 +128,29 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
             </Select>
           </div>
 
+          {watchRole === 'meter_reader' && sectors.length > 0 && (
+            <div className="space-y-2">
+              <Label>Sector Asignado (opcional)</Label>
+              <Select
+                onValueChange={(val) => form.setValue('sectorId', val === '__none' ? '' : (val ?? ''))}
+                value={form.watch('sectorId') || '__none'}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar sector" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Sin asignar</SelectItem>
+                  {sectors.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button type="submit">Crear Usuario</Button>
+            <Button type="submit" disabled={loading}>{loading ? 'Creando...' : 'Crear Usuario'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
