@@ -13,6 +13,14 @@ export async function updateMunicipalityConfigAction(data: {
 }) {
   const supabase = await createClient()
 
+  const { data: existing } = await supabase
+    .from('municipality_config')
+    .select('id')
+    .limit(1)
+    .single()
+
+  if (!existing) throw new Error('No existe registro de configuracion municipal')
+
   const { error } = await supabase
     .from('municipality_config')
     .update({
@@ -23,7 +31,7 @@ export async function updateMunicipalityConfigAction(data: {
       payment_grace_days: data.payment_grace_days,
       logo_url: data.logo_url || null,
     })
-    .neq('id', '00000000-0000-0000-0000-000000000000')
+    .eq('id', existing.id)
 
   if (error) throw new Error(error.message)
 
