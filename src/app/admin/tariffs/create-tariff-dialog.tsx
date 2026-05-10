@@ -61,26 +61,26 @@ export function CreateTariffDialog() {
 
   const onSubmit = async (values: z.infer<typeof tariffSchema>) => {
     setFormError(null)
-    try {
-      await registerTariffAction(
-        { 
-          name: values.name, 
-          connection_type: values.connection_type,
-          is_active: true
-        },
+    const result = await registerTariffAction(
+      {
+        name: values.name,
+        connection_type: values.connection_type,
+        is_active: true
+      },
       values.tiers.map((t, i) => ({
         min_kwh: t.min_kwh,
         max_kwh: t.max_kwh ?? null,
         price_per_kwh: t.price_per_kwh,
         order_index: i + 1,
       }))
-      )
+    )
+    if (result.success) {
       setOpen(false)
       form.reset()
       setFormError(null)
       router.refresh()
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Error al crear la tarifa'
+    } else {
+      const msg = result.error || 'Error al crear la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {
         setFormError('Error de conexión. Por favor intenta nuevamente.')
       } else {

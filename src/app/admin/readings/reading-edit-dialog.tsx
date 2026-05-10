@@ -54,8 +54,8 @@ export function ReadingEditDialog({
         notes: notes || undefined,
       })
 
-      if (result.error) {
-        setError(result.error)
+      if (!result.success) {
+        setError(result.error || 'Error al actualizar lectura')
       } else {
         onUpdated()
       }
@@ -68,8 +68,8 @@ export function ReadingEditDialog({
         needs_review: false,
       })
 
-      if (result.error) {
-        setError(result.error)
+      if (!result.success) {
+        setError(result.error || 'Error al aprobar lectura')
       } else {
         onUpdated()
       }

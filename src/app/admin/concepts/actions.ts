@@ -25,39 +25,51 @@ const conceptUpdateSchema = z.object({
 })
 
 export async function registerConceptAction(data: unknown) {
-  const parsed = conceptCreateSchema.parse(data)
-  const { supabase, userId } = await requireAdminAuth()
-  const conceptService = getConceptService(supabase)
-
-  const result = await conceptService.createConcept(parsed, userId)
-  revalidatePath('/admin/concepts')
-  return result
+  try {
+    const parsed = conceptCreateSchema.parse(data)
+    const { supabase, userId } = await requireAdminAuth()
+    const conceptService = getConceptService(supabase)
+    const result = await conceptService.createConcept(parsed, userId)
+    revalidatePath('/admin/concepts')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al crear el concepto' }
+  }
 }
 
 export async function toggleConceptStatusAction(id: string, isActive: boolean) {
-  const { supabase, userId } = await requireAdminAuth()
-  const conceptService = getConceptService(supabase)
-
-  const result = await conceptService.toggleConceptStatus(id, isActive, userId)
-  revalidatePath('/admin/concepts')
-  return result
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const conceptService = getConceptService(supabase)
+    const result = await conceptService.toggleConceptStatus(id, isActive, userId)
+    revalidatePath('/admin/concepts')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al cambiar estado del concepto' }
+  }
 }
 
 export async function deleteConceptAction(id: string) {
-  const { supabase, userId } = await requireAdminAuth()
-  const conceptService = getConceptService(supabase)
-
-  const result = await conceptService.deleteConcept(id, userId)
-  revalidatePath('/admin/concepts')
-  return result
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const conceptService = getConceptService(supabase)
+    const result = await conceptService.deleteConcept(id, userId)
+    revalidatePath('/admin/concepts')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al eliminar el concepto' }
+  }
 }
 
 export async function updateConceptAction(id: string, data: unknown) {
-  const parsed = conceptUpdateSchema.parse(data)
-  const { supabase, userId } = await requireAdminAuth()
-  const conceptService = getConceptService(supabase)
-
-  const result = await conceptService.updateConcept(id, parsed, userId)
-  revalidatePath('/admin/concepts')
-  return result
+  try {
+    const parsed = conceptUpdateSchema.parse(data)
+    const { supabase, userId } = await requireAdminAuth()
+    const conceptService = getConceptService(supabase)
+    const result = await conceptService.updateConcept(id, parsed, userId)
+    revalidatePath('/admin/concepts')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al actualizar el concepto' }
+  }
 }

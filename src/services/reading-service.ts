@@ -84,15 +84,26 @@ export class ReadingService {
   }
 
   async updateReading(readingId: string, data: ReadingUpdate, userId?: string) {
-    const previous = Number(data.previous_reading ?? 0) || 0
-    const current = Number(data.current_reading ?? 0) || 0
-    const isMeterReset = current < previous
-    const consumption = isMeterReset ? 0 : current - previous
+    const hasReadingValues = data.previous_reading !== undefined || data.current_reading !== undefined
+
+    let consumption: number | undefined
+    let needsReview: boolean | undefined
+
+    if (hasReadingValues) {
+      const existing = await this.readingRepo.getById(readingId)
+      const previous = Number(data.previous_reading ?? existing.previous_reading) || 0
+      const current = Number(data.current_reading ?? existing.current_reading) || 0
+      const isMeterReset = current < previous
+      consumption = isMeterReset ? 0 : current - previous
+      needsReview = isMeterReset || (data.needs_review as boolean) || false
+    } else if (data.needs_review !== undefined) {
+      needsReview = data.needs_review as boolean
+    }
 
     const updated = await this.readingRepo.update(readingId, {
       ...data,
-      consumption,
-      needs_review: isMeterReset || (data.needs_review as boolean),
+      ...(consumption !== undefined ? { consumption } : {}),
+      ...(needsReview !== undefined ? { needs_review: needsReview } : {}),
     })
 
     if (userId) {
@@ -101,11 +112,11 @@ export class ReadingService {
           table_name: 'readings',
           record_id: readingId,
           action: 'UPDATE',
-          new_data: { current_reading: current, previous_reading: previous, consumption, needs_review: isMeterReset },
+          new_data: { ...(consumption !== undefined ? { consumption } : {}), needs_review: needsReview },
           user_id: userId,
-        user_role: 'admin'
-      })
-    } catch (e) { console.error('Audit log failed for updateReading:', e) }
+          user_role: 'admin'
+        })
+      } catch (e) { console.error('Audit log failed for updateReading:', e) }
     }
 
     return updated

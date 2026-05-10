@@ -30,6 +30,7 @@ export type VoucherCustomerData = {
   fullName: string
   address?: string | null
   sector?: string | null
+  sectorName?: string | null
 }
 
 type PaymentVoucherDialogProps = {

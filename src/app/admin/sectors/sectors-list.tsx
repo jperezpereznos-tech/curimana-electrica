@@ -27,33 +27,33 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
   const unassignedReaders = readers.filter(r => !r.assigned_sector_id)
 
   const handleToggleActive = async (sector: Sector) => {
-    try {
-      await updateSectorAction(sector.id, { is_active: !sector.is_active })
+    const result = await updateSectorAction(sector.id, { is_active: !sector.is_active })
+    if (result.success) {
       toast.success(sector.is_active ? 'Sector desactivado' : 'Sector activado')
       router.refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error al cambiar estado del sector')
+    } else {
+      toast.error(result.error || 'Error al cambiar estado del sector')
     }
   }
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteSectorAction(id)
+    const result = await deleteSectorAction(id)
+    if (result.success) {
       setDeleteTargetId(null)
       toast.success('Sector eliminado')
       router.refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error al eliminar sector')
+    } else {
+      toast.error(result.error || 'Error al eliminar sector')
     }
   }
 
   const handleAssignReader = async (readerId: string, sectorId: string | null) => {
-    try {
-      await assignReaderToSectorAction(readerId, sectorId)
+    const result = await assignReaderToSectorAction(readerId, sectorId)
+    if (result.success) {
       toast.success(sectorId ? 'Lecturador asignado' : 'Lecturador desasignado')
       router.refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error al asignar lecturador')
+    } else {
+      toast.error(result.error || 'Error al asignar lecturador')
     }
   }
 

@@ -14,7 +14,7 @@ interface Debtor {
   full_name: string
   supply_number: string
   current_debt: number | null
-  sector: string | null
+  sectors: { id: string; name: string } | null
 }
 
 export function TopDebtors() {
@@ -98,7 +98,7 @@ export function TopDebtors() {
                   <p className="font-medium text-sm">{debtor.full_name}</p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-mono">{debtor.supply_number}</span>
-                    <Badge variant="outline" className="text-[10px]">{debtor.sector || 'Sin sector'}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{debtor.sectors?.name || 'Sin sector'}</Badge>
                   </div>
                 </div>
               </div>

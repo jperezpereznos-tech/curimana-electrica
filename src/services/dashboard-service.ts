@@ -128,7 +128,7 @@ export class DashboardService {
 
     return data?.map(c => ({
       ...c,
-      sector: (c.sectors as { name: string } | null)?.name || c.sector || 'Sin sector'
+      sector: (c.sectors as { name: string } | null)?.name || 'Sin sector'
     })) || []
   }
 

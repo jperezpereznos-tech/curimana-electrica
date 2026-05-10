@@ -3,28 +3,27 @@
 import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
+import { revalidatePath } from 'next/cache'
 
 export async function getReadingsAdminAction(periodId?: string, needsReviewOnly?: boolean) {
-  const { supabase } = await requireAdminAuth()
-  const readingService = getReadingService(supabase)
-
   try {
-    const readings = await readingService.getAllForAdmin(periodId, needsReviewOnly)
-    return { data: readings, error: null }
-} catch (error: unknown) {
-    return { data: [], error: error instanceof Error ? error.message : String(error) }
+    const { supabase } = await requireAdminAuth()
+    const readingService = getReadingService(supabase)
+    const data = await readingService.getAllForAdmin(periodId, needsReviewOnly)
+    return { success: true as const, data }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener lecturas', data: [] }
   }
 }
 
 export async function getPeriodsForFilterAction() {
-  const { supabase } = await requireAdminAuth()
-  const periodService = getPeriodService(supabase)
-
   try {
-    const periods = await periodService.getAllPeriods()
-    return { data: periods, error: null }
-  } catch (error: unknown) {
-    return { data: [], error: error instanceof Error ? error.message : String(error) }
+    const { supabase } = await requireAdminAuth()
+    const periodService = getPeriodService(supabase)
+    const data = await periodService.getAllPeriods()
+    return { success: true as const, data }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener periodos', data: [] }
   }
 }
 
@@ -34,13 +33,13 @@ export async function updateReadingAction(readingId: string, data: {
   needs_review?: boolean
   notes?: string
 }) {
-  const { supabase, userId } = await requireAdminAuth()
-  const readingService = getReadingService(supabase)
-
   try {
+    const { supabase, userId } = await requireAdminAuth()
+    const readingService = getReadingService(supabase)
     const updated = await readingService.updateReading(readingId, data, userId)
-    return { data: updated, error: null }
-  } catch (error: unknown) {
-    return { data: null, error: error instanceof Error ? error.message : String(error) }
+    revalidatePath('/admin/readings')
+    return { success: true as const, data: updated }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al actualizar lectura' }
   }
 }

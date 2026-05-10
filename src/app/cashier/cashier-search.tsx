@@ -90,12 +90,13 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
       receiptPaidAfter: Math.round(((receiptData?.paid_amount as number) || 0) * 100) / 100,
       receiptStatus: (receiptData?.status as string) || '',
       periodName: (periodData?.name as string) || '',
-      customer: {
-        supplyNumber: (custData?.supply_number as string) || customer?.supply_number || '',
-        fullName: (custData?.full_name as string) || customer?.full_name || '',
-        address: (custData?.address as string | null) ?? customer?.address ?? null,
-        sector: (custData?.sector as string | null) ?? customer?.sector ?? null,
-      },
+    customer: {
+      supplyNumber: (custData?.supply_number as string) || customer?.supply_number || '',
+      fullName: (custData?.full_name as string) || customer?.full_name || '',
+      address: (custData?.address as string | null) ?? customer?.address ?? null,
+      sector: (custData?.sector as string | null) ?? customer?.sector ?? null,
+      sectorName: ((custData?.sectors as Record<string, unknown> | null)?.name as string | null) ?? (customer?.sectors as { name: string } | null)?.name ?? null,
+    },
       municipality_config: municipalityConfig,
       cashierName: (cashierData?.full_name as string) || null,
     })

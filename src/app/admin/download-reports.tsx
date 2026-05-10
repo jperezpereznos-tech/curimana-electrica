@@ -28,7 +28,7 @@ export function DownloadReports() {
           Suministro: c.supply_number,
           Nombre: c.full_name,
           Direccion: c.address,
-          Sector: c.sector,
+          Sector: c.sectors?.name || '',
           Deuda: c.current_debt
         }))
       downloadCSV(filtered, `morosos_${new Date().toISOString().split('T')[0]}`)

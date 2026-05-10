@@ -39,24 +39,24 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
-    try {
-      await toggleTariffStatusAction(id, !currentStatus)
+    const result = await toggleTariffStatusAction(id, !currentStatus)
+    if (result.success) {
       setTariffs(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t))
       router.refresh()
-    } catch {
-      setActionError('Error al cambiar estado de la tarifa.')
+    } else {
+      setActionError(result.error || 'Error al cambiar estado de la tarifa.')
     }
   }
 
   const handleDelete = async (id: string) => {
     setActionError(null)
-    try {
-      await deleteTariffAction(id)
+    const result = await deleteTariffAction(id)
+    if (result.success) {
       setDeleteTargetId(null)
       setTariffs(prev => prev.filter(t => t.id !== id))
       router.refresh()
-    } catch {
-      setActionError('Error al eliminar la tarifa. Puede tener clientes asociados.')
+    } else {
+      setActionError(result.error || 'Error al eliminar la tarifa. Puede tener clientes asociados.')
     }
   }
 

@@ -32,7 +32,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
   async getByIdWithDetails(id: string) {
     const { data, error } = await this.supabase
       .from('receipts')
-      .select('*, customers(*, tariffs(*, tariff_tiers(*))), billing_periods(*), readings(*)')
+      .select('*, customers(*, tariffs(*, tariff_tiers(*)), sectors(id, name, code)), billing_periods(*), readings(*)')
       .eq('id', id)
       .single()
 

@@ -19,41 +19,57 @@ const tierSchema = z.object({
 })
 
 export async function registerTariffAction(tariff: unknown, tiers: unknown) {
-  const { supabase, userId } = await requireAdminAuth()
-  const tariffService = getTariffService(supabase)
-  const parsedTariff = tariffSchema.parse(tariff)
-  const parsedTiers = z.array(tierSchema).parse(tiers)
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const tariffService = getTariffService(supabase)
+    const parsedTariff = tariffSchema.parse(tariff)
+    const parsedTiers = z.array(tierSchema).parse(tiers)
 
-  const result = await tariffService.createTariffWithValidation(parsedTariff, parsedTiers, userId)
-  revalidatePath('/admin/tariffs')
-  return result
+    const result = await tariffService.createTariffWithValidation(parsedTariff, parsedTiers, userId)
+    revalidatePath('/admin/tariffs')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al crear la tarifa' }
+  }
 }
 
 export async function toggleTariffStatusAction(id: string, isActive: boolean) {
-  const { supabase, userId } = await requireAdminAuth()
-  const tariffService = getTariffService(supabase)
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const tariffService = getTariffService(supabase)
 
-  const result = await tariffService.toggleTariffStatus(id, isActive, userId)
-  revalidatePath('/admin/tariffs')
-  return result
+    const result = await tariffService.toggleTariffStatus(id, isActive, userId)
+    revalidatePath('/admin/tariffs')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al cambiar estado de la tarifa' }
+  }
 }
 
 export async function deleteTariffAction(id: string) {
-  const { supabase, userId } = await requireAdminAuth()
-  const tariffService = getTariffService(supabase)
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const tariffService = getTariffService(supabase)
 
-  const result = await tariffService.deleteTariff(id, userId)
-  revalidatePath('/admin/tariffs')
-  return result
+    const result = await tariffService.deleteTariff(id, userId)
+    revalidatePath('/admin/tariffs')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al eliminar la tarifa' }
+  }
 }
 
 export async function updateTariffAction(id: string, tariff: unknown, tiers: unknown) {
-  const { supabase, userId } = await requireAdminAuth()
-  const tariffService = getTariffService(supabase)
-  const parsedTariff = tariffSchema.partial().parse(tariff)
-  const parsedTiers = z.array(tierSchema).parse(tiers)
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const tariffService = getTariffService(supabase)
+    const parsedTariff = tariffSchema.partial().parse(tariff)
+    const parsedTiers = z.array(tierSchema).parse(tiers)
 
-  const result = await tariffService.updateTariffWithTiers(id, parsedTariff, parsedTiers, userId)
-  revalidatePath('/admin/tariffs')
-  return result
+    const result = await tariffService.updateTariffWithTiers(id, parsedTariff, parsedTiers, userId)
+    revalidatePath('/admin/tariffs')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al actualizar la tarifa' }
+  }
 }

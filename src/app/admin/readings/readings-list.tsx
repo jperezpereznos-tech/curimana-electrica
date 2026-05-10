@@ -68,7 +68,7 @@ export function ReadingsList({
         periodId || undefined,
         reviewOnly || undefined
       )
-      if (result.data) {
+      if (result.success && result.data) {
         setReadings(result.data as ReadingRow[])
       }
     })

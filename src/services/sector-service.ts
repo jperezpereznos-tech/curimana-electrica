@@ -1,7 +1,6 @@
 import { SectorRepository } from '@/repositories/sector-repository'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 export class SectorService {
   private sectorRepo: SectorRepository

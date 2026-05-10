@@ -8,7 +8,7 @@ interface ConceptBreakdownItem {
 }
 
 interface ReceiptPdfData {
-  customers?: { supply_number?: string | null; full_name?: string | null; address?: string | null; sector?: string | null } | null
+  customers?: { supply_number?: string | null; full_name?: string | null; address?: string | null; sector?: string | null; sectors?: { name: string } | null } | null
   billing_periods: { name: string } | null
   receipt_number: string | number
   total_amount: number
@@ -33,7 +33,7 @@ interface PaymentVoucherData {
   receiptPaidAfter: number
   receiptStatus: string
   periodName: string
-  customer: { supplyNumber: string; fullName: string; address?: string | null; sector?: string | null }
+  customer: { supplyNumber: string; fullName: string; address?: string | null; sector?: string | null; sectorName?: string | null }
   municipality_config?: { ruc?: string; name?: string } | null
   cashierName?: string | null
 }
@@ -72,7 +72,7 @@ export class PdfService {
     doc.text(`Suministro: ${customers?.supply_number || ''}`, 15, 60)
     doc.text(`Cliente: ${customers?.full_name || ''}`, 15, 66)
     doc.text(`Dirección: ${customers?.address || ''}`, 15, 72)
-    doc.text(`Sector: ${customers?.sector || ''}`, 15, 78)
+    doc.text(`Sector: ${customers?.sectors?.name || customers?.sector || ''}`, 15, 78)
 
     doc.text(`Periodo: ${billing_periods?.name || ''}`, 140, 60)
     doc.text(`Vencimiento: ${formatDate(due_date)}`, 140, 66)
@@ -162,11 +162,11 @@ export class PdfService {
     doc.text(`Suministro: ${customer.supplyNumber}`, 15, 60)
     doc.text(`Cliente: ${customer.fullName}`, 15, 66)
     if (customer.address) doc.text(`Dirección: ${customer.address}`, 15, 72)
-    if (customer.sector) doc.text(`Sector: ${customer.sector}`, 15, 78)
+  if (customer.sectorName || customer.sector) doc.text(`Sector: ${customer.sectorName || customer.sector}`, 15, 78)
 
-    doc.setFont('helvetica', 'bold')
-    doc.text('DETALLE DEL PAGO', 15, customer.address || customer.sector ? 88 : 80)
-    const tableStartY = customer.address || customer.sector ? 92 : 84
+  doc.setFont('helvetica', 'bold')
+  doc.text('DETALLE DEL PAGO', 15, customer.address || customer.sectorName || customer.sector ? 88 : 80)
+  const tableStartY = customer.address || customer.sectorName || customer.sector ? 92 : 84
 
     const statusLabel = receiptStatus === 'paid' ? 'PAGADO' : receiptStatus === 'partial' ? 'PAGO PARCIAL' : receiptStatus
 

@@ -50,24 +50,24 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
-    try {
-      await toggleConceptStatusAction(id, !currentStatus)
+    const result = await toggleConceptStatusAction(id, !currentStatus)
+    if (result.success) {
       setConcepts(prev => prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c))
       router.refresh()
-    } catch {
-      setActionError('Error al cambiar estado del concepto.')
+    } else {
+      setActionError(result.error || 'Error al cambiar estado del concepto.')
     }
   }
 
   const handleDelete = async (id: string) => {
     setActionError(null)
-    try {
-      await deleteConceptAction(id)
+    const result = await deleteConceptAction(id)
+    if (result.success) {
       setDeleteTargetId(null)
       setConcepts(prev => prev.filter(c => c.id !== id))
       router.refresh()
-    } catch {
-      setActionError('Error al eliminar el concepto.')
+    } else {
+      setActionError(result.error || 'Error al eliminar el concepto.')
     }
   }
 

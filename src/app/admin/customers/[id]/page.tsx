@@ -21,7 +21,13 @@ export default async function CustomerDetailsPage({
   const { id } = await params
   const supabase = await createClient()
   const customerService = getCustomerService(supabase)
-  const data = await customerService.getCustomerDetails(id)
+
+  let data
+  try {
+    data = await customerService.getCustomerDetails(id)
+  } catch {
+    return notFound()
+  }
 
   if (!data.customer) {
     return notFound()
@@ -69,7 +75,7 @@ export default async function CustomerDetailsPage({
           </CardHeader>
           <CardContent className="text-sm space-y-2">
             <p><strong>Direccion:</strong> {customer.address}</p>
-            <p><strong>Sector:</strong> {customer.sector}</p>
+            <p><strong>Sector:</strong> {customer.sectors?.name || 'N/A'}</p>
             <p className="flex items-center gap-1">
               <Phone className="h-3 w-3" /> {customer.phone || 'No registrado'}
             </p>

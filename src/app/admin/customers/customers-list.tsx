@@ -44,24 +44,24 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
     setActionError(null)
-    try {
-      await updateCustomerAction(id, { is_active: isActive })
+    const result = await updateCustomerAction(id, { is_active: isActive })
+    if (result.success) {
       setToggleTarget(null)
       router.refresh()
-    } catch {
-      setActionError(isActive ? 'Error al dar de baja el cliente.' : 'Error al reactivar el cliente.')
+    } else {
+      setActionError(result.error || (isActive ? 'Error al reactivar el cliente.' : 'Error al dar de baja el cliente.'))
     }
   }
 
   const handleDelete = async (id: string) => {
     setActionError(null)
-    try {
-      await deleteCustomerAction(id)
+    const result = await deleteCustomerAction(id)
+    if (result.success) {
       setDeleteTarget(null)
       router.refresh()
-    } catch (e) {
+    } else {
       setDeleteTarget(null)
-      setActionError(e instanceof Error ? e.message : 'Error al eliminar el cliente.')
+      setActionError(result.error || 'Error al eliminar el cliente.')
     }
   }
 
@@ -126,7 +126,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                       <span className="text-xs text-muted-foreground">{customer.document_number}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{customer.sectors?.name || customer.sector || 'N/A'}</TableCell>
+                  <TableCell>{customer.sectors?.name || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{customer.tariffs?.name || 'N/A'}</Badge>
                   </TableCell>

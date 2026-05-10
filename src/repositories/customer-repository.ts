@@ -43,7 +43,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getCustomerDetails(id: string) {
     const { data: customer, error: customerError } = await this.supabase
       .from('customers')
-      .select('*, tariffs(*)')
+      .select('*, tariffs(*), sectors(id, name, code)')
       .eq('id', id)
       .single()
 
@@ -90,7 +90,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getTopDebtors(limit: number = 5) {
     const { data, error } = await this.supabase
       .from('customers')
-      .select('id, full_name, supply_number, current_debt, sector, address')
+      .select('id, full_name, supply_number, current_debt, address, sectors(id, name)')
       .eq('is_active', true)
       .gt('current_debt', 0)
       .order('current_debt', { ascending: false })
@@ -103,7 +103,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getActiveCustomersWithReadings(sectorId?: string) {
     let query = this.supabase
       .from('customers')
-      .select('id, supply_number, full_name, address, sector, sector_id, is_active, readings(id, reading_date), sectors(id, name, code)')
+      .select('id, supply_number, full_name, address, sector_id, is_active, readings(id, reading_date), sectors(id, name, code)')
       .eq('is_active', true)
 
     if (sectorId) {
@@ -111,7 +111,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     }
 
     const { data, error } = await query
-      .order('sector', { ascending: true })
+      .order('sector_id', { ascending: true })
       .order('full_name', { ascending: true })
 
     if (error) throw error
@@ -121,7 +121,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getAllForCache(sectorId?: string) {
     let query = this.supabase
       .from('customers')
-      .select('id, supply_number, full_name, address, sector, sector_id, tariff_id, is_active, readings(current_reading, reading_date)')
+      .select('id, supply_number, full_name, address, sector_id, tariff_id, is_active, readings(current_reading, reading_date), sectors(name)')
       .eq('is_active', true)
 
     if (sectorId) {
@@ -133,7 +133,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
 
     if (error) throw error
 
-    const processed = (data as (Customer & { readings: { current_reading: number; reading_date: string }[] })[]).map((c) => {
+    const processed = (data as (Customer & { readings: { current_reading: number; reading_date: string }[]; sectors: { name: string } | null })[]).map((c) => {
       const latestReading = c.readings?.sort((a, b) =>
         new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
       )[0]
@@ -142,7 +142,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
         supply_number: c.supply_number,
         full_name: c.full_name,
         address: c.address || '',
-        sector: c.sector || '',
+        sector: c.sectors?.name || '',
         sector_id: c.sector_id || '',
         tariff_id: c.tariff_id || '',
         previous_reading: latestReading?.current_reading || 0,

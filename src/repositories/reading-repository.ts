@@ -52,7 +52,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     return data
   }
 
-  async getPendingReadingsCount(periodId: string): Promise<number> {
+  async getPendingReadingsCount(): Promise<number> {
     const { count, error } = await this.supabase
       .from('customers')
       .select('id', { count: 'exact', head: true })

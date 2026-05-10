@@ -61,32 +61,38 @@ export class CustomerService {
     return customer
   }
 
-  async deleteCustomer(id: string, userId?: string) {
-    const customer = await this.customerRepo.getById(id)
-    if (!customer) throw new Error('Cliente no encontrado')
+  async deleteCustomer(id: string, userId?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const customer = await this.customerRepo.getById(id)
+      if (!customer) return { success: false, error: 'Cliente no encontrado' }
 
-    const { data: receipts } = await this.supabase
-      .from('receipts')
-      .select('id')
-      .eq('customer_id', id)
-      .limit(1)
+      const { data: receipts } = await this.supabase
+        .from('receipts')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1)
 
-    if (receipts && receipts.length > 0) {
-      throw new Error('No se puede eliminar un cliente con recibos. Desactívelo en su lugar.')
-    }
+      if (receipts && receipts.length > 0) {
+        return { success: false, error: 'No se puede eliminar un cliente con recibos. Desactívelo en su lugar.' }
+      }
 
-    await this.customerRepo.delete(id)
+      await this.customerRepo.delete(id)
 
-    if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'customers',
-          record_id: id,
-          action: 'DELETE',
-          old_data: { supply_number: customer.supply_number, full_name: customer.full_name },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for deleteCustomer:', e) }
+      if (userId) {
+        try {
+          await this.auditSvc.log({
+            table_name: 'customers',
+            record_id: id,
+            action: 'DELETE',
+            old_data: { supply_number: customer.supply_number, full_name: customer.full_name },
+            user_id: userId
+          })
+        } catch (e) { console.error('Audit log failed for deleteCustomer:', e) }
+      }
+
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Error al eliminar cliente' }
     }
   }
 

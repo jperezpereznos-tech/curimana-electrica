@@ -28,10 +28,10 @@ export function CustomerReceiptsTab({ receipts, customer: _customer }: CustomerR
  [receipts]
  )
 
- const totalDebt = useMemo(
- () => payableReceipts.reduce((sum, r) => sum + (r.total_amount - (r.paid_amount || 0)), 0),
- [payableReceipts]
- )
+  const totalDebt = useMemo(
+    () => payableReceipts.reduce((sum, r) => sum + Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100, 0),
+    [payableReceipts]
+  )
 
  return (
  <>

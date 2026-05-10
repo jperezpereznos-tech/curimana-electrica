@@ -78,18 +78,15 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
 
   const onSubmit = async (values: ConceptFormValues) => {
     setServerError(null)
-    try {
-      await updateConceptAction(concept.id, {
-        ...values,
-        applies_to_tariff_id: values.applies_to_tariff_id === 'all' ? null : values.applies_to_tariff_id,
-      })
+    const result = await updateConceptAction(concept.id, {
+      ...values,
+      applies_to_tariff_id: values.applies_to_tariff_id === 'all' ? null : values.applies_to_tariff_id,
+    })
+    if (result.success) {
       setOpen(false)
       router.refresh()
-} catch (error: unknown) {
-      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
-      ? 'No tiene permisos para realizar esta acción'
-      : (error instanceof Error ? error.message : 'Error al actualizar el concepto')
-      setServerError(msg)
+    } else {
+      setServerError(result.error || 'Error al actualizar el concepto')
     }
   }
 

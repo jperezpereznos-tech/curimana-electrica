@@ -45,7 +45,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
           supply_number: c.supply_number,
           full_name: c.full_name,
           address: c.address,
-          sector: c.sectors?.name || c.sector || 'Sin Sector',
+          sector: c.sectors?.name || 'Sin Sector',
           sector_id: c.sector_id || c.sectors?.id || null,
           is_active: c.is_active,
           last_reading: c.readings && c.readings.length > 0

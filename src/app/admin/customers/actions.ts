@@ -11,7 +11,6 @@ const customerSchema = z.object({
   address: z.string().min(1),
   document_number: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
-  sector: z.string().optional().nullable(),
   sector_id: z.string().optional().nullable(),
   tariff_id: z.string().optional().nullable(),
   connection_type: z.enum(['monofásico', 'trifásico']).optional().nullable(),
@@ -19,30 +18,44 @@ const customerSchema = z.object({
   current_debt: z.number().optional().nullable(),
 })
 
-export async function registerCustomerAction(data: unknown) {
-  const { supabase, userId } = await requireAdminAuth()
-  const customerService = getCustomerService(supabase)
-  const parsed = customerSchema.parse(data)
+export async function registerCustomerAction(data: unknown): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const customerService = getCustomerService(supabase)
+    const parsed = customerSchema.parse(data)
 
-  const result = await customerService.registerCustomer(parsed, userId)
+  await customerService.registerCustomer(parsed, userId)
   revalidatePath('/admin/customers')
-  return result
+  return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Error al registrar cliente' }
+  }
 }
 
-export async function updateCustomerAction(id: string, data: unknown) {
-  const { supabase, userId } = await requireAdminAuth()
-  const customerService = getCustomerService(supabase)
-  const parsed = customerSchema.partial().parse(data)
+export async function updateCustomerAction(id: string, data: unknown): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const customerService = getCustomerService(supabase)
+    const parsed = customerSchema.partial().parse(data)
 
-  const result = await customerService.updateCustomer(id, parsed, userId)
+  await customerService.updateCustomer(id, parsed, userId)
   revalidatePath('/admin/customers')
-  return result
+  return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Error al actualizar cliente' }
+  }
 }
 
-export async function deleteCustomerAction(id: string) {
-  const { supabase, userId } = await requireAdminAuth()
-  const customerService = getCustomerService(supabase)
+export async function deleteCustomerAction(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const customerService = getCustomerService(supabase)
 
-  await customerService.deleteCustomer(id, userId)
-  revalidatePath('/admin/customers')
+    const result = await customerService.deleteCustomer(id, userId)
+    if (!result.success) return result
+    revalidatePath('/admin/customers')
+    return { success: true }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Error al eliminar cliente' }
+  }
 }

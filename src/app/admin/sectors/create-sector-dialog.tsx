@@ -40,13 +40,13 @@ export function CreateSectorDialog() {
 
   const onSubmit = async (values: SectorFormValues) => {
     setServerError(null)
-    try {
-      await createSectorAction(values)
+    const result = await createSectorAction(values)
+    if (result.success) {
       setOpen(false)
       form.reset()
       router.refresh()
-    } catch (error: unknown) {
-      setServerError(error instanceof Error ? error.message : 'Error al crear sector')
+    } else {
+      setServerError(result.error || 'Error al crear sector')
     }
   }
 

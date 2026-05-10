@@ -95,23 +95,23 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
 
   const onSubmit = async (values: z.infer<typeof tariffSchema>) => {
     setFormError(null)
-    try {
-      await updateTariffAction(
-        tariff.id,
-        {
-          name: values.name,
-          connection_type: values.connection_type,
-        },
-        values.tiers.map((t: { min_kwh: number; max_kwh?: number | null | undefined; price_per_kwh: number }, i: number) => ({
-          ...t,
-          max_kwh: t.max_kwh || null,
-          order_index: i + 1,
-        }))
-      )
+    const result = await updateTariffAction(
+      tariff.id,
+      {
+        name: values.name,
+        connection_type: values.connection_type,
+      },
+      values.tiers.map((t: { min_kwh: number; max_kwh?: number | null | undefined; price_per_kwh: number }, i: number) => ({
+        ...t,
+        max_kwh: t.max_kwh || null,
+        order_index: i + 1,
+      }))
+    )
+    if (result.success) {
       setOpen(false)
       router.refresh()
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Error al actualizar la tarifa'
+    } else {
+      const msg = result.error || 'Error al actualizar la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {
         setFormError('Error de conexión. Por favor intenta nuevamente.')
       } else {

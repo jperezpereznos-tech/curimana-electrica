@@ -25,27 +25,28 @@ export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBrea
   const handleDownload = () => {
     pdfService.generateReceiptPdf({
       ...receipt,
-      customers: receipt.customers ? {
-        supply_number: receipt.customers.supply_number,
-        full_name: receipt.customers.full_name,
-        address: receipt.customers.address ?? undefined,
-        sector: receipt.customers.sector ?? undefined,
-      } : null,
+    customers: receipt.customers ? {
+      supply_number: receipt.customers.supply_number,
+      full_name: receipt.customers.full_name,
+      address: receipt.customers.address ?? undefined,
+      sector: receipt.customers.sector ?? undefined,
+      sectors: receipt.customers.sectors ? { name: receipt.customers.sectors.name } : null,
+    } : null,
       municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,
       conceptsBreakdown,
     })
   }
 
- const handleCancel = async () => {
- setCancelError(null)
- try {
- await cancelReceiptAction(receipt.id, 'Anulación administrativa')
- setShowCancelConfirm(false)
- router.refresh()
- } catch {
- setCancelError('Error al anular el recibo')
- }
- }
+  const handleCancel = async () => {
+    setCancelError(null)
+    const result = await cancelReceiptAction(receipt.id, 'Anulación administrativa')
+    if (result.success) {
+      setShowCancelConfirm(false)
+      router.refresh()
+    } else {
+      setCancelError(result.error || 'Error al anular el recibo')
+    }
+  }
 
  return (
  <div className="space-y-2">

@@ -82,15 +82,12 @@ useEffect(() => {
 
   const onSubmit = async (values: CustomerFormValues) => {
     setServerError(null)
-    try {
-      await updateCustomerAction(customer.id, values)
+    const result = await updateCustomerAction(customer.id, values)
+    if (result.success) {
       setOpen(false)
       router.refresh()
-} catch (error: unknown) {
-      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
-      ? 'No tiene permisos para realizar esta acción'
-      : (error instanceof Error ? error.message : 'Error al actualizar cliente')
-      setServerError(msg)
+    } else {
+      setServerError(result.error || 'Error al actualizar cliente')
     }
   }
 

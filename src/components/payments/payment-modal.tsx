@@ -26,7 +26,7 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
 
 type PaymentModalProps = {
   receipt: ReceiptWithPeriod
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'>
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'> & { sectors?: { name: string } | null }
   closureId: string
   onSuccess: () => void
   onProcessPayment: (data: {
@@ -63,6 +63,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
     fullName: customer.full_name || '',
     address: customer.address,
     sector: customer.sector,
+    sectorName: (customer.sectors as { name: string } | null)?.name ?? null,
   })
 
   const handlePayment = async () => {

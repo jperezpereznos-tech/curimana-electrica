@@ -29,11 +29,12 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
   const handleClosePeriod = async (id: string) => {
     setError(null)
     setLoading(id)
-    try {
-      const result = await closePeriodAction(id) as { receiptsGenerated?: number; skipped?: number; errors?: string[] }
-      const generated = result?.receiptsGenerated ?? 0
-      const skipped = result?.skipped ?? 0
-      const perCustomerErrors: string[] = result?.errors ?? []
+    const result = await closePeriodAction(id)
+    if (result.success) {
+      const data = result.data as { receiptsGenerated?: number; skipped?: number; errors?: string[] } | undefined
+      const generated = data?.receiptsGenerated ?? 0
+      const skipped = data?.skipped ?? 0
+      const perCustomerErrors: string[] = data?.errors ?? []
       setPeriods(prev =>
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
       )
@@ -43,12 +44,11 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
       if (skipped > 0) msg += ` ${skipped} clientes sin lectura.`
       if (perCustomerErrors.length > 0) msg += ` Errores: ${perCustomerErrors.join('; ')}`
       toast.success(msg)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al cerrar el periodo.')
-      toast.error('Error al cerrar el periodo.')
-    } finally {
-      setLoading(null)
+    } else {
+      setError(result.error || 'Error al cerrar el periodo.')
+      toast.error(result.error || 'Error al cerrar el periodo.')
     }
+    setLoading(null)
   }
 
   return (

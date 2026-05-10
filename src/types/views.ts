@@ -39,6 +39,7 @@ export type ReceiptWithFullDetails = ReceiptRow & {
   billing_periods: DB['billing_periods']['Row'] | null
   customers: CustomerRow & {
     tariffs: TariffRow & { tariff_tiers: TariffTierRow[] } | null
+    sectors: { id: string; name: string; code: string } | null
   } | null
   readings: DB['readings']['Row'] | null
 }

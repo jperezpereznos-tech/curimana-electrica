@@ -14,14 +14,13 @@ export function CreatePeriodButton() {
   const handleCreate = async () => {
     setError(null)
     setLoading(true)
-    try {
-      await openNextPeriodAction()
+    const result = await openNextPeriodAction()
+    if (result.success) {
       router.refresh()
-    } catch {
-      setError('Error al crear el siguiente periodo.')
-    } finally {
-      setLoading(false)
+    } else {
+      setError(result.error || 'Error al crear el siguiente periodo.')
     }
+    setLoading(false)
   }
 
   return (

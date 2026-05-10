@@ -57,12 +57,12 @@ const totalAmount = initialPayments
 
   const handleVoid = async (paymentId: string) => {
     setVoidError(null)
-    try {
-      await voidPaymentAction(paymentId)
+    const result = await voidPaymentAction(paymentId)
+    if (result.success) {
       setVoidTargetId(null)
       router.refresh()
-    } catch {
-      setVoidError('Error al anular el pago.')
+    } else {
+      setVoidError(result.error || 'Error al anular el pago.')
     }
   }
 

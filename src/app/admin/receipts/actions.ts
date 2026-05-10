@@ -6,16 +6,24 @@ import { getConceptService } from '@/services/concept-service'
 import { revalidatePath } from 'next/cache'
 
 export async function cancelReceiptAction(id: string, reason: string) {
-  const { supabase, userId } = await requireAdminAuth()
-  const receiptService = getReceiptService(supabase)
-
-  const result = await receiptService.cancelReceipt(id, reason, userId)
-  revalidatePath('/admin/receipts')
-  return result
+  try {
+    const { supabase, userId } = await requireAdminAuth()
+    const receiptService = getReceiptService(supabase)
+    const result = await receiptService.cancelReceipt(id, reason, userId)
+    revalidatePath('/admin/receipts')
+    return { success: true as const, data: result }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al anular el recibo' }
+  }
 }
 
 export async function getConceptsForBreakdownAction() {
-  const { supabase } = await requireAdminAuth()
-  const conceptService = getConceptService(supabase)
-  return await conceptService.getActiveConcepts()
+  try {
+    const { supabase } = await requireAdminAuth()
+    const conceptService = getConceptService(supabase)
+    const data = await conceptService.getActiveConcepts()
+    return { success: true as const, data }
+  } catch (e) {
+    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener conceptos', data: [] }
+  }
 }

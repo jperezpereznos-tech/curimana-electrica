@@ -62,20 +62,17 @@ export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: TariffRow[
 
   const onSubmit = async (values: CustomerFormValues) => {
     setServerError(null)
-    try {
-      await registerCustomerAction({
-        ...values,
-        is_active: true,
-        current_debt: 0
-      })
+    const result = await registerCustomerAction({
+      ...values,
+      is_active: true,
+      current_debt: 0
+    })
+    if (result.success) {
       setOpen(false)
       form.reset()
       router.refresh()
-} catch (error: unknown) {
-      const msg = error instanceof Error && 'code' in error && String((error as Record<string, unknown>).code) === '42501'
-      ? 'No tiene permisos para realizar esta acción'
-      : (error instanceof Error ? error.message : 'Error al registrar cliente')
-      setServerError(msg)
+    } else {
+      setServerError(result.error || 'Error al registrar cliente')
     }
   }
 
