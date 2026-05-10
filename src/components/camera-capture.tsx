@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Camera, X, Check, RotateCcw } from 'lucide-react'
+import { Camera, Check, RotateCcw } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface CameraCaptureProps {

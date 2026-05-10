@@ -26,7 +26,7 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
 
 type PaymentModalProps = {
   receipt: ReceiptWithPeriod
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'> & { sectors?: { name: string } | null }
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address'> & { sectors?: { name: string } | null }
   closureId: string
   onSuccess: () => void
   onProcessPayment: (data: {
@@ -37,8 +37,8 @@ type PaymentModalProps = {
     paymentMethod: 'cash'
     receivedAmount: number
     changeAmount: number
-  }) => Promise<unknown>
-  onGetVoucherData?: (paymentId: string) => Promise<Record<string, unknown> | null>
+  }) => Promise<{ success: boolean; data?: unknown; error?: string }>
+  onGetVoucherData?: (paymentId: string) => Promise<{ success: boolean; data?: unknown; error?: string }>
   municipalityConfig?: { ruc?: string; name?: string } | null
 }
 
@@ -62,7 +62,6 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
     supplyNumber: customer.supply_number || '',
     fullName: customer.full_name || '',
     address: customer.address,
-    sector: customer.sector,
     sectorName: (customer.sectors as { name: string } | null)?.name ?? null,
   })
 
@@ -70,7 +69,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
     if (submittingRef.current) return
 
     setError(null)
-    if (!amountToPay || amountToPay <= 0) {
+    if (!amountToPay || amountToPay < 0.005) {
       setError('El monto debe ser mayor a cero')
       return
     }
@@ -90,71 +89,74 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
 
     submittingRef.current = true
     setLoading(true)
-    try {
-      const paymentResult = await onProcessPayment({
-        receiptId: receipt.id,
-        customerId: customer.id,
-        cashClosureId: closureId,
-        amount: rounded,
-        paymentMethod: 'cash',
-        receivedAmount: receivedNum || rounded,
-        changeAmount: change,
-      }) as Record<string, unknown> | null
 
-      setOpen(false)
-      setReceived('')
+    const paymentResult = await onProcessPayment({
+      receiptId: receipt.id,
+      customerId: customer.id,
+      cashClosureId: closureId,
+      amount: rounded,
+      paymentMethod: 'cash',
+      receivedAmount: receivedNum || rounded,
+      changeAmount: Math.max(0, change),
+    })
 
-      const paymentId = paymentResult?.id as string | undefined
-      let voucherRef = ''
-      let voucherDate = new Date().toISOString()
-      let voucherReceiptPaidAfter = Math.round(((receipt.paid_amount || 0) + rounded) * 100) / 100
-      let voucherReceiptStatus = isFullPayment ? 'paid' : 'partial'
+    if (!paymentResult.success) {
+      setError(paymentResult.error || 'Error al procesar el pago')
+      setLoading(false)
+      submittingRef.current = false
+      return
+    }
 
-      if (paymentId && onGetVoucherData) {
-        try {
-          const details = await onGetVoucherData(paymentId)
-          if (details) {
-            voucherRef = (details.reference as string) || voucherRef
-            voucherDate = (details.payment_date as string) || voucherDate
-            const receiptData = details.receipts as Record<string, unknown> | null
-            if (receiptData) {
-              voucherReceiptPaidAfter = Math.round(((receiptData.paid_amount as number) || 0) * 100) / 100
-              voucherReceiptStatus = (receiptData.status as string) || voucherReceiptStatus
-            }
-            const custData = receiptData?.customers as Record<string, unknown> | null
+    setOpen(false)
+    setReceived('')
+
+    const paymentData = paymentResult.data as Record<string, unknown> | null | undefined
+    const paymentId = paymentData?.id as string | undefined
+    let voucherRef = ''
+    let voucherDate = new Date().toISOString()
+    let voucherReceiptPaidAfter = Math.round(((receipt.paid_amount || 0) + rounded) * 100) / 100
+    let voucherReceiptStatus = isFullPayment ? 'paid' : 'partial'
+
+    if (paymentId && onGetVoucherData) {
+      const detailsResult = await onGetVoucherData(paymentId)
+      if (detailsResult.success && detailsResult.data) {
+        const details = detailsResult.data as Record<string, unknown>
+        voucherRef = (details.reference as string) || voucherRef
+        voucherDate = (details.payment_date as string) || voucherDate
+        const receiptData = details.receipts as Record<string, unknown> | null
+        if (receiptData) {
+          voucherReceiptPaidAfter = Math.round(((receiptData.paid_amount as number) || 0) * 100) / 100
+          voucherReceiptStatus = (receiptData.status as string) || voucherReceiptStatus
+        }
+        const custData = receiptData?.customers as Record<string, unknown> | null
             if (custData) {
               setVoucherCustomer({
                 supplyNumber: (custData.supply_number as string) || customer.supply_number || '',
                 fullName: (custData.full_name as string) || customer.full_name || '',
                 address: custData.address as string | null ?? customer.address,
-                sector: custData.sector as string | null ?? customer.sector,
+                sectorName: ((custData.sectors as Record<string, unknown> | null)?.name as string | null) ?? (customer.sectors as { name: string } | null)?.name ?? null,
               })
-            }
-          }
-        } catch { /* use defaults */ }
+        }
       }
-
-      setVoucherPayment({
-        reference: voucherRef || `PAY-${Date.now()}`,
-        paymentDate: voucherDate,
-        amount: rounded,
-        receivedAmount: receivedNum || rounded,
-        changeAmount: Math.max(0, change),
-        receiptNumber: receipt.receipt_number,
-        receiptTotal: Math.round(receipt.total_amount * 100) / 100,
-        receiptPaidAfter: voucherReceiptPaidAfter,
-        receiptStatus: voucherReceiptStatus,
-        periodName: receipt.billing_periods?.name || '',
-      })
-      setVoucherOpen(true)
-
-      onSuccess()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al procesar el pago')
-    } finally {
-      setLoading(false)
-      submittingRef.current = false
     }
+
+    setVoucherPayment({
+      reference: voucherRef || `PAY-${Date.now()}`,
+      paymentDate: voucherDate,
+      amount: rounded,
+      receivedAmount: receivedNum || rounded,
+      changeAmount: Math.max(0, change),
+      receiptNumber: receipt.receipt_number,
+      receiptTotal: Math.round(receipt.total_amount * 100) / 100,
+      receiptPaidAfter: voucherReceiptPaidAfter,
+      receiptStatus: voucherReceiptStatus,
+      periodName: receipt.billing_periods?.name || '',
+    })
+    setVoucherOpen(true)
+
+    onSuccess()
+    setLoading(false)
+    submittingRef.current = false
   }
 
   return (
@@ -198,7 +200,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
               <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
               <Input id="amount" type="number" className="text-2xl font-bold" value={amountToPay} onChange={(e) => setAmountToPay(Number(e.target.value))} />
               <p className={`text-xs font-medium ${isFullPayment ? 'text-success' : 'text-amber-600'}`}>
-                {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(remaining - amountToPay)}`}
+                {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(Math.round((remaining - amountToPay) * 100) / 100)}`}
               </p>
             </div>
 
@@ -216,7 +218,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
             {receivedNum > 0 && !receivedIsEnough && (
               <div className="flex justify-between items-center p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
                 <span className="font-medium">Falta:</span>
-                <span className="text-xl font-black">{formatCurrency(amountToPay - receivedNum)}</span>
+                <span className="text-xl font-black">{formatCurrency(Math.round((amountToPay - receivedNum) * 100) / 100)}</span>
               </div>
             )}
 

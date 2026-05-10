@@ -12,7 +12,7 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
 
 type CashierBatchPaymentModalProps = {
   receipts: ReceiptWithPeriod[]
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'>
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address'>
   closureId: string
   totalDebt: number
   onSuccess: () => void
@@ -27,7 +27,7 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
       closureId={closureId}
       totalDebt={totalDebt}
       onSuccess={onSuccess}
-      onProcessBatchPayment={processBatchPaymentAction}
+      onProcessBatchPayment={processBatchPaymentAction as unknown as Parameters<typeof SharedBatchPaymentModal>[0]['onProcessBatchPayment']}
       municipalityConfig={municipalityConfig}
     />
   )

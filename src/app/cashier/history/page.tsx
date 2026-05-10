@@ -60,14 +60,14 @@ export default function CashierHistoryPage() {
 
     const dateFilterParams = getDateFilterParams(dateFilter)
 
-    getPaymentsByCashierAction(user.id, dateFilterParams)
-      .then((data) => {
-        if (!cancelled) {
-          setPayments(data)
-          setCurrentPage(1)
-        }
-      })
-      .catch(() => {})
+ getPaymentsByCashierAction(user.id, dateFilterParams)
+ .then((result) => {
+ if (!cancelled && result.success) {
+ setPayments(result.data)
+ setCurrentPage(1)
+ }
+ })
+      .catch((e) => { console.error('Error fetching payment history:', e) })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
@@ -87,7 +87,7 @@ export default function CashierHistoryPage() {
     currentPage * itemsPerPage
   )
 
-  const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0)
+  const totalAmount = Math.round(filteredPayments.reduce((sum, p) => sum + p.amount, 0) * 100) / 100
 
   const handleExport = () => {
     function escapeCsvField(value: string): string {
@@ -160,7 +160,7 @@ export default function CashierHistoryPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(filteredPayments.length > 0 ? totalAmount / filteredPayments.length : 0)}
+                {formatCurrency(filteredPayments.length > 0 ? Math.round(totalAmount / filteredPayments.length * 100) / 100 : 0)}
               </div>
               <p className="text-xs text-muted-foreground">Monto promedio</p>
             </CardContent>

@@ -85,11 +85,17 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     return count || 0
   }
 
-  async getActiveCustomersCount(): Promise<number> {
-    const { count, error } = await this.supabase
+  async getActiveCustomersCount(sectorId?: string): Promise<number> {
+    let query = this.supabase
       .from('customers')
       .select('id', { count: 'exact', head: true })
       .eq('is_active', true)
+
+    if (sectorId) {
+      query = query.eq('sector_id', sectorId)
+    }
+
+    const { count, error } = await query
 
     if (error) throw error
     return count || 0

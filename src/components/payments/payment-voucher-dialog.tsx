@@ -29,7 +29,6 @@ export type VoucherCustomerData = {
   supplyNumber: string
   fullName: string
   address?: string | null
-  sector?: string | null
   sectorName?: string | null
 }
 
@@ -65,7 +64,7 @@ export function PaymentVoucherDialog({
   }
 
   const isPartial = payment.receiptStatus === 'partial'
-  const remainingOnReceipt = payment.receiptTotal - payment.receiptPaidAfter
+  const remainingOnReceipt = Math.round((payment.receiptTotal - payment.receiptPaidAfter) * 100) / 100
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,7 +85,7 @@ export function PaymentVoucherDialog({
               <span>Monto Pagado:</span>
               <span>{formatCurrency(payment.amount)}</span>
             </div>
-            {payment.changeAmount > 0 && (
+            {payment.changeAmount > 0.005 && (
               <div className="flex justify-between text-sm">
                 <span>Vuelto:</span>
                 <span>{formatCurrency(payment.changeAmount)}</span>

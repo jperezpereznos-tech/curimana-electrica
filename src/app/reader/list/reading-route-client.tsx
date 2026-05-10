@@ -12,7 +12,7 @@ interface RouteCustomer {
   supply_number: string
   full_name: string
   address: string | null
-  sector: string | null
+  sectorName: string | null
   sector_id: string | null
   is_active: boolean | null
   last_reading: string | null
@@ -32,11 +32,10 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
     let cancelled = false
 
     if (!assignedSector) {
-      setCustomers([])
-      setLoading(false)
       return
     }
 
+    queueMicrotask(() => { if (!cancelled) setLoading(true) })
     customerService.getActiveCustomersWithReadings(assignedSector.id)
       .then((data) => {
         if (cancelled) return
@@ -45,7 +44,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
           supply_number: c.supply_number,
           full_name: c.full_name,
           address: c.address,
-          sector: c.sectors?.name || 'Sin Sector',
+          sectorName: c.sectors?.name || 'Sin Sector',
           sector_id: c.sector_id || c.sectors?.id || null,
           is_active: c.is_active,
           last_reading: c.readings && c.readings.length > 0
@@ -55,7 +54,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
 
         setCustomers(formatted)
       })
-      .catch(() => {})
+      .catch((e) => { console.error('Error loading reading route:', e) })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
@@ -132,7 +131,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
                         <span className="truncate">{customer.address}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-[10px]">{customer.sector}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{customer.sectorName}</Badge>
                         <span className="text-xs font-mono text-muted-foreground">{customer.supply_number}</span>
                       </div>
                     </div>

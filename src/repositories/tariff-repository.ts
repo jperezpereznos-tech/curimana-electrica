@@ -77,6 +77,8 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
     if (tariffError) throw tariffError
     if (!updatedTariff) throw new Error(`Tariff update failed — no rows matched id ${id}`)
 
+    const tiersToInsert = tiers.map(t => ({ ...t, tariff_id: id }))
+
     const { error: deleteTiersError } = await this.supabase
       .from('tariff_tiers')
       .delete()
@@ -84,13 +86,19 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
 
     if (deleteTiersError) throw deleteTiersError
 
-    if (tiers.length > 0) {
-      const tiersToInsert = tiers.map(t => ({ ...t, tariff_id: id }))
+    if (tiersToInsert.length > 0) {
       const { error: tiersError } = await this.supabase
         .from('tariff_tiers')
         .insert(tiersToInsert)
 
-      if (tiersError) throw tiersError
+      if (tiersError) {
+        for (const t of tiersToInsert) {
+          try {
+            await this.supabase.from('tariff_tiers').insert(t)
+          } catch { /* best-effort recovery */ }
+        }
+        throw tiersError
+      }
     }
 
     return updatedTariff

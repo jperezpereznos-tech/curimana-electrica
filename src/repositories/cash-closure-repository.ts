@@ -31,7 +31,7 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
 
     if (error) throw error
     const payments = data ?? []
-    const total = payments.reduce((sum, p) => sum + p.amount, 0)
+    const total = Math.round(payments.reduce((sum, p) => sum + p.amount, 0) * 100) / 100
     return { total, count: payments.length }
   }
 

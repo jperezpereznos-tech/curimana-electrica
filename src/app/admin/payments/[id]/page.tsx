@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, DollarSign, User, FileText, Calendar, Receipt } from 'lucide-react'
+import { ArrowLeft, DollarSign, User, FileText, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
@@ -67,7 +67,7 @@ export default async function PaymentDetailPage({
             <div>
               <p className="text-xs text-muted-foreground uppercase font-semibold">Direccion</p>
               <p className="text-sm">{customer?.address ?? '-'}</p>
-              <p className="text-xs text-muted-foreground">{customer?.sector ?? '-'}</p>
+              <p className="text-xs text-muted-foreground">{(customer as Record<string, unknown> & { sectors?: { name: string } | null })?.sectors?.name ?? '-'}</p>
             </div>
             {cashier && (
               <div className="pt-2 border-t">
@@ -128,7 +128,7 @@ export default async function PaymentDetailPage({
                   <span className="font-medium">{formatCurrency(payment.received_amount)}</span>
                 </div>
               )}
-              {payment.change_amount != null && payment.change_amount > 0 && (
+                {payment.change_amount != null && payment.change_amount > 0.005 && (
                 <div className="flex justify-between items-center text-sm">
                   <span>Vuelto</span>
                   <span className="font-medium">{formatCurrency(payment.change_amount)}</span>

@@ -17,7 +17,10 @@ export default function SyncPage() {
 
  const [hasMounted, setHasMounted] = useState(false)
 
- useEffect(() => { setHasMounted(true) }, [])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHasMounted(true)
+  }, [])
 
  const isSyncing = syncStatus === 'syncing'
 

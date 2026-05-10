@@ -9,7 +9,7 @@ import { Wifi, WifiOff, RefreshCcw, Camera, Search, List, MapPin, AlertCircle } 
 import Link from 'next/link'
 import { db } from '@/lib/db/dexie'
 import { getReaderDashboardDataAction } from './actions'
-import { toast } from 'sonner'
+
 
 export default function ReaderDashboard() {
   const { isOnline, pendingSyncCount, syncNow } = useOfflineSync()
@@ -22,6 +22,7 @@ export default function ReaderDashboard() {
   const [dashboardError, setDashboardError] = useState<string | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true)
     let cancelled = false
 
@@ -35,13 +36,17 @@ export default function ReaderDashboard() {
 
     if (navigator.onLine) {
       getReaderDashboardDataAction()
-        .then(data => {
+        .then(result => {
           if (!cancelled) {
-            setSyncedCount(data.syncedCount)
-            setActiveCustomers(data.activeCustomers)
-            setPeriodInfo(data.period)
-            setSectorName(data.sectorName)
-            setDashboardError(null)
+            if (result.success && result.data) {
+              setSyncedCount(result.data.syncedCount)
+              setActiveCustomers(result.data.activeCustomers)
+              setPeriodInfo(result.data.period)
+              setSectorName(result.data.sectorName)
+              setDashboardError(null)
+            } else {
+              setDashboardError(result.success ? 'Error al cargar datos del dashboard' : (result.error || 'Error al cargar datos del dashboard'))
+            }
           }
         })
         .catch((e: unknown) => {

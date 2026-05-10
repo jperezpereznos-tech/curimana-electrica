@@ -91,7 +91,7 @@ export default async function ReceiptDetailsPage({
             <div>
               <p className="text-xs text-muted-foreground uppercase font-semibold">Direccion</p>
               <p className="text-sm">{receipt.customers?.address ?? '-'}</p>
-              <p className="text-xs text-muted-foreground">{receipt.customers?.sector ?? '-'}</p>
+              <p className="text-xs text-muted-foreground">{receipt.customers?.sectors?.name ?? '-'}</p>
             </div>
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground uppercase font-semibold">Tarifa</p>

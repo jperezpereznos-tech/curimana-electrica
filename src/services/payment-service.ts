@@ -44,7 +44,7 @@ export class PaymentService {
     if (!receipt) throw new Error('Recibo no encontrado')
 
   const remaining = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
-  if (amount <= 0) throw new Error('El monto debe ser mayor a cero')
+    if (amount < 0.005) throw new Error('El monto debe ser mayor a cero')
   if (amount - remaining > 0.005) throw new Error('El monto excede el saldo pendiente')
     if (receipt.status === 'cancelled' || receipt.status === 'paid') {
       throw new Error('El recibo no permite nuevos pagos')
@@ -95,13 +95,13 @@ export class PaymentService {
 
     try {
       for (const item of data.payments) {
-        const batchTotal = data.payments.reduce((s, p) => s + p.amount, 0)
-        const itemReceivedAmount = data.receivedAmount != null && data.receivedAmount >= batchTotal
-          ? (item.amount / batchTotal) * data.receivedAmount
-          : item.amount
-        const itemChangeAmount = data.receivedAmount != null
-          ? Math.max(0, itemReceivedAmount - item.amount)
-          : 0
+      const batchTotal = Math.round(data.payments.reduce((s, p) => s + p.amount, 0) * 100) / 100
+      const itemReceivedAmount = data.receivedAmount != null && data.receivedAmount >= batchTotal
+        ? Math.round((item.amount / batchTotal) * data.receivedAmount * 100) / 100
+        : item.amount
+      const itemChangeAmount = data.receivedAmount != null
+        ? Math.max(0, Math.round((itemReceivedAmount - item.amount) * 100) / 100)
+        : 0
 
         const result = await this.processPayment({
           receiptId: item.receiptId,

@@ -35,7 +35,7 @@ export class StorageService {
       const file = new File([blob], finalFileName, { type: 'image/jpeg' })
 
       // Subir archivo
-      const { data, error } = await this.supabase.storage
+      const { error } = await this.supabase.storage
         .from(this.bucketName)
         .upload(`public/${finalFileName}`, file, {
           cacheControl: '3600',

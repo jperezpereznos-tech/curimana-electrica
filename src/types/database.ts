@@ -689,27 +689,30 @@ municipality_config: {
         ]
       }
       tariffs: {
-        Row: {
-          connection_type: string | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-        }
-        Insert: {
-          connection_type?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-        }
-        Update: {
-          connection_type?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-        }
+      Row: {
+        connection_type: string | null
+        created_at: string | null
+        id: string
+        is_active: boolean | null
+        name: string
+        updated_at: string | null
+      }
+      Insert: {
+        connection_type?: string | null
+        created_at?: string | null
+        id?: string
+        is_active?: boolean | null
+        name: string
+        updated_at?: string | null
+      }
+      Update: {
+        connection_type?: string | null
+        created_at?: string | null
+        id?: string
+        is_active?: boolean | null
+        name?: string
+        updated_at?: string | null
+      }
         Relationships: []
       }
     }

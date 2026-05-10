@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 export function ReaderLayout({ children }: { children: React.ReactNode }) {
-  const { signOut, user } = useAuth()
+  const { signOut } = useAuth()
   const pathname = usePathname()
 
   const navItems = [

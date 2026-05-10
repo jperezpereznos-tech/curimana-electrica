@@ -97,7 +97,8 @@ CREATE TABLE IF NOT EXISTS tariffs (
   name TEXT NOT NULL,
   connection_type TEXT DEFAULT 'monofásico' CHECK (connection_type IN ('monofásico', 'trifásico')),
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Tramos tarifarios (escalonado por consumo)

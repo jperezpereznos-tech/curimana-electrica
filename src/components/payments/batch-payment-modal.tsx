@@ -26,7 +26,7 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
 
 type BatchPaymentModalProps = {
   receipts: ReceiptWithPeriod[]
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'> & { sectors?: { name: string } | null }
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address'> & { sectors?: { name: string } | null }
   closureId: string
   totalDebt: number
   onSuccess: () => void
@@ -37,7 +37,7 @@ type BatchPaymentModalProps = {
     paymentMethod: 'cash'
     receivedAmount?: number
     changeAmount?: number
-  }) => Promise<unknown>
+  }) => Promise<{ success: boolean; data?: unknown; error?: string }>
   municipalityConfig?: { ruc?: string; name?: string } | null
 }
 
@@ -51,12 +51,12 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
   const submittingRef = useRef(false)
 
   const change = Math.round((Number(received) - totalDebt) * 100) / 100
+  const receivedIsEnough = !received || Number(received) >= totalDebt
 
   const voucherCustomer: VoucherCustomerData = {
     supplyNumber: customer.supply_number || '',
     fullName: customer.full_name || '',
     address: customer.address,
-    sector: customer.sector,
     sectorName: (customer.sectors as { name: string } | null)?.name ?? null,
   }
 
@@ -64,48 +64,55 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
     if (submittingRef.current) return
 
     setError(null)
+    if (received && !receivedIsEnough) {
+      setError('El monto recibido debe ser mayor o igual a la deuda total')
+      return
+    }
 
     submittingRef.current = true
     setLoading(true)
-    try {
-      const payments = receipts.map(r => ({
-        receiptId: r.id,
-        amount: Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100,
-      }))
 
-      await onProcessBatchPayment({
-        payments,
-        customerId: customer.id,
-        cashClosureId: closureId,
-        paymentMethod: 'cash',
-        receivedAmount: Number(received) || totalDebt,
-        changeAmount: change,
-      })
+    const payments = receipts.map(r => ({
+      receiptId: r.id,
+      amount: Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100,
+    }))
 
-      setOpen(false)
-      setReceived('')
+    const result = await onProcessBatchPayment({
+      payments,
+      customerId: customer.id,
+      cashClosureId: closureId,
+      paymentMethod: 'cash',
+      receivedAmount: Number(received) || totalDebt,
+      changeAmount: Math.max(0, change),
+    })
 
-      setVoucherPayment({
-        reference: 'LOTE-' + Date.now(),
-        paymentDate: new Date().toISOString(),
-        amount: totalDebt,
-        receivedAmount: Number(received) || totalDebt,
-        changeAmount: change,
-        receiptNumber: receipts.map(r => r.receipt_number).join(', '),
-        receiptTotal: Math.round(receipts.reduce((s, r) => s + r.total_amount, 0) * 100) / 100,
-        receiptPaidAfter: Math.round(receipts.reduce((s, r) => s + r.total_amount, 0) * 100) / 100,
-        receiptStatus: 'paid',
-        periodName: receipts.map(r => r.billing_periods?.name).filter(Boolean).join(', ') || 'Varios',
-      })
-      setVoucherOpen(true)
-
-      onSuccess()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al procesar el pago')
-    } finally {
+    if (!result.success) {
+      setError(result.error || 'Error al procesar el pago')
       setLoading(false)
       submittingRef.current = false
+      return
     }
+
+    setOpen(false)
+    setReceived('')
+
+    setVoucherPayment({
+      reference: 'LOTE-' + Date.now(),
+      paymentDate: new Date().toISOString(),
+      amount: totalDebt,
+      receivedAmount: Number(received) || totalDebt,
+      changeAmount: Math.max(0, change),
+      receiptNumber: receipts.map(r => r.receipt_number).join(', '),
+      receiptTotal: Math.round(receipts.reduce((s, r) => s + r.total_amount, 0) * 100) / 100,
+      receiptPaidAfter: Math.round(receipts.reduce((s, r) => s + r.total_amount, 0) * 100) / 100,
+      receiptStatus: 'paid',
+      periodName: receipts.map(r => r.billing_periods?.name).filter(Boolean).join(', ') || 'Varios',
+    })
+    setVoucherOpen(true)
+
+    onSuccess()
+    setLoading(false)
+    submittingRef.current = false
   }
 
   return (
@@ -135,7 +142,7 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
               {receipts.map(r => (
                 <div key={r.id} className="flex justify-between text-sm">
                   <span>Recibo {r.receipt_number}</span>
-                  <span>{formatCurrency(r.total_amount - (r.paid_amount || 0))}</span>
+                  <span>{formatCurrency(Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100)}</span>
                 </div>
               ))}
               <div className="flex justify-between font-bold border-t pt-2">
@@ -153,7 +160,13 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
                 value={received}
                 onChange={(e) => setReceived(e.target.value)}
               />
-              {Number(received) > 0 && (
+              {Number(received) > 0 && !receivedIsEnough && (
+        <div className="flex justify-between items-center p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
+          <span className="font-medium">Falta:</span>
+          <span className="text-xl font-black">{formatCurrency(Math.round((totalDebt - Number(received)) * 100) / 100)}</span>
+        </div>
+      )}
+      {Number(received) > 0 && receivedIsEnough && (
                 <div className="flex justify-between items-center p-3 bg-success/10 text-success rounded-lg border border-success/20">
                   <span className="font-medium">Vuelto:</span>
                   <span className="text-2xl font-black">{formatCurrency(change)}</span>
@@ -161,12 +174,12 @@ export function BatchPaymentModal({ receipts, customer, closureId, totalDebt, on
               )}
             </div>
 
-            <DialogFooter>
-              <Button
-                className="w-full h-12 text-lg gap-2"
-                onClick={handlePayment}
-                disabled={loading}
-              >
+        <DialogFooter>
+          <Button
+            className="w-full h-12 text-lg gap-2"
+            onClick={handlePayment}
+            disabled={loading || !receivedIsEnough}
+          >
                 {loading ? 'Procesando...' : (
                   <><Wallet className="h-5 w-5" /> Confirmar Pago de {formatCurrency(totalDebt)}</>
                 )}

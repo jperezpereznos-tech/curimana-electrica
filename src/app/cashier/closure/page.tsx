@@ -88,7 +88,7 @@ export default async function CashClosurePage() {
                   <CardTitle className="text-xs font-semibold uppercase text-muted-foreground">Total en Caja</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(activeClosure.opening_amount + totalCollected)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(Math.round((activeClosure.opening_amount + totalCollected) * 100) / 100)}</div>
                 </CardContent>
               </Card>
             </div>

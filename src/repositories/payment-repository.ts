@@ -36,8 +36,8 @@ export class PaymentRepository extends BaseRepository<'payments'> {
       .from('payments')
       .select(`*,
         receipts(receipt_number, total_amount, paid_amount, status, issue_date, due_date,
-          customers(full_name, supply_number, address, sector),
-          billing_periods(name)
+      customers(full_name, supply_number, address, sectors(id, name)),
+      billing_periods(name)
         ),
         cashier:profiles!cashier_id(full_name)
       `)
@@ -83,7 +83,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
     const { data, error } = await this.supabase
       .from('payments')
       .select(`*, receipts(receipt_number, total_amount, paid_amount, status,
-        customers(full_name, supply_number, address, sector),
+        customers(full_name, supply_number, address, sectors(id, name)),
         billing_periods(name)
       ), cashier:profiles!cashier_id(full_name)`)
       .eq('customer_id', customerId)

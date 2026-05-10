@@ -2,7 +2,6 @@ import { TariffRepository } from '@/repositories/tariff-repository'
 import { AuditService } from '@/services/audit-service'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type TierInsert = Omit<Database['public']['Tables']['tariff_tiers']['Insert'], 'id' | 'created_at' | 'tariff_id'>
 type TariffInsert = Omit<Database['public']['Tables']['tariffs']['Insert'], 'id' | 'created_at'>
@@ -10,12 +9,10 @@ type TariffInsert = Omit<Database['public']['Tables']['tariffs']['Insert'], 'id'
 export class TariffService {
   private tariffRepo: TariffRepository
   private auditSvc: AuditService
-  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.tariffRepo = new TariffRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
   validateTiers(tiers: TierInsert[]): void {

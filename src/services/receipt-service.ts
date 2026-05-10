@@ -41,11 +41,12 @@ export class ReceiptService {
     const conceptsBreakdown = fixedConcepts.map(c => {
       let amount = 0
       if (c.type === 'fixed') amount = c.amount
-      if (c.type === 'percentage') amount = ((energyAmount + totalFixed) * c.amount) / 100
+      if (c.type === 'percentage') amount = (Math.round((energyAmount + totalFixed) * 100) / 100 * c.amount) / 100
       if (c.type === 'per_kwh') amount = consumption * c.amount
 
-      totalFixed += amount
-      return { name: c.name, amount: Math.round(amount * 100) / 100 }
+      const roundedAmount = Math.round(amount * 100) / 100
+      totalFixed = Math.round((totalFixed + roundedAmount) * 100) / 100
+      return { name: c.name, amount: roundedAmount }
     })
 
     const subtotal = Math.round((energyAmount + totalFixed) * 100) / 100
@@ -65,7 +66,7 @@ export class ReceiptService {
     const receipt = await this.receiptRepo.getById(id)
     if (!receipt) throw new Error('Recibo no encontrado')
     if (receipt.status === 'cancelled') throw new Error('El recibo ya está anulado')
-    if ((receipt.paid_amount || 0) > 0) throw new Error('No se puede anular un recibo con pagos registrados. Anule los pagos primero.')
+    if ((receipt.paid_amount || 0) > 0.005) throw new Error('No se puede anular un recibo con pagos registrados. Anule los pagos primero.')
 
     const customerId = receipt.customer_id
     if (!customerId) throw new Error('Recibo sin cliente asociado')
@@ -78,7 +79,7 @@ export class ReceiptService {
       const { error: debtErr } = await this.supabase.rpc('recalculate_customer_debt', {
         p_customer_id: customerId
       })
-      if (debtErr) console.error('Error recalculating customer debt after cancel:', debtErr)
+      if (debtErr) throw new Error('Recibo anulado pero error al recalcular deuda del cliente: ' + debtErr.message)
     }
 
     if (userId) {

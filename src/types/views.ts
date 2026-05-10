@@ -28,7 +28,7 @@ export type ReaderProfilePartial = {
 
 export type ReceiptWithPeriod = ReceiptRow & {
   billing_periods: { name: string } | null
-  customers: { full_name: string; supply_number: string; address?: string | null; sector?: string | null } | null
+  customers: { full_name: string; supply_number: string; address?: string | null; sectors?: { id: string; name: string } | null } | null
 }
 
 export type ReceiptForCustomer = ReceiptRow & {
@@ -83,7 +83,7 @@ export type CustomerForRoute = {
   supply_number: string
   full_name: string
   address: string | null
-  sector: string | null
+  sectorName: string | null
   sector_id: string | null
   is_active: boolean | null
   readings: { id: string; reading_date: string | null }[] | null
@@ -100,7 +100,7 @@ export type RouteCustomerItem = {
   supply_number: string
   full_name: string
   address: string | null
-  sector: string | null
+  sectorName: string | null
   sector_id: string | null
   has_reading: boolean
   previous_reading: number
@@ -110,7 +110,7 @@ export type CustomerSearchResult = {
   id: string
   full_name: string
   address: string | null
-  sector: string | null
+  sectorName: string | null
   sector_id: string | null
   supply_number: string
   previous_reading: number
@@ -150,7 +150,7 @@ export type PendingReadingItem = {
   supply_number: string
   full_name: string
   address: string | null
-  sector: string | null
+  sectorName: string | null
   has_photo: boolean
   status: string
   retry_count: number

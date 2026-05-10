@@ -7,6 +7,7 @@ export interface PendingReading {
   full_name: string
   address?: string
   sector?: string
+  sectorName?: string
   sector_id?: string
   previous_reading: number
   current_reading: number
@@ -26,6 +27,7 @@ export interface CustomerCache {
   full_name: string
   address: string
   sector: string
+  sectorName: string
   sector_id: string
   tariff_id: string
   previous_reading: number

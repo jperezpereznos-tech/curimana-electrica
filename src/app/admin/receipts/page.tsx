@@ -35,7 +35,7 @@ export default async function ReceiptsPage({
   try {
     const { data } = await supabase.from('municipality_config').select('*').limit(1).single()
     municipalityConfig = data
-  } catch {}
+  } catch (e) { console.error('Error fetching municipality_config:', e) }
 
   return (
     <>

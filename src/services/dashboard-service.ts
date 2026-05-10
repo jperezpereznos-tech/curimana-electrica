@@ -118,7 +118,7 @@ export class DashboardService {
   async getTopDebtors(limit: number = 5) {
     const { data, error } = await this.supabase
       .from('customers')
-      .select('id, full_name, supply_number, address, sector, sector_id, sectors(name), current_debt')
+      .select('id, full_name, supply_number, address, sector_id, sectors(name), current_debt')
       .eq('is_active', true)
       .gt('current_debt', 0)
       .order('current_debt', { ascending: false })

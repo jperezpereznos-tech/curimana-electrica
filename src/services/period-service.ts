@@ -74,7 +74,7 @@ export class PeriodService {
       .select('billing_cut_day')
       .limit(1)
       .single()
-    if (configErr) console.error('Error fetching billing_cut_day:', configErr)
+      if (configErr) throw new Error('Error al obtener configuración municipal (billing_cut_day): ' + configErr.message)
 
     const cutDay = config?.billing_cut_day || 26
     const periodData = this.calculatePeriodDates(nextYear, nextMonth, cutDay)
@@ -128,7 +128,7 @@ export class PeriodService {
       .select('payment_grace_days')
       .limit(1)
       .single()
-    if (configErr) console.error('Error fetching payment_grace_days:', configErr)
+    if (configErr) throw new Error('Error al obtener configuración municipal (payment_grace_days): ' + configErr.message)
 
     const graceDays = config?.payment_grace_days || 20
 
@@ -174,27 +174,27 @@ export class PeriodService {
             continue
           }
 
-          if (concept.type === 'fixed') {
-            fixedCharges += concept.amount
-          } else if (concept.type === 'per_kwh') {
-            fixedCharges += consumption * concept.amount
-          }
+        if (concept.type === 'fixed') {
+          fixedCharges = Math.round((fixedCharges + concept.amount) * 100) / 100
+        } else if (concept.type === 'per_kwh') {
+          fixedCharges = Math.round((fixedCharges + consumption * concept.amount) * 100) / 100
+        }
         }
 
       const sortedTiers = tiers.length > 0
         ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
           : []
 
-        percentageBase = (sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges
+        percentageBase = Math.round(((sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges) * 100) / 100
 
         for (const concept of activeConcepts) {
           if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
             continue
           }
 
-          if (concept.type === 'percentage') {
-            fixedCharges += (percentageBase * concept.amount) / 100
-          }
+        if (concept.type === 'percentage') {
+          fixedCharges = Math.round((fixedCharges + (percentageBase * concept.amount) / 100) * 100) / 100
+        }
         }
 
         fixedCharges = Math.round(fixedCharges * 100) / 100

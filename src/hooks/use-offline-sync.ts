@@ -78,9 +78,9 @@ const syncCustomerCache = useCallback(async () => {
         await db.customers_cache.bulkPut(stamped)
       })
     }
-    } catch (error) {
-      console.error('Error syncing customer cache:', error)
-    }
+  } catch (error) {
+    console.error('Error syncing customer cache — offline search may use stale data:', error)
+  }
   }, [user?.id])
 
   const refreshSession = useCallback(async () => {
@@ -192,41 +192,46 @@ const syncCustomerCache = useCallback(async () => {
           last_attempt_time: Date.now()
         })
 
-        const previousReading = Number(reading.previous_reading) || 0
-        const currentReading = Number(reading.current_reading) || 0
+ const previousReading = Number(reading.previous_reading) || 0
+ const currentReading = Number(reading.current_reading) || 0
+ let photoUploadFailed = false
 
-        await withTimeout(
-          (async () => {
-            let photoUrl: string | undefined = undefined
-            if (reading.photo_base64) {
-              try {
-                const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
-                photoUrl = await withTimeout(
-                  storageService.uploadReadingPhoto(reading.photo_base64, fileName),
-                  PHOTO_UPLOAD_TIMEOUT_MS
-                )
-              } catch (photoError) {
-                console.error('Error uploading photo:', photoError)
-              }
-            }
+ await withTimeout(
+ (async () => {
+ let photoUrl: string | undefined = undefined
+ if (reading.photo_base64) {
+ try {
+ const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
+ photoUrl = await withTimeout(
+ storageService.uploadReadingPhoto(reading.photo_base64, fileName),
+ PHOTO_UPLOAD_TIMEOUT_MS
+ )
+ } catch (photoError) {
+ console.error('Error uploading photo — will sync reading without photo, keeping record for retry:', photoError)
+ photoUploadFailed = true
+ }
+ }
 
-        await withTimeout(
-          registerReadingAction({
-            customer_id: reading.customer_id,
-            billing_period_id: periodId!,
-            previous_reading: previousReading,
-            current_reading: currentReading,
-            reading_date: reading.reading_date,
-            notes: reading.notes,
-            photo_url: photoUrl
-          }),
-          READING_INSERT_TIMEOUT_MS
-        )
-          })(),
-          PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
-        )
+ await withTimeout(
+ registerReadingAction({
+ customer_id: reading.customer_id,
+ billing_period_id: periodId!,
+ previous_reading: previousReading,
+ current_reading: currentReading,
+ reading_date: reading.reading_date,
+ notes: reading.notes,
+ photo_url: photoUrl
+ }),
+ READING_INSERT_TIMEOUT_MS
+ )
+ })(),
+ PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
+ )
 
           await db.pending_readings.delete(reading.id!)
+        if (photoUploadFailed) {
+          console.warn(`Reading synced for ${reading.supply_number} but photo upload failed. Photo data discarded.`)
+        }
 } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error)
       const errObj = error instanceof Error ? error as Error & { code?: string } : null
@@ -257,7 +262,7 @@ const syncCustomerCache = useCallback(async () => {
       syncingRef.current = false
       setTimeout(() => setSyncStatus('idle'), 10000)
     }
-  }, [isOnline, updateCounter, syncCustomerCache, refreshSession, user?.id])
+  }, [isOnline, updateCounter, syncCustomerCache, refreshSession])
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)

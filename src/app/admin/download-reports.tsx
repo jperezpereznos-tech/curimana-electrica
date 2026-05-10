@@ -23,7 +23,7 @@ export function DownloadReports() {
     try {
       const customers = await getCustomersWithDebtAction()
       const filtered = customers
-        .filter(c => (c.current_debt ?? 0) > 0)
+        .filter(c => (c.current_debt ?? 0) > 0.005)
         .map(c => ({
           Suministro: c.supply_number,
           Nombre: c.full_name,

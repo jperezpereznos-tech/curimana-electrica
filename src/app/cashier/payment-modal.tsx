@@ -12,7 +12,7 @@ type ReceiptWithPeriod = Database['public']['Tables']['receipts']['Row'] & {
 
 type CashierPaymentModalProps = {
   receipt: ReceiptWithPeriod
-  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address' | 'sector'>
+  customer: Pick<Database['public']['Tables']['customers']['Row'], 'id' | 'full_name' | 'supply_number' | 'address'>
   closureId: string
   onSuccess: () => void
   municipalityConfig?: { ruc?: string; name?: string } | null
@@ -25,8 +25,8 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, municipa
       customer={customer}
       closureId={closureId}
       onSuccess={onSuccess}
-      onProcessPayment={processPaymentAction}
-      onGetVoucherData={getPaymentVoucherDataAction as (paymentId: string) => Promise<Record<string, unknown> | null>}
+      onProcessPayment={processPaymentAction as unknown as Parameters<typeof SharedPaymentModal>[0]['onProcessPayment']}
+      onGetVoucherData={getPaymentVoucherDataAction as unknown as Parameters<typeof SharedPaymentModal>[0]['onGetVoucherData']}
       municipalityConfig={municipalityConfig}
     />
   )

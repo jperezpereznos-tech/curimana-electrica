@@ -38,37 +38,35 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
     const version = ++searchVersionRef.current
     setLoading(true)
     setNotFound(false)
-    try {
-      const result = await searchCashierCustomerAction(q)
-      if (version !== searchVersionRef.current) return
 
-      if (result) {
-        setCustomer(result.customer)
-        setReceipts(result.receipts)
+    const result = await searchCashierCustomerAction(q)
+    if (version !== searchVersionRef.current) return
 
-        getCustomerPaymentsAction(result.customer.id).then(p => {
-          if (version === searchVersionRef.current) {
-            setPayments((p as Record<string, unknown>[]) || [])
-          }
-        }).catch(() => {})
-      } else {
-        setCustomer(null)
-        setReceipts([])
-        setPayments([])
-        setNotFound(true)
-      }
-    } catch {
-      if (version !== searchVersionRef.current) return
+    if (result.success && result.data) {
+      setCustomer(result.data.customer)
+      setReceipts(result.data.receipts)
+
+      getCustomerPaymentsAction(result.data.customer.id).then(p => {
+        if (version === searchVersionRef.current && p.success) {
+          setPayments((p.data as Record<string, unknown>[]) || [])
+        }
+      }).catch((e) => { console.error('Error fetching customer payments:', e) })
+    } else if (result.success && !result.data) {
+      setCustomer(null)
+      setReceipts([])
+      setPayments([])
       setNotFound(true)
-    } finally {
-      if (version === searchVersionRef.current) {
-        setLoading(false)
-      }
+    } else {
+      setNotFound(true)
+    }
+
+    if (version === searchVersionRef.current) {
+      setLoading(false)
     }
   }, [q])
 
   const totalDebt = useMemo(() =>
-    Math.round(receipts.reduce((sum, r) => sum + (r.total_amount - (r.paid_amount || 0)), 0) * 100) / 100,
+    Math.round(receipts.reduce((sum, r) => sum + Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100, 0) * 100) / 100,
     [receipts]
   )
 
@@ -91,11 +89,10 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
       receiptStatus: (receiptData?.status as string) || '',
       periodName: (periodData?.name as string) || '',
     customer: {
-      supplyNumber: (custData?.supply_number as string) || customer?.supply_number || '',
-      fullName: (custData?.full_name as string) || customer?.full_name || '',
-      address: (custData?.address as string | null) ?? customer?.address ?? null,
-      sector: (custData?.sector as string | null) ?? customer?.sector ?? null,
-      sectorName: ((custData?.sectors as Record<string, unknown> | null)?.name as string | null) ?? (customer?.sectors as { name: string } | null)?.name ?? null,
+        supplyNumber: (custData?.supply_number as string) || customer?.supply_number || '',
+        fullName: (custData?.full_name as string) || customer?.full_name || '',
+        address: (custData?.address as string | null) ?? customer?.address ?? null,
+        sectorName: ((custData?.sectors as Record<string, unknown> | null)?.name as string | null) ?? (customer?.sectors as { name: string } | null)?.name ?? null,
     },
       municipality_config: municipalityConfig,
       cashierName: (cashierData?.full_name as string) || null,
@@ -146,7 +143,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
               </div>
               <div className="flex items-start gap-1">
                 <MapPin className="h-3 w-3 mt-1 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{customer.address} - {customer.sector}</p>
+                <p className="text-xs text-muted-foreground">{customer.address} - {(customer.sectors as { name: string } | null)?.name || 'Sin sector'}</p>
               </div>
               <div className="pt-4 border-t space-y-2">
                 <div>

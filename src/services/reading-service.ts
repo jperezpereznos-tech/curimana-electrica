@@ -3,7 +3,6 @@ import { AuditService } from '@/services/audit-service'
 import { Database } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { storageService } from './storage-service'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type ReadingInsert = Database['public']['Tables']['readings']['Insert']
 type ReadingUpdate = Database['public']['Tables']['readings']['Update']
@@ -11,12 +10,10 @@ type ReadingUpdate = Database['public']['Tables']['readings']['Update']
 export class ReadingService {
   private readingRepo: ReadingRepository
   private auditSvc: AuditService
-  private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.readingRepo = new ReadingRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
   }
 
   async registerReading(data: Omit<ReadingInsert, 'consumption' | 'created_at' | 'needs_review'>, userId?: string) {
@@ -75,8 +72,8 @@ export class ReadingService {
     return await this.readingRepo.getTodayReadingsCount()
   }
 
-  async getActiveCustomersCount() {
-    return await this.readingRepo.getActiveCustomersCount()
+  async getActiveCustomersCount(sectorId?: string) {
+    return await this.readingRepo.getActiveCustomersCount(sectorId)
   }
 
   async getReviewCount() {

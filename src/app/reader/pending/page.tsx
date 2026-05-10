@@ -34,7 +34,7 @@ export default function PendingReadingsPage() {
       supply_number: r.supply_number,
       full_name: r.full_name,
       address: r.address || 'Sin dirección',
-      sector: r.sector || 'Sin sector',
+      sectorName: r.sectorName || r.sector || 'Sin sector',
       has_photo: !!r.photo_base64,
       status: r.status === 'failed' && (r.retry_count || 0) >= 5 ? 'exhausted' : (r.status || 'pending'),
       retry_count: r.retry_count || 0,
@@ -49,7 +49,7 @@ export default function PendingReadingsPage() {
       if (!cancelled) setPendingReadings(formatted)
     }
 
-    refresh().catch(() => {}).finally(() => {
+      refresh().catch((e) => { console.error('Error loading pending readings:', e) }).finally(() => {
       if (!cancelled) setLoading(false)
     })
 
@@ -161,7 +161,7 @@ export default function PendingReadingsPage() {
                         </div>
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{reading.sector}</Badge>
+                            <Badge variant="outline">{reading.sectorName}</Badge>
                             {reading.status !== 'pending' && (
                               <Badge variant={config.variant} className="text-xs">
                                 {config.label}

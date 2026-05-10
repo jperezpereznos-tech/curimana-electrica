@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Zap, ChevronRight, WifiOff } from 'lucide-react'
-import { searchReaderCustomersAction } from '../actions'
+import { searchReaderCustomersAction, getReaderAssignedSectorIdAction } from '../actions'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import type { CustomerWithRelations } from '@/types/views'
@@ -19,6 +19,20 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [assignedSectorId, setAssignedSectorId] = useState<string | null>(null)
+
+  useEffect(() => {
+    getReaderAssignedSectorIdAction()
+      .then(result => {
+        if (result.success) setAssignedSectorId(result.data ?? null)
+      })
+      .catch((e) => { console.error('Error fetching assigned sector:', e) })
+  }, [])
+
+  const filterBySector = (customers: CustomerCache[]): CustomerCache[] => {
+    if (!assignedSectorId) return []
+    return customers.filter(c => c.sector_id === assignedSectorId)
+  }
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,29 +40,31 @@ export default function SearchPage() {
 
     setLoading(true)
     setSearched(true)
-    try {
-      if (navigator.onLine) {
-        const customers = await searchReaderCustomersAction(searchTerm)
-        setResults(customers || [])
+
+    if (navigator.onLine) {
+      const result = await searchReaderCustomersAction(searchTerm)
+      if (result.success) {
+        setResults(result.data || [])
       } else {
-        const cached = await db.customers_cache
-          .where('supply_number')
-          .startsWithIgnoreCase(searchTerm)
-          .toArray()
-        if (cached.length === 0) {
-          const byName = await db.customers_cache
-            .filter(c => c.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .toArray()
-          setResults(byName)
-        } else {
-          setResults(cached)
-        }
+        setResults([])
       }
-    } catch {
-      setResults([])
-    } finally {
-      setLoading(false)
+    } else {
+      const cached = await db.customers_cache
+        .where('supply_number')
+        .startsWithIgnoreCase(searchTerm)
+        .toArray()
+      const filtered = filterBySector(cached)
+      if (filtered.length === 0) {
+        const byName = await db.customers_cache
+          .filter(c => c.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+          .toArray()
+        setResults(filterBySector(byName))
+      } else {
+        setResults(filtered)
+      }
     }
+
+    setLoading(false)
   }
 
   return (
@@ -116,7 +132,7 @@ export default function SearchPage() {
                         <span>{customer.address}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline">{customer.sector || 'Sin sector'}</Badge>
+                        <Badge variant="outline">{'sectors' in customer && customer.sectors ? (customer.sectors as { name: string }).name : 'Sin sector'}</Badge>
                         <Badge variant="outline">{'connection_type' in customer ? (customer.connection_type || 'Monofásico') : 'Monofásico'}</Badge>
                       </div>
                     </div>

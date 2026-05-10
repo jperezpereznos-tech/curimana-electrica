@@ -16,8 +16,9 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import type { CustomerWithRelations } from '@/types/views'
 
-type ReaderCustomer = Pick<CustomerWithRelations, 'id' | 'full_name' | 'address' | 'sector' | 'sector_id' | 'supply_number'> & {
+type ReaderCustomer = Pick<CustomerWithRelations, 'id' | 'full_name' | 'address' | 'sector_id' | 'supply_number'> & {
   previous_reading: number
+  sectorName: string | null
 }
 
 export default function NewReadingPage() {
@@ -46,10 +47,11 @@ function NewReadingContent() {
 
   useEffect(() => {
     getReaderAssignedSectorIdAction()
-      .then(sectorId => setAssignedSectorId(sectorId))
-      .catch((e: unknown) => {
-        toast.error('No se pudo obtener el sector asignado')
+      .then(result => {
+        if (result.success) setAssignedSectorId(result.data ?? null)
+        else toast.error(result.error || 'No se pudo obtener el sector asignado')
       })
+      .catch(() => { toast.error('No se pudo obtener el sector asignado') })
   }, [])
 
   const handleSearch = useCallback(async (supply: string) => {
@@ -65,17 +67,20 @@ function NewReadingContent() {
         .equals(supply)
         .first()
 
-      if (cachedCustomer) {
-        if (assignedSectorId && cachedCustomer.sector_id && cachedCustomer.sector_id !== assignedSectorId) {
-          setSaveError('Este suministro no pertenece a su sector asignado')
-          setNotFound(true)
-        } else {
+        if (cachedCustomer) {
+          if (assignedSectorId && cachedCustomer.sector_id && cachedCustomer.sector_id !== assignedSectorId) {
+            setSaveError('Este suministro no pertenece a su sector asignado')
+            setNotFound(true)
+          } else if (assignedSectorId && !cachedCustomer.sector_id) {
+            setSaveError('Este suministro no tiene sector asignado')
+            setNotFound(true)
+          } else {
           setSaveError(null)
           setCustomer({
             id: cachedCustomer.id,
             full_name: cachedCustomer.full_name,
             address: cachedCustomer.address,
-            sector: cachedCustomer.sector,
+            sectorName: cachedCustomer.sectorName || cachedCustomer.sector || null,
             sector_id: cachedCustomer.sector_id,
             supply_number: cachedCustomer.supply_number,
             previous_reading: cachedCustomer.previous_reading,
@@ -86,35 +91,32 @@ function NewReadingContent() {
         const found = results?.find((c: CustomerWithRelations) => c.supply_number === supply)
         if (found) {
           let previousReading = 0
-          try {
-            const latestReading = await getLatestReadingAction(found.id)
-            if (latestReading) {
-              previousReading = Number(latestReading.current_reading) || 0
-            }
-          } catch (e: unknown) {
-            toast.error('No se pudo obtener la lectura anterior')
+          const latestResult = await getLatestReadingAction(found.id)
+          if (latestResult.success && latestResult.data) {
+            previousReading = Number(latestResult.data.current_reading) || 0
           }
-          await db.customers_cache.put({
-            id: found.id,
-            supply_number: found.supply_number,
-            full_name: found.full_name,
-            address: found.address || '',
-            sector: found.sector || '',
-            sector_id: found.sector_id || '',
-            tariff_id: found.tariff_id || '',
-            previous_reading: previousReading,
-            last_updated: Date.now(),
-          })
-          setSaveError(null)
-          setCustomer({
-            id: found.id,
-            full_name: found.full_name,
-            address: found.address,
-            sector: found.sector,
-            sector_id: found.sector_id,
-            supply_number: found.supply_number,
-            previous_reading: previousReading,
-          })
+        await db.customers_cache.put({
+          id: found.id,
+          supply_number: found.supply_number,
+          full_name: found.full_name,
+          address: found.address || '',
+          sector: found.sector || '',
+          sectorName: found.sectors?.name || '',
+          sector_id: found.sector_id || '',
+          tariff_id: found.tariff_id || '',
+          previous_reading: previousReading,
+          last_updated: Date.now(),
+        })
+        setSaveError(null)
+        setCustomer({
+          id: found.id,
+          full_name: found.full_name,
+          address: found.address,
+          sectorName: found.sectors?.name || found.sector || null,
+          sector_id: found.sector_id,
+          supply_number: found.supply_number,
+          previous_reading: previousReading,
+        })
         } else {
           setNotFound(true)
         }
@@ -144,22 +146,23 @@ function NewReadingContent() {
     const previous = customer.previous_reading
 
     try {
-      await db.pending_readings.add({
-        customer_id: customer.id,
-        supply_number: supplyNumber,
-        full_name: customer.full_name,
-        address: customer.address || '',
-        sector: customer.sector || '',
-        sector_id: customer.sector_id || '',
-        previous_reading: previous,
-        current_reading: reading,
-        reading_date: new Date().toISOString().split('T')[0],
-        notes,
-        photo_base64: capturedPhoto || undefined,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        needs_review: reading < previous
-      })
+        await db.pending_readings.add({
+          customer_id: customer.id,
+          supply_number: supplyNumber,
+          full_name: customer.full_name,
+          address: customer.address || '',
+          sector: '',
+          sectorName: customer.sectorName || '',
+          sector_id: customer.sector_id || '',
+          previous_reading: previous,
+          current_reading: reading,
+          reading_date: new Date().toISOString().split('T')[0],
+          notes,
+          photo_base64: capturedPhoto || undefined,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          needs_review: reading < previous
+        })
 
       toast.success('Lectura guardada localmente')
       router.push('/reader')

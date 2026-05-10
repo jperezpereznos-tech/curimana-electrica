@@ -34,29 +34,28 @@ export function ClosureActions({ action, closureId }: { action: 'open' | 'close'
     }
 
     setLoading(true)
-    try {
-      await openClosureAction(amount)
+    const result = await openClosureAction(amount)
+    if (result.success) {
       setOpen(false)
       router.refresh()
-    } catch {
-      setError('Error al abrir caja')
-    } finally {
-      setLoading(false)
+    } else {
+      setError(result.error || 'Error al abrir caja')
     }
+    setLoading(false)
   }
 
   const handleClose = async () => {
+    if (!closureId) return
     setError(null)
     setLoading(true)
-    try {
-      await closeClosureAction(closureId!)
+    const result = await closeClosureAction(closureId)
+    if (result.success) {
       setShowCloseConfirm(false)
       router.refresh()
-    } catch {
-      setError('Error al cerrar caja')
-    } finally {
-      setLoading(false)
+    } else {
+      setError(result.error || 'Error al cerrar caja')
     }
+    setLoading(false)
   }
 
   if (action === 'open') {

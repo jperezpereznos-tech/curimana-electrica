@@ -39,6 +39,7 @@ export async function LatestReadings() {
   const readingService = getReadingService(supabase)
   
   let readings: LatestReading[] = []
+  let readingsError = ''
   try {
     const data = await readingService.getLatestReadings()
     readings = data?.map((r: LatestReadingItem) => ({
@@ -53,6 +54,7 @@ export async function LatestReadings() {
     })) || []
   } catch (error) {
     console.error('Error fetching latest readings:', error)
+    readingsError = 'Error al cargar lecturas'
   }
 
   return (
@@ -64,7 +66,11 @@ export async function LatestReadings() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {readings.length === 0 ? (
+        {readingsError ? (
+        <div className="text-center py-4 text-destructive text-sm">
+          {readingsError}
+        </div>
+      ) : readings.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground text-sm">
             No hay lecturas registradas hoy
           </div>
