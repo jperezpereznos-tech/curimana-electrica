@@ -949,7 +949,7 @@ WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reade
 -- ============================================================================
 
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('reading-photos', 'reading-photos', false)
+VALUES ('reading-photos', 'reading-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "Authenticated upload reading photos" ON storage.objects;

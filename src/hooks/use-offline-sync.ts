@@ -210,27 +210,31 @@ export function useOfflineSync() {
                   freshStorage.uploadReadingPhoto(reading.photo_base64, fileName),
                   PHOTO_UPLOAD_TIMEOUT_MS
                 )
- } catch (photoError) {
- console.error('Error uploading photo — will sync reading without photo, keeping record for retry:', photoError)
- photoUploadFailed = true
- }
- }
+              } catch (photoError) {
+                console.error('Error uploading photo — will sync reading without photo, keeping record for retry:', photoError)
+                photoUploadFailed = true
+              }
+            }
 
- await withTimeout(
- registerReadingAction({
- customer_id: reading.customer_id,
- billing_period_id: periodId!,
- previous_reading: previousReading,
- current_reading: currentReading,
- reading_date: reading.reading_date,
- notes: reading.notes,
- photo_url: photoUrl
- }),
- READING_INSERT_TIMEOUT_MS
- )
- })(),
- PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
- )
+            const actionResult = await withTimeout(
+              registerReadingAction({
+                customer_id: reading.customer_id,
+                billing_period_id: periodId!,
+                previous_reading: previousReading,
+                current_reading: currentReading,
+                reading_date: reading.reading_date,
+                notes: reading.notes,
+                photo_url: photoUrl
+              }),
+              READING_INSERT_TIMEOUT_MS
+            )
+
+            if (!actionResult.success) {
+              throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
+            }
+          })(),
+          PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
+        )
 
           await db.pending_readings.delete(reading.id!)
         if (photoUploadFailed) {

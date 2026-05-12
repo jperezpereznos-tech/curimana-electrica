@@ -139,7 +139,10 @@ export async function registerReadingAction(data: {
     if (!customer.is_active) {
       return { success: false as const, error: 'No puede registrar lecturas de un suministro inactivo.' }
     }
-    if (!customer.sector_id || customer.sector_id !== sectorId) {
+    if (!customer.sector_id) {
+      return { success: false as const, error: 'El suministro no tiene sector asignado. Contacte al administrador para asignar un sector al suministro.' }
+    }
+    if (customer.sector_id !== sectorId) {
       return { success: false as const, error: 'No puede registrar lecturas de suministros fuera de su sector asignado' }
     }
 
