@@ -6,6 +6,9 @@ import { AuditService } from '@/services/audit-service'
 vi.mock('@/repositories/reading-repository')
 vi.mock('@/services/audit-service')
 vi.mock('@/services/storage-service', () => ({
+  StorageService: vi.fn().mockImplementation(function() {
+    return { uploadReadingPhoto: vi.fn().mockResolvedValue('https://storage.url/photo.jpg') }
+  }),
   storageService: { uploadReadingPhoto: vi.fn().mockResolvedValue('https://storage.url/photo.jpg') }
 }))
 

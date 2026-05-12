@@ -10,7 +10,8 @@ import { Camera, Search, ArrowLeft, Save, AlertTriangle, Check, Loader2 } from '
 import { CameraCapture } from '@/components/camera-capture'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { db } from '@/lib/db/dexie'
-import { customerService } from '@/services/customer-service'
+import { getCustomerService } from '@/services/customer-service'
+import { createClient } from '@/lib/supabase/client'
 import { getLatestReadingAction, getReaderAssignedSectorIdAction } from '../actions'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -87,7 +88,7 @@ function NewReadingContent() {
           })
         }
       } else if (navigator.onLine) {
-        const results = await customerService.searchCustomers(supply, assignedSectorId || undefined)
+        const results = await getCustomerService(createClient()).searchCustomers(supply, assignedSectorId || undefined)
         const found = results?.find((c: CustomerWithRelations) => c.supply_number === supply)
         if (found) {
           let previousReading = 0

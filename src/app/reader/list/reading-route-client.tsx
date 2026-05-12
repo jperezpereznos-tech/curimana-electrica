@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MapPin, Users, ChevronRight } from 'lucide-react'
-import { customerService } from '@/services/customer-service'
+import { getCustomerService } from '@/services/customer-service'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 interface RouteCustomer {
   id: string
@@ -36,7 +37,7 @@ export function ReadingRouteClient({ assignedSector }: { assignedSector: Assigne
     }
 
     queueMicrotask(() => { if (!cancelled) setLoading(true) })
-    customerService.getActiveCustomersWithReadings(assignedSector.id)
+      getCustomerService(createClient()).getActiveCustomersWithReadings(assignedSector.id)
       .then((data) => {
         if (cancelled) return
         const formatted = data?.map((c) => ({

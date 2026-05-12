@@ -78,7 +78,7 @@ describe('registerReadingAction', () => {
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -99,6 +99,10 @@ describe('registerReadingAction', () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
         const promise = Promise.resolve({ data: { assigned_sector_id: null }, error: null })
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
+      }
+      if (table === 'customers') {
+        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -122,7 +126,7 @@ describe('registerReadingAction', () => {
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's2' }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: 's2', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -150,17 +154,17 @@ describe('registerReadingAction', () => {
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
 
-	it('debería manejar errores que no son instancias de Error', async () => {
-		mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
-		mockFrom.mockImplementation((table: string) => {
-			if (table === 'profiles') {
-				const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
-				return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
-			}
-			if (table === 'customers') {
-				const promise = Promise.resolve({ data: { sector_id: 's1' }, error: null })
-				return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
-			}
+  it('debería manejar errores que no son instancias de Error', async () => {
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
+      }
+      if (table === 'customers') {
+        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
+      }
 			return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
 		})
 		mockRegisterReading.mockRejectedValue('fail')

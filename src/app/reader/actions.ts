@@ -126,14 +126,20 @@ export async function registerReadingAction(data: {
     const { supabase, userId } = await requireReaderAuth()
     const sectorId = await getAssignedSectorId(userId, supabase)
 
-    const { data: customer } = await supabase
+    const { data: customer, error: customerError } = await supabase
       .from('customers')
-      .select('sector_id')
+      .select('sector_id, is_active')
       .eq('id', data.customer_id)
       .single()
 
+    if (customerError || !customer) {
+      return { success: false as const, error: 'Suministro no encontrado.' }
+    }
     if (!sectorId) return { success: false as const, error: 'No tiene un sector asignado. Contacte al administrador.' }
-    if (!customer?.sector_id || customer.sector_id !== sectorId) {
+    if (!customer.is_active) {
+      return { success: false as const, error: 'No puede registrar lecturas de un suministro inactivo.' }
+    }
+    if (!customer.sector_id || customer.sector_id !== sectorId) {
       return { success: false as const, error: 'No puede registrar lecturas de suministros fuera de su sector asignado' }
     }
 
