@@ -14,13 +14,13 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        router.push('/login')
+        router.replace('/login')
       } else if (role === 'admin') {
-        router.push('/admin')
+        router.replace('/admin')
       } else if (role === 'cashier') {
-        router.push('/cashier')
+        router.replace('/cashier')
       } else if (role === 'meter_reader') {
-        router.push('/reader')
+        router.replace('/reader')
       }
     }
   }, [user, role, isLoading, router])

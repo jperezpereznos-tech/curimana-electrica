@@ -21,6 +21,11 @@ const getRoleFromCookie = (): string | null => {
   return match ? decodeURIComponent(match.split('=')[1]) : null
 }
 
+const deleteRoleCookie = () => {
+  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0`
+  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; domain=${window.location.hostname}`
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -32,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
   const router = useRouter()
   const rpcAttemptedRef = useRef(false)
+  const signingOutRef = useRef(false)
 
   const fetchRoleViaRPC = useCallback(async (retries = 3): Promise<string | null> => {
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -120,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
+        if (signingOutRef.current && event !== 'SIGNED_OUT') return
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -156,11 +163,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === 'SIGNED_OUT') {
-          rpcAttemptedRef.current = false
-          setUser(null)
-          setRole(null)
-          document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0`
-          router.push('/login')
+          if (!signingOutRef.current) {
+            rpcAttemptedRef.current = false
+            setUser(null)
+            setRole(null)
+            deleteRoleCookie()
+            router.replace('/login')
+          }
         }
       }
     )
@@ -171,14 +180,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchRoleViaRPC, router, supabase.auth])
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
+  const signOut = useCallback(async () => {
+    if (signingOutRef.current) return
+    signingOutRef.current = true
+
     setUser(null)
     setRole(null)
+    setProfileError(null)
     rpcAttemptedRef.current = false
-    document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0`
-    router.push('/login')
-  }
+    deleteRoleCookie()
+
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch (e) {
+      console.error('[useAuth] signOut error:', e)
+    }
+
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // Server-side cookie cleanup — best effort
+    }
+
+    if (typeof window !== 'undefined' && 'indexedDB' in window) {
+      try {
+        await indexedDB.deleteDatabase('CurimanaDB')
+      } catch {
+        // IndexedDB cleanup — best effort
+      }
+    }
+
+    router.replace('/login')
+  }, [router, supabase.auth])
 
   return (
     <AuthContext.Provider value={{ user, role, isLoading, profileError, signOut }}>

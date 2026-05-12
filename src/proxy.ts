@@ -36,13 +36,18 @@ export async function proxy(request: NextRequest) {
  if (claimsError) console.error('[PROXY] getClaims error:', claimsError.message)
  const userId = claimsData ? claimsData.claims.sub : null
 
- if (!userId && url.pathname !== '/login') {
- url.pathname = '/login'
- const response = NextResponse.redirect(url)
- supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
- response.cookies.delete(ROLE_COOKIE)
- return response
- }
+  if (!userId && url.pathname !== '/login') {
+    url.pathname = '/login'
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+    response.cookies.delete(ROLE_COOKIE)
+    return response
+  }
+
+  if (!userId && url.pathname === '/login') {
+    supabaseResponse.cookies.delete(ROLE_COOKIE)
+    return supabaseResponse
+  }
 
  const getCachedRole = (): string | null => {
  return request.cookies.get(ROLE_COOKIE)?.value ?? null
