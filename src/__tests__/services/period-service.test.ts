@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PeriodService } from '@/services/period-service'
 import { PeriodRepository } from '@/repositories/period-repository'
 import { ReadingRepository } from '@/repositories/reading-repository'
-import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { ConceptRepository } from '@/repositories/concept-repository'
 import { AuditService } from '@/services/audit-service'
 
@@ -562,7 +561,7 @@ describe('PeriodService - createNextPeriod', () => {
       return createAwaitableChain({ data: null, error: null })
     })
 
-    const result = await service.createNextPeriod()
+    await service.createNextPeriod()
 
     expect(PeriodRepository.prototype.create).toHaveBeenCalled()
   })
