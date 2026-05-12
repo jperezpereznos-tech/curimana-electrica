@@ -39,13 +39,13 @@ describe('PeriodRepository - getCurrentPeriod', () => {
 
   it('debería obtener el periodo abierto más reciente', async () => {
     const mockPeriod = { id: 'p1', year: 2025, month: 6, is_closed: false }
-    let capturedOr: string | null = null
+    let capturedEq: [string, boolean] | null = null
 
     const promise = Promise.resolve({ data: mockPeriod, error: null })
     const chain: any = {
       select: vi.fn().mockReturnThis(),
-      or: vi.fn((filter: string) => {
-        capturedOr = filter
+      eq: vi.fn((field: string, value: boolean) => {
+        capturedEq = [field, value]
         return chain
       }),
       order: vi.fn().mockReturnThis(),
@@ -62,12 +62,23 @@ describe('PeriodRepository - getCurrentPeriod', () => {
     const result = await repo.getCurrentPeriod()
 
     expect(result).toEqual(mockPeriod)
-    expect(capturedOr).toBe('is_closed.is.null,is_closed.eq.false')
+    expect(capturedEq).toEqual(['is_closed', false])
   })
 
   it('debería retornar null si no hay periodo abierto', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'billing_periods') return createAwaitableChain({ data: null, error: null })
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    const result = await repo.getCurrentPeriod()
+
+    expect(result).toBeNull()
+  })
+
+  it('debería retornar null para error PGRST116 (no rows)', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'billing_periods') return createAwaitableChain({ data: null, error: { message: 'No rows', code: 'PGRST116' } })
       return createAwaitableChain({ data: null, error: null })
     })
 

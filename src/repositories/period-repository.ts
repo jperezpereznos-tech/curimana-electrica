@@ -13,13 +13,16 @@ export class PeriodRepository extends BaseRepository<'billing_periods'> {
     const { data, error } = await this.supabase
       .from('billing_periods')
       .select('*')
-      .or('is_closed.is.null,is_closed.eq.false')
+      .eq('is_closed', false)
       .order('year', { ascending: false })
       .order('month', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    if (error) throw error
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
     return data
   }
 

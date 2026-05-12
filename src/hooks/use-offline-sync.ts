@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { db } from '@/lib/db/dexie'
-import { periodService } from '@/services/period-service'
-import { storageService } from '@/services/storage-service'
-import { customerService } from '@/services/customer-service'
+import { getPeriodService } from '@/services/period-service'
+import { getCustomerService } from '@/services/customer-service'
+import { getStorageService } from '@/services/storage-service'
 import { useAuth } from '@/hooks/use-auth'
 import { createClient } from '@/lib/supabase/client'
 import { registerReadingAction } from '@/app/reader/actions'
@@ -54,7 +54,7 @@ export function useOfflineSync() {
   }, [])
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
-const syncCustomerCache = useCallback(async () => {
+  const syncCustomerCache = useCallback(async () => {
     if (!navigator.onLine || !user?.id) return
     try {
       const supabase = createClient()
@@ -67,8 +67,9 @@ const syncCustomerCache = useCallback(async () => {
       const sectorId = profile?.assigned_sector_id || null
       assignedSectorIdRef.current = sectorId
 
+      const freshCustomerService = getCustomerService(supabase)
       const customers = await withTimeout(
-        customerService.getAllForCache(sectorId || undefined),
+        freshCustomerService.getAllForCache(sectorId || undefined),
         CACHE_SYNC_TIMEOUT_MS
       )
     if (customers && customers.length > 0) {
@@ -144,18 +145,20 @@ const syncCustomerCache = useCallback(async () => {
         .where('status').equals('pending')
         .toArray()
 
-      let periodId: string | null = null
-      try {
-        const currentPeriod = await withTimeout(
-          periodService.getCurrentPeriod(),
-          PERIOD_FETCH_TIMEOUT_MS
-        )
-        if (currentPeriod) {
-          periodId = currentPeriod.id
+        let periodId: string | null = null
+        try {
+          const freshSupabase = createClient()
+          const freshPeriodService = getPeriodService(freshSupabase)
+          const currentPeriod = await withTimeout(
+            freshPeriodService.getCurrentPeriod(),
+            PERIOD_FETCH_TIMEOUT_MS
+          )
+          if (currentPeriod) {
+            periodId = currentPeriod.id
+          }
+        } catch (error: unknown) {
+          console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
         }
-} catch (error: unknown) {
-    console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
-      }
 
       if (!periodId) {
         console.error('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
@@ -196,16 +199,17 @@ const syncCustomerCache = useCallback(async () => {
  const currentReading = Number(reading.current_reading) || 0
  let photoUploadFailed = false
 
- await withTimeout(
- (async () => {
- let photoUrl: string | undefined = undefined
- if (reading.photo_base64) {
- try {
- const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
- photoUrl = await withTimeout(
- storageService.uploadReadingPhoto(reading.photo_base64, fileName),
- PHOTO_UPLOAD_TIMEOUT_MS
- )
+        await withTimeout(
+          (async () => {
+            let photoUrl: string | undefined = undefined
+            if (reading.photo_base64) {
+              try {
+                const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
+                const freshStorage = getStorageService(createClient())
+                photoUrl = await withTimeout(
+                  freshStorage.uploadReadingPhoto(reading.photo_base64, fileName),
+                  PHOTO_UPLOAD_TIMEOUT_MS
+                )
  } catch (photoError) {
  console.error('Error uploading photo — will sync reading without photo, keeping record for retry:', photoError)
  photoUploadFailed = true
