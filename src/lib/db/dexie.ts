@@ -12,7 +12,6 @@ export interface PendingReading {
   previous_reading: number
   current_reading: number
   reading_date: string
-  photo_base64?: string
   notes?: string
   status: 'pending' | 'syncing' | 'failed'
   created_at: string

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { db } from '@/lib/db/dexie'
 import { getPeriodService } from '@/services/period-service'
 import { getCustomerService } from '@/services/customer-service'
-import { getStorageService } from '@/services/storage-service'
 import { useAuth } from '@/hooks/use-auth'
 import { createClient } from '@/lib/supabase/client'
 import { registerReadingAction } from '@/app/reader/actions'
@@ -13,7 +12,6 @@ const MAX_RETRIES = 5
 const BASE_SYNC_INTERVAL_MS = 30_000
 const MAX_SYNC_INTERVAL_MS = 300_000
 const IDLE_SYNC_INTERVAL_MS = 120_000
-const PHOTO_UPLOAD_TIMEOUT_MS = 20_000
 const READING_INSERT_TIMEOUT_MS = 15_000
 const CACHE_SYNC_TIMEOUT_MS = 10_000
 const PERIOD_FETCH_TIMEOUT_MS = 10_000
@@ -145,20 +143,20 @@ export function useOfflineSync() {
         .where('status').equals('pending')
         .toArray()
 
-        let periodId: string | null = null
-        try {
-          const freshSupabase = createClient()
-          const freshPeriodService = getPeriodService(freshSupabase)
-          const currentPeriod = await withTimeout(
-            freshPeriodService.getCurrentPeriod(),
-            PERIOD_FETCH_TIMEOUT_MS
-          )
-          if (currentPeriod) {
-            periodId = currentPeriod.id
-          }
-        } catch (error: unknown) {
-          console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
+      let periodId: string | null = null
+      try {
+        const freshSupabase = createClient()
+        const freshPeriodService = getPeriodService(freshSupabase)
+        const currentPeriod = await withTimeout(
+          freshPeriodService.getCurrentPeriod(),
+          PERIOD_FETCH_TIMEOUT_MS
+        )
+        if (currentPeriod) {
+          periodId = currentPeriod.id
         }
+      } catch (error: unknown) {
+        console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
+      }
 
       if (!periodId) {
         console.error('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
@@ -170,85 +168,60 @@ export function useOfflineSync() {
 
       let hasError = false
 
-  for (const reading of pending) {
-    if (!isManual && (reading.retry_count || 0) >= MAX_RETRIES) {
-      if (!reading.needs_review) {
-        await db.pending_readings.update(reading.id!, { needs_review: true })
-      }
-      continue
-    }
-
-        try {
-        if (assignedSectorIdRef.current && reading.sector_id && reading.sector_id !== assignedSectorIdRef.current) {
-          console.error(`Skipping reading for customer outside assigned sector (supply: ${reading.supply_number}, sector: ${reading.sector_id}, assigned: ${assignedSectorIdRef.current})`)
-          await db.pending_readings.update(reading.id!, {
-            status: 'failed',
-            retry_count: MAX_RETRIES,
-            last_attempt_time: Date.now()
-          })
-          hasError = true
+      for (const reading of pending) {
+        if (!isManual && (reading.retry_count || 0) >= MAX_RETRIES) {
+          if (!reading.needs_review) {
+            await db.pending_readings.update(reading.id!, { needs_review: true })
+          }
           continue
         }
 
-        await db.pending_readings.update(reading.id!, {
-          status: 'syncing',
-          last_attempt_time: Date.now()
-        })
+        try {
+          if (assignedSectorIdRef.current && reading.sector_id && reading.sector_id !== assignedSectorIdRef.current) {
+            console.error(`Skipping reading for customer outside assigned sector (supply: ${reading.supply_number}, sector: ${reading.sector_id}, assigned: ${assignedSectorIdRef.current})`)
+            await db.pending_readings.update(reading.id!, {
+              status: 'failed',
+              retry_count: MAX_RETRIES,
+              last_attempt_time: Date.now()
+            })
+            hasError = true
+            continue
+          }
 
- const previousReading = Number(reading.previous_reading) || 0
- const currentReading = Number(reading.current_reading) || 0
- let photoUploadFailed = false
+          await db.pending_readings.update(reading.id!, {
+            status: 'syncing',
+            last_attempt_time: Date.now()
+          })
 
-        await withTimeout(
-          (async () => {
-            let photoUrl: string | undefined = undefined
-            if (reading.photo_base64) {
-              try {
-                const fileName = `reading_${reading.customer_id}_${Date.now()}.jpg`
-                const freshStorage = getStorageService(createClient())
-                photoUrl = await withTimeout(
-                  freshStorage.uploadReadingPhoto(reading.photo_base64, fileName),
-                  PHOTO_UPLOAD_TIMEOUT_MS
-                )
-              } catch (photoError) {
-                console.error('Error uploading photo — will sync reading without photo, keeping record for retry:', photoError)
-                photoUploadFailed = true
-              }
-            }
+          const previousReading = Number(reading.previous_reading) || 0
+          const currentReading = Number(reading.current_reading) || 0
 
-            const actionResult = await withTimeout(
-              registerReadingAction({
-                customer_id: reading.customer_id,
-                billing_period_id: periodId!,
-                previous_reading: previousReading,
-                current_reading: currentReading,
-                reading_date: reading.reading_date,
-                notes: reading.notes,
-                photo_url: photoUrl
-              }),
-              READING_INSERT_TIMEOUT_MS
-            )
+          const actionResult = await withTimeout(
+            registerReadingAction({
+              customer_id: reading.customer_id,
+              billing_period_id: periodId!,
+              previous_reading: previousReading,
+              current_reading: currentReading,
+              reading_date: reading.reading_date,
+              notes: reading.notes,
+            }),
+            READING_INSERT_TIMEOUT_MS
+          )
 
-            if (!actionResult.success) {
-              throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
-            }
-          })(),
-          PHOTO_UPLOAD_TIMEOUT_MS + READING_INSERT_TIMEOUT_MS
-        )
+          if (!actionResult.success) {
+            throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
+          }
 
           await db.pending_readings.delete(reading.id!)
-        if (photoUploadFailed) {
-          console.warn(`Reading synced for ${reading.supply_number} but photo upload failed. Photo data discarded.`)
-        }
-} catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error)
-      const errObj = error instanceof Error ? error as Error & { code?: string } : null
-      const hint = errObj?.code === '23503' ? 'FK constraint: customer_id or billing_period_id not found'
-        : errObj?.code === '42501' ? 'RLS policy denied: session may be expired'
-        : errObj?.code === '23505' ? 'Duplicate reading already exists'
-        : ''
-    console.error(`Error syncing reading (customer: ${reading.customer_id}, supply: ${reading.supply_number}):`, errMsg, hint ? `| ${hint}` : '')
-      const retryCount = (reading.retry_count || 0) + 1
+        } catch (error: unknown) {
+          const errMsg = error instanceof Error ? error.message : String(error)
+          const errObj = error instanceof Error ? error as Error & { code?: string } : null
+          const hint = errObj?.code === '23503' ? 'FK constraint: customer_id or billing_period_id not found'
+            : errObj?.code === '42501' ? 'RLS policy denied: session may be expired'
+            : errObj?.code === '23505' ? 'Duplicate reading already exists'
+            : ''
+          console.error(`Error syncing reading (customer: ${reading.customer_id}, supply: ${reading.supply_number}):`, errMsg, hint ? `| ${hint}` : '')
+          const retryCount = (reading.retry_count || 0) + 1
           await db.pending_readings.update(reading.id!, {
             status: 'failed',
             retry_count: retryCount,
@@ -296,31 +269,31 @@ export function useOfflineSync() {
     let timeoutId: ReturnType<typeof setTimeout>
     let cancelled = false
 
-  const scheduleNext = async () => {
-    const pendingReadable = await db.pending_readings
-      .where('status').equals('pending')
-      .count()
-    const retryableFailed = await db.pending_readings
-      .where('status').equals('failed')
-      .filter(r => (r.retry_count || 0) < MAX_RETRIES)
-      .sortBy('retry_count')
-    const hasWork = pendingReadable > 0 || retryableFailed.length > 0
+    const scheduleNext = async () => {
+      const pendingReadable = await db.pending_readings
+        .where('status').equals('pending')
+        .count()
+      const retryableFailed = await db.pending_readings
+        .where('status').equals('failed')
+        .filter(r => (r.retry_count || 0) < MAX_RETRIES)
+        .sortBy('retry_count')
+      const hasWork = pendingReadable > 0 || retryableFailed.length > 0
 
-    let delay: number
-    if (!hasWork) {
-      delay = IDLE_SYNC_INTERVAL_MS
-    } else if (retryableFailed.length > 0) {
-      const maxRetry = retryableFailed[retryableFailed.length - 1].retry_count || 0
-      delay = getBackoffDelay(maxRetry)
-    } else {
-      delay = BASE_SYNC_INTERVAL_MS
+      let delay: number
+      if (!hasWork) {
+        delay = IDLE_SYNC_INTERVAL_MS
+      } else if (retryableFailed.length > 0) {
+        const maxRetry = retryableFailed[retryableFailed.length - 1].retry_count || 0
+        delay = getBackoffDelay(maxRetry)
+      } else {
+        delay = BASE_SYNC_INTERVAL_MS
+      }
+
+      if (cancelled) return
+      timeoutId = setTimeout(() => {
+        if (!cancelled) void syncNow(false).then(scheduleNext)
+      }, delay)
     }
-
-    if (cancelled) return
-    timeoutId = setTimeout(() => {
-      if (!cancelled) void syncNow(false).then(scheduleNext)
-    }, delay)
-  }
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void syncNow(false).then(scheduleNext)

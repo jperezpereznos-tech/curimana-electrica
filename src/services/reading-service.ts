@@ -2,7 +2,6 @@ import { ReadingRepository } from '@/repositories/reading-repository'
 import { AuditService } from '@/services/audit-service'
 import { Database } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { StorageService } from './storage-service'
 
 type ReadingInsert = Database['public']['Tables']['readings']['Insert']
 type ReadingUpdate = Database['public']['Tables']['readings']['Update']
@@ -10,12 +9,10 @@ type ReadingUpdate = Database['public']['Tables']['readings']['Update']
 export class ReadingService {
   private readingRepo: ReadingRepository
   private auditSvc: AuditService
-  private storageSvc: StorageService
 
   constructor(supabaseClient?: SupabaseClient<Database>) {
     this.readingRepo = new ReadingRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.storageSvc = new StorageService(supabaseClient)
   }
 
   async registerReading(data: Omit<ReadingInsert, 'consumption' | 'created_at' | 'needs_review'>, userId?: string) {
@@ -119,17 +116,6 @@ export class ReadingService {
     }
 
     return updated
-  }
-
-  async uploadReadingPhoto(file: File, supplyNumber: string): Promise<string> {
-    const base64Image = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-
-    return await this.storageSvc.uploadReadingPhoto(base64Image, `${supplyNumber}_${Date.now()}.jpg`)
   }
 }
 

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, MapPin, CheckCircle2, Circle, AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
+import { Search, MapPin, Circle, AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
@@ -35,7 +35,6 @@ export default function PendingReadingsPage() {
       full_name: r.full_name,
       address: r.address || 'Sin dirección',
       sectorName: r.sectorName || r.sector || 'Sin sector',
-      has_photo: !!r.photo_base64,
       status: r.status === 'failed' && (r.retry_count || 0) >= 5 ? 'exhausted' : (r.status || 'pending'),
       retry_count: r.retry_count || 0,
     }))
@@ -49,7 +48,7 @@ export default function PendingReadingsPage() {
       if (!cancelled) setPendingReadings(formatted)
     }
 
-      refresh().catch((e) => { console.error('Error loading pending readings:', e) }).finally(() => {
+    refresh().catch((e) => { console.error('Error loading pending readings:', e) }).finally(() => {
       if (!cancelled) setLoading(false)
     })
 
@@ -86,7 +85,6 @@ export default function PendingReadingsPage() {
 
   const failedCount = pendingReadings.filter(r => r.status === 'failed').length
   const exhaustedCount = pendingReadings.filter(r => r.status === 'exhausted').length
-  const completedCount = pendingReadings.filter(r => r.has_photo).length
   const totalCount = pendingReadings.length
 
   return (
@@ -105,7 +103,7 @@ export default function PendingReadingsPage() {
           </Badge>
         )}
             <Badge variant="secondary" className="text-sm">
-              {completedCount}/{totalCount} Completadas
+              {totalCount} Total
             </Badge>
           </div>
         </div>
@@ -140,16 +138,11 @@ export default function PendingReadingsPage() {
               return (
                 <Card key={reading.id} className={
                   reading.status === 'exhausted' ? 'border-red-300 bg-red-50/70' :
-                  reading.status === 'failed' ? 'border-red-200 bg-red-50/50' :
-                  reading.has_photo ? 'border-green-200 bg-green-50/50' : ''
+                  reading.status === 'failed' ? 'border-red-200 bg-red-50/50' : ''
                 }>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      {reading.has_photo && reading.status !== 'failed' && reading.status !== 'exhausted' ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
-                      ) : (
-                        <StatusIcon className={`h-5 w-5 ${(reading.status === 'failed' || reading.status === 'exhausted') ? 'text-red-500' : 'text-muted-foreground'} mt-0.5 ${config.className}`} />
-                      )}
+                      <StatusIcon className={`h-5 w-5 ${(reading.status === 'failed' || reading.status === 'exhausted') ? 'text-red-500' : 'text-muted-foreground'} mt-0.5 ${config.className}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-sm">{reading.full_name}</p>
@@ -184,7 +177,7 @@ export default function PendingReadingsPage() {
                             )}
                             <Link href={`/reader/new?supply=${reading.supply_number}`}>
                               <Button variant="ghost" size="sm" className="h-7 text-xs">
-                                {reading.has_photo ? 'Editar' : 'Tomar Lectura'}
+                                Editar
                               </Button>
                             </Link>
                           </div>

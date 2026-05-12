@@ -151,7 +151,6 @@ export type PendingReadingItem = {
   full_name: string
   address: string | null
   sectorName: string | null
-  has_photo: boolean
   status: string
   retry_count: number
 }
