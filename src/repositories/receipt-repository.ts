@@ -19,12 +19,22 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
 
     if (filters?.periodId) query = query.eq('billing_period_id', filters.periodId)
     if (filters?.status) query = query.eq('status', filters.status)
-    if (filters?.supplyNumber) {
-      const escaped = filters.supplyNumber.replace(/[%_\\]/g, '\\$&')
-      query = query.filter('customers.supply_number', 'ilike', `%${escaped}%`)
-    }
+  if (filters?.supplyNumber) {
+    query = query.filter('customers.supply_number', 'eq', filters.supplyNumber)
+  }
 
     const { data, error } = await query
+    if (error) throw new Error(error.message)
+    return data
+  }
+
+  async getByReceiptNumber(receiptNumber: number) {
+    const { data, error } = await this.supabase
+      .from('receipts')
+      .select('*, customers(full_name, supply_number, address, sectors(id, name)), billing_periods(name)')
+      .eq('receipt_number', receiptNumber)
+      .maybeSingle()
+
     if (error) throw new Error(error.message)
     return data
   }

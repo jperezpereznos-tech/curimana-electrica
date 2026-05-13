@@ -25,6 +25,10 @@ export class ReceiptService {
     return await this.receiptRepo.getAllWithDetails(filters)
   }
 
+  async getReceiptByNumber(receiptNumber: number) {
+    return await this.receiptRepo.getByReceiptNumber(receiptNumber)
+  }
+
   async getReceiptDetails(id: string) {
     return await this.receiptRepo.getByIdWithDetails(id)
   }

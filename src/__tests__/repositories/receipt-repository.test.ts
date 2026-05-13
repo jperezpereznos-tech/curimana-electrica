@@ -21,6 +21,7 @@ function createAwaitableChain(resolvedValue: any) {
     order: vi.fn().mockReturnThis(),
     filter: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
+    maybeSingle: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
   }
   return chain
@@ -106,7 +107,7 @@ describe('ReceiptRepository - getAllWithDetails', () => {
     expect(capturedEqValue).toBe('pending')
   })
 
-  it('debería aplicar filtro por supplyNumber con escape de caracteres especiales', async () => {
+  it('debería aplicar filtro por supplyNumber con eq exacto', async () => {
     let capturedFilterField: string | null = null
     let capturedFilterOp: string | null = null
     let capturedFilterValue: string | null = null
@@ -130,11 +131,11 @@ describe('ReceiptRepository - getAllWithDetails', () => {
       return createAwaitableChain({ data: null, error: null })
     })
 
-    await repo.getAllWithDetails({ supplyNumber: 'SUM%100_test' })
+    await repo.getAllWithDetails({ supplyNumber: '608132421' })
 
     expect(capturedFilterField).toBe('customers.supply_number')
-    expect(capturedFilterOp).toBe('ilike')
-    expect(capturedFilterValue).toBe('%SUM\\%100\\_test%')
+    expect(capturedFilterOp).toBe('eq')
+    expect(capturedFilterValue).toBe('608132421')
   })
 
   it('debería aplicar múltiples filtros simultáneamente', async () => {
@@ -215,5 +216,65 @@ describe('ReceiptRepository - getByIdWithDetails', () => {
     })
 
     await expect(repo.getByIdWithDetails('missing')).rejects.toEqual(expect.objectContaining({ message: 'No rows found' }))
+  })
+})
+
+describe('ReceiptRepository - getByReceiptNumber', () => {
+  let repo: ReceiptRepository
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    repo = new ReceiptRepository()
+  })
+
+  it('debería obtener recibo por receipt_number con maybeSingle', async () => {
+    const mockReceipt = { id: 'r1', receipt_number: 42, status: 'pending' }
+    let capturedEqField: string | null = null
+    let capturedEqValue: number | null = null
+    let usedMaybeSingle = false
+
+    const promise = Promise.resolve({ data: mockReceipt, error: null })
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn((field: string, value: number) => {
+        capturedEqField = field
+        capturedEqValue = value
+        return chain
+      }),
+      maybeSingle: vi.fn(() => {
+        usedMaybeSingle = true
+        return promise
+      }),
+    }
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'receipts') return chain
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    const result = await repo.getByReceiptNumber(42)
+
+    expect(capturedEqField).toBe('receipt_number')
+    expect(capturedEqValue).toBe(42)
+    expect(usedMaybeSingle).toBe(true)
+    expect(result).toEqual(mockReceipt)
+  })
+
+  it('debería retornar null si no existe recibo con ese número', async () => {
+    const promise = Promise.resolve({ data: null, error: null })
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockReturnValue(promise),
+    }
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'receipts') return chain
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    const result = await repo.getByReceiptNumber(9999)
+
+    expect(result).toBeNull()
   })
 })

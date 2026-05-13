@@ -107,7 +107,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="N° Suministro (9 dígitos)"
+            placeholder="N° Suministro o N° Recibo"
             className="pl-10 text-lg h-12"
             value={q}
             onChange={(e) => setQ(e.target.value)}

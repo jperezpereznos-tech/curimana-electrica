@@ -192,6 +192,33 @@ describe('ReceiptService - getAllReceipts', () => {
   })
 })
 
+describe('ReceiptService - getReceiptByNumber', () => {
+  const mockSupabase = createMockSupabase()
+  const service = new ReceiptService(mockSupabase)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('debería delegar al repositorio con receipt_number', async () => {
+    const mockReceipt = { id: 'r1', receipt_number: 42, status: 'pending' }
+    vi.spyOn(ReceiptRepository.prototype, 'getByReceiptNumber').mockResolvedValue(mockReceipt as any)
+
+    const result = await service.getReceiptByNumber(42)
+
+    expect(ReceiptRepository.prototype.getByReceiptNumber).toHaveBeenCalledWith(42)
+    expect(result).toEqual(mockReceipt)
+  })
+
+  it('debería retornar null si el recibo no existe', async () => {
+    vi.spyOn(ReceiptRepository.prototype, 'getByReceiptNumber').mockResolvedValue(null)
+
+    const result = await service.getReceiptByNumber(9999)
+
+    expect(result).toBeNull()
+  })
+})
+
 describe('ReceiptService - getReceiptDetails', () => {
   const mockSupabase = createMockSupabase()
   const service = new ReceiptService(mockSupabase)
