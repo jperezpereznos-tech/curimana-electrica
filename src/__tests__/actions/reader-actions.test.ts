@@ -174,7 +174,29 @@ describe('registerReadingAction', () => {
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
-    expect(result).toEqual({ success: false, error: 'Error al registrar lectura.' })
+    expect(result).toEqual({ success: false, error: 'fail' })
+  })
+
+  it('debería devolver DUPLICATE_READING si ya existe lectura para ese cliente y periodo', async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
+      }
+      if (table === 'customers') {
+        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
+        return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
+      }
+      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
+    })
+    mockRegisterReading.mockRejectedValue(new Error('duplicate key value violates unique constraint "readings_customer_period_unique"'))
+
+    const result = await registerReadingAction({
+      customer_id: 'c1', billing_period_id: 'p1',
+      previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
+    })
+
+    expect(result).toEqual({ success: false, error: 'DUPLICATE_READING' })
   })
 })
 

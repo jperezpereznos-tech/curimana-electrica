@@ -147,8 +147,16 @@ export async function registerReadingAction(data: {
     }
 
     const readingService = getReadingService(supabase)
-    const result = await readingService.registerReading(data, userId)
-    return { success: true as const, data: result }
+    try {
+      const result = await readingService.registerReading(data, userId)
+      return { success: true as const, data: result }
+    } catch (insertError: unknown) {
+      const errMsg = insertError instanceof Error ? insertError.message : String(insertError)
+      if (errMsg.includes('readings_customer_period_unique')) {
+        return { success: false as const, error: 'DUPLICATE_READING' }
+      }
+      return { success: false as const, error: errMsg }
+    }
   } catch (e) {
     return { success: false as const, error: e instanceof Error ? e.message : 'Error al registrar lectura.' }
   }

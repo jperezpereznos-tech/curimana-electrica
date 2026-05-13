@@ -212,9 +212,13 @@ export function useOfflineSync() {
             READING_INSERT_TIMEOUT_MS
           )
 
-          if (!actionResult.success) {
-            throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
+        if (!actionResult.success) {
+          if (actionResult.error === 'DUPLICATE_READING') {
+            await db.pending_readings.delete(reading.id!)
+            continue
           }
+          throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
+        }
 
           await db.pending_readings.delete(reading.id!)
         } catch (error: unknown) {
