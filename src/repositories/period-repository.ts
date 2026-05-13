@@ -21,7 +21,7 @@ export class PeriodRepository extends BaseRepository<'billing_periods'> {
 
     if (error) {
       if (error.code === 'PGRST116') return null
-      throw error
+      throw new Error(error.message)
     }
     return data
   }
@@ -33,7 +33,7 @@ export class PeriodRepository extends BaseRepository<'billing_periods'> {
       .order('year', { ascending: false })
       .order('month', { ascending: false })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data || []
   }
 }

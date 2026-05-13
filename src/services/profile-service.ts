@@ -32,7 +32,7 @@ export class ProfileService {
       data: { full_name: fullName },
     })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
 
     return { user: data.user ? { id: data.user.id, email: data.user.email } : null }
   }
@@ -40,7 +40,7 @@ export class ProfileService {
   async deleteUser(userId: string) {
     const adminClient = createAdminClient()
     const { error } = await adminClient.auth.admin.deleteUser(userId)
-    if (error) throw error
+    if (error) throw new Error(error.message)
   }
 }
 

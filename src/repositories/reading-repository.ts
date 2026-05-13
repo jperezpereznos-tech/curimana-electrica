@@ -18,7 +18,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .limit(1)
       .maybeSingle()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -29,7 +29,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .eq('billing_period_id', periodId)
       .order('reading_date', { ascending: false })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -48,7 +48,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -58,7 +58,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .select('id', { count: 'exact', head: true })
       .eq('is_active', true)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return count || 0
   }
 
@@ -69,7 +69,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .order('created_at', { ascending: false })
       .limit(5)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -81,7 +81,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .gte('reading_date', today)
       .lt('reading_date', today + 'T23:59:59')
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return count || 0
   }
 
@@ -97,7 +97,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
 
     const { count, error } = await query
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return count || 0
   }
 
@@ -107,7 +107,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .select('id', { count: 'exact', head: true })
       .eq('needs_review', true)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return count || 0
   }
 }

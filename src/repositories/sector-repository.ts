@@ -16,7 +16,7 @@ export class SectorRepository extends BaseRepository<'sectors'> {
       .eq('is_active', true)
       .order('code', { ascending: true })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -27,7 +27,7 @@ export class SectorRepository extends BaseRepository<'sectors'> {
       .eq('id', sectorId)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -37,7 +37,7 @@ export class SectorRepository extends BaseRepository<'sectors'> {
       .select('id', { count: 'exact', head: true })
       .eq('sector_id', sectorId)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return count ?? 0
   }
 }

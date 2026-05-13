@@ -15,7 +15,7 @@ export class ProfileRepository extends BaseRepository<'profiles'> {
       .select('*, sectors:sectors!profiles_assigned_sector_id_fkey(id, name, code)')
       .order('full_name', { ascending: true })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return (data ?? []) as (Profile & { sectors: { id: string; name: string; code: string } | null })[]
   }
 
@@ -26,7 +26,7 @@ export class ProfileRepository extends BaseRepository<'profiles'> {
       .eq('role', 'meter_reader')
       .order('full_name', { ascending: true })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -38,7 +38,7 @@ export class ProfileRepository extends BaseRepository<'profiles'> {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -50,7 +50,7 @@ export class ProfileRepository extends BaseRepository<'profiles'> {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 }

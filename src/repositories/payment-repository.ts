@@ -16,7 +16,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return payment
   }
 
@@ -27,7 +27,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
       .eq('id', paymentId)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -44,7 +44,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
       .eq('id', paymentId)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -59,7 +59,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
 
     const { data, error } = await query.order('payment_date', { ascending: false })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -75,7 +75,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
 
     const { data, error } = await query
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -90,7 +90,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
       .neq('status', 'voided')
       .order('payment_date', { ascending: false })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 }

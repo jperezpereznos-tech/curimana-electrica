@@ -14,7 +14,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
       .from(this.tableName)
       .select('*')
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -26,7 +26,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
       .eq('id' as any, id)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -38,7 +38,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -56,7 +56,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
       if (error.code === 'PGRST116') {
         throw new Error('No se pudo actualizar. Verifique que tiene permisos de administrador.')
       }
-      throw error
+      throw new Error(error.message)
     }
     if (!data) {
       throw new Error('No se pudo actualizar el registro. Verifique permisos.')
@@ -72,7 +72,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
     .eq('id' as any, id)
       .select()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     if (!data || data.length === 0) {
       throw new Error('No se pudo eliminar el registro. Verifique permisos.')
     }

@@ -14,7 +14,7 @@ export class ConceptRepository extends BaseRepository<'billing_concepts'> {
       .eq('is_active', true)
       .order('name')
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 }

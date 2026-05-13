@@ -17,7 +17,7 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
       .eq('status', 'open')
       .maybeSingle()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -29,7 +29,7 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
       .gte('created_at', from)
       .neq('status', 'voided')
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     const payments = data ?? []
     const total = Math.round(payments.reduce((sum, p) => sum + p.amount, 0) * 100) / 100
     return { total, count: payments.length }
@@ -48,7 +48,7 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return closure
   }
 }

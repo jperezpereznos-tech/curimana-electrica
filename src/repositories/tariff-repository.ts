@@ -20,7 +20,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .select('*, tariff_tiers(*)')
       .order('created_at', { ascending: false })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data as TariffWithTiers[]
   }
 
@@ -31,7 +31,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .eq('id', id)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data as TariffWithTiers
   }
 
@@ -45,7 +45,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .select()
       .single()
 
-    if (tariffError) throw tariffError
+    if (tariffError) throw new Error(tariffError.message)
 
     if (tiers.length > 0) {
       const tiersToInsert = tiers.map(t => ({ ...t, tariff_id: newTariff.id }))
@@ -55,7 +55,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
 
       if (tiersError) {
         await this.delete(newTariff.id)
-        throw tiersError
+        throw new Error(tiersError.message)
       }
     }
 
@@ -74,7 +74,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .select()
       .single()
 
-    if (tariffError) throw tariffError
+    if (tariffError) throw new Error(tariffError.message)
     if (!updatedTariff) throw new Error(`Tariff update failed — no rows matched id ${id}`)
 
     const tiersToInsert = tiers.map(t => ({ ...t, tariff_id: id }))
@@ -84,7 +84,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .delete()
       .eq('tariff_id', id)
 
-    if (deleteTiersError) throw deleteTiersError
+    if (deleteTiersError) throw new Error(deleteTiersError.message)
 
     if (tiersToInsert.length > 0) {
       const { error: tiersError } = await this.supabase
@@ -97,7 +97,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
             await this.supabase.from('tariff_tiers').insert(t)
           } catch { /* best-effort recovery */ }
         }
-        throw tiersError
+        throw new Error(tiersError.message)
       }
     }
 

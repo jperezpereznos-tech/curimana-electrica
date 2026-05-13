@@ -106,7 +106,7 @@ export class PeriodService {
       .limit(1)
       .maybeSingle()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 

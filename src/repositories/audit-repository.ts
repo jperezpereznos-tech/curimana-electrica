@@ -14,7 +14,7 @@ export class AuditRepository extends BaseRepository<'audit_logs'> {
       .order('created_at', { ascending: false })
         .limit(500)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 }

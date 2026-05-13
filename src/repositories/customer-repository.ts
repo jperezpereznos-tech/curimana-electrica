@@ -28,7 +28,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
       .order('full_name', { ascending: true })
       .limit(50)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
 
     const processed = (data as CustomerWithRelations[]).map((c) => ({
       ...c,
@@ -47,7 +47,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
       .eq('id', id)
       .single()
 
-    if (customerError) throw customerError
+    if (customerError) throw new Error(customerError.message)
 
     const { data: readings } = await this.supabase
       .from('readings')
@@ -80,7 +80,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
         .select('id', { count: 'exact', head: true })
         .eq('supply_number', random)
 
-      if (error) throw error
+      if (error) throw new Error(error.message)
       if (count === 0) return random
     }
 
@@ -96,7 +96,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
       .order('current_debt', { ascending: false })
       .limit(limit)
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -114,7 +114,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
       .order('sector_id', { ascending: true })
       .order('full_name', { ascending: true })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -131,7 +131,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     const { data, error } = await query
       .order('full_name', { ascending: true })
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
 
     const processed = (data as (Customer & { readings: { current_reading: number; reading_date: string }[]; sectors: { name: string } | null })[]).map((c) => {
       const latestReading = c.readings?.sort((a, b) =>

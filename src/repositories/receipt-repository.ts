@@ -25,7 +25,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
     }
 
     const { data, error } = await query
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 
@@ -36,7 +36,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
       .eq('id', id)
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   }
 }
