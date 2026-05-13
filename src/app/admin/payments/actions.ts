@@ -12,15 +12,13 @@ export async function adminSearchCustomerReceiptsAction(query: string) {
     const customerService = getCustomerService(supabase)
     const receiptService = getReceiptService(supabase)
 
-    const results = await customerService.searchCustomers(query)
-    if (!results || results.length === 0) return { success: true as const, data: null }
-
-    const customer = results[0]
+    const customer = await customerService.getBySupplyNumber(query.trim())
+    if (!customer) return { success: true as const, data: null }
 
     const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
-      receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'pending' }),
-      receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'partial' }),
-      receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'overdue' }),
+      receiptService.getAllReceipts({ customerId: customer.id, status: 'pending' }),
+      receiptService.getAllReceipts({ customerId: customer.id, status: 'partial' }),
+      receiptService.getAllReceipts({ customerId: customer.id, status: 'overdue' }),
     ])
 
     const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])]

@@ -21,7 +21,7 @@ export class ReceiptService {
     this.supabase = supabaseClient ?? createBrowserClient()
   }
 
-  async getAllReceipts(filters?: { periodId?: string; status?: string; supplyNumber?: string }) {
+  async getAllReceipts(filters?: { periodId?: string; status?: string; customerId?: string }) {
     return await this.receiptRepo.getAllWithDetails(filters)
   }
 

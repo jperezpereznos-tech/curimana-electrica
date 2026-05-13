@@ -10,18 +10,18 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
   async getAllWithDetails(filters?: {
     periodId?: string;
     status?: string;
-    supplyNumber?: string
+    customerId?: string
   }) {
     let query = this.supabase
       .from('receipts')
-          .select('*, customers(full_name, supply_number, address, sectors(id, name)), billing_periods(name)')
+      .select('*, customers(full_name, supply_number, address, sectors(id, name)), billing_periods(name)')
       .order('receipt_number', { ascending: false })
 
     if (filters?.periodId) query = query.eq('billing_period_id', filters.periodId)
     if (filters?.status) query = query.eq('status', filters.status)
-  if (filters?.supplyNumber) {
-    query = query.filter('customers.supply_number', 'eq', filters.supplyNumber)
-  }
+    if (filters?.customerId) {
+      query = query.eq('customer_id', filters.customerId)
+    }
 
     const { data, error } = await query
     if (error) throw new Error(error.message)

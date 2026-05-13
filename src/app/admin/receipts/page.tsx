@@ -1,4 +1,5 @@
 import { getReceiptService } from '@/services/receipt-service'
+import { getCustomerService } from '@/services/customer-service'
 import { getPeriodService } from '@/services/period-service'
 import { createClient } from '@/lib/supabase/server'
 import { ReceiptsList } from './receipts-list'
@@ -16,16 +17,22 @@ export default async function ReceiptsPage({
   const supabase = await createClient()
   const receiptService = getReceiptService(supabase)
   const periodService = getPeriodService(supabase)
+  const customerService = getCustomerService(supabase)
 
   let receipts: ReceiptWithPeriod[] = []
   let periods: PeriodRow[] = []
   let errorMsg = ''
 
   try {
+    let customerId: string | undefined
+    if (params.q) {
+      const customer = await customerService.getBySupplyNumber(params.q)
+      if (customer) customerId = customer.id
+    }
     receipts = await receiptService.getAllReceipts({
       periodId: params.period,
       status: params.status,
-      supplyNumber: params.q
+      customerId,
     })
   } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 

@@ -41,9 +41,41 @@ describe('CustomerService - searchCustomers', () => {
   it('debería recortar espacios de la consulta', async () => {
     vi.spyOn(CustomerRepository.prototype, 'searchCustomers').mockResolvedValue([] as any)
 
-    await service.searchCustomers('  Juan  ')
+    await service.searchCustomers(' Juan ')
 
     expect(CustomerRepository.prototype.searchCustomers).toHaveBeenCalledWith('Juan', undefined)
+  })
+})
+
+describe('CustomerService - getBySupplyNumber', () => {
+  const service = new CustomerService()
+
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('debería delegar al repositorio con supply_number', async () => {
+    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    vi.spyOn(CustomerRepository.prototype, 'getBySupplyNumber').mockResolvedValue(mockCustomer as any)
+
+    const result = await service.getBySupplyNumber('608132421')
+
+    expect(CustomerRepository.prototype.getBySupplyNumber).toHaveBeenCalledWith('608132421')
+    expect(result).toEqual(mockCustomer)
+  })
+
+  it('debería retornar null si el cliente no existe', async () => {
+    vi.spyOn(CustomerRepository.prototype, 'getBySupplyNumber').mockResolvedValue(null)
+
+    const result = await service.getBySupplyNumber('999999999')
+
+    expect(result).toBeNull()
+  })
+
+  it('debería recortar espacios del supply_number', async () => {
+    vi.spyOn(CustomerRepository.prototype, 'getBySupplyNumber').mockResolvedValue(null)
+
+    await service.getBySupplyNumber(' 608132421 ')
+
+    expect(CustomerRepository.prototype.getBySupplyNumber).toHaveBeenCalledWith('608132421')
   })
 })
 

@@ -107,22 +107,20 @@ describe('ReceiptRepository - getAllWithDetails', () => {
     expect(capturedEqValue).toBe('pending')
   })
 
-  it('debería aplicar filtro por supplyNumber con eq exacto', async () => {
-    let capturedFilterField: string | null = null
-    let capturedFilterOp: string | null = null
-    let capturedFilterValue: string | null = null
+  it('debería aplicar filtro por customerId con eq exacto', async () => {
+    let capturedEqField: string | null = null
+    let capturedEqValue: string | null = null
 
     const promise = Promise.resolve({ data: [], error: null })
     const chain: any = {
       select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      filter: vi.fn((field: string, op: string, value: string) => {
-        capturedFilterField = field
-        capturedFilterOp = op
-        capturedFilterValue = value
+      eq: vi.fn((field: string, value: string) => {
+        capturedEqField = field
+        capturedEqValue = value
         return chain
       }),
+      order: vi.fn().mockReturnThis(),
+      filter: vi.fn().mockReturnThis(),
       then: promise.then.bind(promise),
     }
 
@@ -131,11 +129,10 @@ describe('ReceiptRepository - getAllWithDetails', () => {
       return createAwaitableChain({ data: null, error: null })
     })
 
-    await repo.getAllWithDetails({ supplyNumber: '608132421' })
+    await repo.getAllWithDetails({ customerId: 'c1' })
 
-    expect(capturedFilterField).toBe('customers.supply_number')
-    expect(capturedFilterOp).toBe('eq')
-    expect(capturedFilterValue).toBe('608132421')
+    expect(capturedEqField).toBe('customer_id')
+    expect(capturedEqValue).toBe('c1')
   })
 
   it('debería aplicar múltiples filtros simultáneamente', async () => {

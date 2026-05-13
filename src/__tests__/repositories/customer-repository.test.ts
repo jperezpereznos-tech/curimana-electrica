@@ -94,6 +94,82 @@ describe('CustomerRepository - searchCustomers', () => {
   })
 })
 
+describe('CustomerRepository - getBySupplyNumber', () => {
+  let repo: CustomerRepository
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    repo = new CustomerRepository()
+  })
+
+  it('debería buscar cliente por supply_number exacto con maybeSingle', async () => {
+    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan', readings: [] }
+    let capturedEqField: string | null = null
+    let capturedEqValue: string | null = null
+    let usedMaybeSingle = false
+
+    const promise = Promise.resolve({ data: mockCustomer, error: null })
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn((field: string, value: string) => {
+        capturedEqField = field
+        capturedEqValue = value
+        return chain
+      }),
+      maybeSingle: vi.fn(() => {
+        usedMaybeSingle = true
+        return promise
+      }),
+    }
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'customers') return chain
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    const result = await repo.getBySupplyNumber('608132421')
+
+    expect(capturedEqField).toBe('supply_number')
+    expect(capturedEqValue).toBe('608132421')
+    expect(usedMaybeSingle).toBe(true)
+    expect(result).not.toBeNull()
+  })
+
+  it('debería retornar null si no existe cliente con ese supply_number', async () => {
+    const promise = Promise.resolve({ data: null, error: null })
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockReturnValue(promise),
+    }
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'customers') return chain
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    const result = await repo.getBySupplyNumber('999999999')
+
+    expect(result).toBeNull()
+  })
+
+  it('debería lanzar error si la consulta falla', async () => {
+    const promise = Promise.resolve({ data: null, error: { message: 'DB error' } })
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockReturnValue(promise),
+    }
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'customers') return chain
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    await expect(repo.getBySupplyNumber('608132421')).rejects.toEqual(expect.objectContaining({ message: 'DB error' }))
+  })
+})
+
 describe('CustomerRepository - getTopDebtors', () => {
   let repo: CustomerRepository
 

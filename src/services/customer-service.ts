@@ -21,6 +21,10 @@ export class CustomerService {
     return await this.customerRepo.searchCustomers(query.trim(), sectorId)
   }
 
+  async getBySupplyNumber(supplyNumber: string) {
+    return await this.customerRepo.getBySupplyNumber(supplyNumber.trim())
+  }
+
   async getCustomerDetails(id: string) {
     return await this.customerRepo.getCustomerDetails(id)
   }

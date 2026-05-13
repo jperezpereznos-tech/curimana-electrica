@@ -40,6 +40,26 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     return processed
   }
 
+  async getBySupplyNumber(supplyNumber: string): Promise<CustomerWithRelations | null> {
+    const { data, error } = await this.supabase
+      .from('customers')
+      .select('*, tariffs(name, tariff_tiers(*)), sectors(id, name, code), readings(current_reading, reading_date)')
+      .eq('supply_number', supplyNumber)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    if (!data) return null
+
+    const processed = {
+      ...data,
+      readings: (data as CustomerWithRelations).readings?.sort((a, b) =>
+        new Date(b.reading_date).getTime() - new Date(a.reading_date).getTime()
+      ).slice(0, 1) || []
+    } as CustomerWithRelations
+
+    return processed
+  }
+
   async getCustomerDetails(id: string) {
     const { data: customer, error: customerError } = await this.supabase
       .from('customers')

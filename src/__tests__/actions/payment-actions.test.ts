@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockVoidPayment = vi.fn()
 const mockGetPaymentDetails = vi.fn()
-const mockSearchCustomers = vi.fn()
+const mockGetBySupplyNumber = vi.fn()
 const mockGetAllReceipts = vi.fn()
 
 vi.mock('@/services/payment-service', () => ({
@@ -15,9 +15,9 @@ vi.mock('@/services/payment-service', () => ({
 
 vi.mock('@/services/customer-service', () => ({
   CustomerService: vi.fn().mockImplementation(() => ({
-    searchCustomers: mockSearchCustomers,
+    getBySupplyNumber: mockGetBySupplyNumber,
   })),
-  getCustomerService: vi.fn().mockReturnValue({ searchCustomers: mockSearchCustomers })
+  getCustomerService: vi.fn().mockReturnValue({ getBySupplyNumber: mockGetBySupplyNumber })
 }))
 
 vi.mock('@/services/receipt-service', () => ({
@@ -96,7 +96,7 @@ describe('adminSearchCustomerReceiptsAction', () => {
     const mockPending = [{ id: 'r1', status: 'pending' }]
     const mockPartial = [{ id: 'r2', status: 'partial' }]
 
-    mockSearchCustomers.mockResolvedValue([mockCustomer])
+    mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
     mockGetAllReceipts
       .mockResolvedValueOnce(mockPending)
       .mockResolvedValueOnce(mockPartial)
@@ -104,18 +104,17 @@ describe('adminSearchCustomerReceiptsAction', () => {
 
     const result = await adminSearchCustomerReceiptsAction('SUM-001')
 
-    expect(mockSearchCustomers).toHaveBeenCalledWith('SUM-001')
-    expect(mockGetAllReceipts).toHaveBeenCalledWith({ supplyNumber: 'SUM-001', status: 'pending' })
-    expect(mockGetAllReceipts).toHaveBeenCalledWith({ supplyNumber: 'SUM-001', status: 'partial' })
-    expect(mockGetAllReceipts).toHaveBeenCalledWith({ supplyNumber: 'SUM-001', status: 'overdue' })
+    expect(mockGetBySupplyNumber).toHaveBeenCalledWith('SUM-001')
+    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: 'c1', status: 'pending' })
+    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: 'c1', status: 'partial' })
+    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: 'c1', status: 'overdue' })
     expect(result).toEqual({
-      success: true,
-      data: { customer: mockCustomer, receipts: [...mockPending, ...mockPartial] }
+      success: true, data: { customer: mockCustomer, receipts: [...mockPending, ...mockPartial] }
     })
   })
 
   it('debería retornar data null si no se encuentran clientes', async () => {
-    mockSearchCustomers.mockResolvedValue([])
+    mockGetBySupplyNumber.mockResolvedValue(null)
 
     const result = await adminSearchCustomerReceiptsAction('NONEXISTENT')
 
@@ -123,8 +122,8 @@ describe('adminSearchCustomerReceiptsAction', () => {
     expect(mockGetAllReceipts).not.toHaveBeenCalled()
   })
 
-  it('debería retornar data null si searchCustomers retorna null', async () => {
-    mockSearchCustomers.mockResolvedValue(null)
+  it('debería retornar data null si getBySupplyNumber retorna null', async () => {
+    mockGetBySupplyNumber.mockResolvedValue(null)
 
     const result = await adminSearchCustomerReceiptsAction('query')
 
@@ -140,7 +139,7 @@ describe('adminSearchCustomerReceiptsAction', () => {
   })
 
   it('debería retornar error genérico si la búsqueda falla', async () => {
-    mockSearchCustomers.mockRejectedValue(new Error('DB error'))
+    mockGetBySupplyNumber.mockRejectedValue(new Error('DB error'))
 
     const result = await adminSearchCustomerReceiptsAction('SUM-001')
 
@@ -148,7 +147,7 @@ describe('adminSearchCustomerReceiptsAction', () => {
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
-    mockSearchCustomers.mockRejectedValue('unknown')
+    mockGetBySupplyNumber.mockRejectedValue('unknown')
 
     const result = await adminSearchCustomerReceiptsAction('SUM-001')
 

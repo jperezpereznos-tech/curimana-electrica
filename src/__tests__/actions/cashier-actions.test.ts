@@ -5,6 +5,7 @@ const mockProcessBatchPayment = vi.fn()
 const mockOpenClosure = vi.fn()
 const mockCloseClosure = vi.fn()
 const mockSearchCustomers = vi.fn()
+const mockGetBySupplyNumber = vi.fn()
 const mockGetAllReceipts = vi.fn()
 const mockGetReceiptByNumber = vi.fn()
 const mockGetPaymentsByCustomer = vi.fn()
@@ -42,9 +43,11 @@ vi.mock('@/services/cash-closure-service', () => ({
 vi.mock('@/services/customer-service', () => ({
   CustomerService: vi.fn().mockImplementation(() => ({
     searchCustomers: mockSearchCustomers,
+    getBySupplyNumber: mockGetBySupplyNumber,
   })),
   getCustomerService: vi.fn().mockReturnValue({
     searchCustomers: mockSearchCustomers,
+    getBySupplyNumber: mockGetBySupplyNumber,
   })
 }))
 
@@ -255,13 +258,14 @@ describe('searchCashierCustomerAction', () => {
     mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: 'cashier1' })
   })
 
-  it('debería buscar cliente y sus recibos pendientes', async () => {
-    const mockCustomer = { supply_number: 'SUM-001', full_name: 'Juan' }
-    mockSearchCustomers.mockResolvedValue([mockCustomer])
+  it('debería buscar cliente por supply_number exacto y sus recibos pendientes', async () => {
+    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
     mockGetAllReceipts.mockResolvedValue([{ id: 'r1' }])
 
-    const result = await searchCashierCustomerAction('SUM-001')
+    const result = await searchCashierCustomerAction('608132421')
 
+    expect(mockGetBySupplyNumber).toHaveBeenCalledWith('608132421')
     expect(result.success).toBe(true)
     if (result.success && result.data) {
       expect(result.data.customer).toEqual(mockCustomer)
@@ -269,6 +273,7 @@ describe('searchCashierCustomerAction', () => {
   })
 
   it('debería retornar data null si no se encuentran clientes', async () => {
+    mockGetBySupplyNumber.mockResolvedValue(null)
     mockSearchCustomers.mockResolvedValue([])
 
     const result = await searchCashierCustomerAction('NOPE')
@@ -295,7 +300,8 @@ describe('searchCashierCustomerAction', () => {
   it('debería buscar por número de recibo como fallback cuando no hay cliente', async () => {
     const mockReceipt = { id: 'r1', receipt_number: 42, customer_id: 'c1', status: 'pending', customers: { supply_number: '608132421' } }
     const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan', current_debt: 50 }
-    mockSearchCustomers.mockResolvedValueOnce([]).mockResolvedValueOnce([mockCustomer])
+    mockGetBySupplyNumber.mockResolvedValue(null)
+    mockSearchCustomers.mockResolvedValue([])
     mockGetReceiptByNumber.mockResolvedValue(mockReceipt)
     const mockFrom = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -306,7 +312,6 @@ describe('searchCashierCustomerAction', () => {
 
     const result = await searchCashierCustomerAction('42')
 
-    expect(mockSearchCustomers).toHaveBeenCalledWith('42')
     expect(mockGetReceiptByNumber).toHaveBeenCalledWith(42)
     expect(result.success).toBe(true)
     if (result.success && result.data) {
@@ -315,6 +320,7 @@ describe('searchCashierCustomerAction', () => {
   })
 
   it('debería retornar null si busca por número de recibo y no existe ni cliente ni recibo', async () => {
+    mockGetBySupplyNumber.mockResolvedValue(null)
     mockSearchCustomers.mockResolvedValue([])
     mockGetReceiptByNumber.mockResolvedValue(null)
     mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: vi.fn() }, userId: 'cashier1' })
@@ -324,14 +330,14 @@ describe('searchCashierCustomerAction', () => {
     expect(result).toEqual({ success: true, data: null })
   })
 
-  it('debería encontrar cliente por supply number numérico sin pasar por receipt-number', async () => {
-    const mockCustomer = { supply_number: '608132421', full_name: 'Juan' }
-    mockSearchCustomers.mockResolvedValue([mockCustomer])
+  it('debería encontrar cliente por supply number numérico vía getBySupplyNumber', async () => {
+    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
     mockGetAllReceipts.mockResolvedValue([{ id: 'r1' }])
 
     const result = await searchCashierCustomerAction('608132421')
 
-    expect(mockSearchCustomers).toHaveBeenCalledWith('608132421')
+    expect(mockGetBySupplyNumber).toHaveBeenCalledWith('608132421')
     expect(mockGetReceiptByNumber).not.toHaveBeenCalled()
     expect(result.success).toBe(true)
     if (result.success && result.data) {
@@ -340,8 +346,8 @@ describe('searchCashierCustomerAction', () => {
   })
 
   it('debería deduplicar recibos por id al concatenar', async () => {
-    const mockCustomer = { supply_number: '608132421', full_name: 'Juan' }
-    mockSearchCustomers.mockResolvedValue([mockCustomer])
+    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
     const duplicateReceipt = { id: 'r1', receipt_number: 1, status: 'pending' }
     mockGetAllReceipts.mockImplementation((filters: any) => {
       if (filters.status === 'pending') return Promise.resolve([duplicateReceipt, { id: 'r2', status: 'pending' }])

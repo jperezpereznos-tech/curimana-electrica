@@ -170,7 +170,7 @@ describe('ReceiptService - getAllReceipts', () => {
   })
 
   it('debería pasar filtros al repositorio', async () => {
-    const filters = { periodId: 'p1', status: 'pending', supplyNumber: 'SUM-001' }
+    const filters = { periodId: 'p1', status: 'pending', customerId: 'c1' }
     const mockReceipts = [{ id: 'r1', status: 'pending' }]
 
     vi.spyOn(ReceiptRepository.prototype, 'getAllWithDetails').mockResolvedValue(mockReceipts as any)
