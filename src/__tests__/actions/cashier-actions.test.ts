@@ -292,11 +292,11 @@ describe('searchCashierCustomerAction', () => {
     expect(result).toEqual({ success: false, error: 'Error al buscar cliente.' })
   })
 
-  it('debería buscar por número de recibo cuando el query es numérico', async () => {
-    const mockReceipt = { id: 'r1', receipt_number: 42, customer_id: 'c1', status: 'pending' }
+  it('debería buscar por número de recibo como fallback cuando no hay cliente', async () => {
+    const mockReceipt = { id: 'r1', receipt_number: 42, customer_id: 'c1', status: 'pending', customers: { supply_number: '608132421' } }
     const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan', current_debt: 50 }
+    mockSearchCustomers.mockResolvedValueOnce([]).mockResolvedValueOnce([mockCustomer])
     mockGetReceiptByNumber.mockResolvedValue(mockReceipt)
-    mockSearchCustomers.mockResolvedValue([mockCustomer])
     const mockFrom = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -306,6 +306,7 @@ describe('searchCashierCustomerAction', () => {
 
     const result = await searchCashierCustomerAction('42')
 
+    expect(mockSearchCustomers).toHaveBeenCalledWith('42')
     expect(mockGetReceiptByNumber).toHaveBeenCalledWith(42)
     expect(result.success).toBe(true)
     if (result.success && result.data) {
@@ -313,13 +314,29 @@ describe('searchCashierCustomerAction', () => {
     }
   })
 
-  it('debería retornar null si busca por número de recibo y no existe', async () => {
+  it('debería retornar null si busca por número de recibo y no existe ni cliente ni recibo', async () => {
+    mockSearchCustomers.mockResolvedValue([])
     mockGetReceiptByNumber.mockResolvedValue(null)
     mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: vi.fn() }, userId: 'cashier1' })
 
     const result = await searchCashierCustomerAction('999')
 
     expect(result).toEqual({ success: true, data: null })
+  })
+
+  it('debería encontrar cliente por supply number numérico sin pasar por receipt-number', async () => {
+    const mockCustomer = { supply_number: '608132421', full_name: 'Juan' }
+    mockSearchCustomers.mockResolvedValue([mockCustomer])
+    mockGetAllReceipts.mockResolvedValue([{ id: 'r1' }])
+
+    const result = await searchCashierCustomerAction('608132421')
+
+    expect(mockSearchCustomers).toHaveBeenCalledWith('608132421')
+    expect(mockGetReceiptByNumber).not.toHaveBeenCalled()
+    expect(result.success).toBe(true)
+    if (result.success && result.data) {
+      expect(result.data.customer).toEqual(mockCustomer)
+    }
   })
 
   it('debería deduplicar recibos por id al concatenar', async () => {

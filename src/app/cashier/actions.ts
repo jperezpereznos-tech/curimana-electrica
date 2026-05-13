@@ -86,12 +86,45 @@ export async function searchCashierCustomerAction(query: string) {
     const receiptService = getReceiptService(supabase)
     const customerService = getCustomerService(supabase)
 
+    const results = await customerService.searchCustomers(query)
+
+    if (results && results.length > 0) {
+      const customer = results[0]
+
+      await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
+
+      const { data: refreshedCustomer } = await supabase
+        .from('customers')
+        .select('current_debt')
+        .eq('id', customer.id)
+        .single()
+
+      if (refreshedCustomer) {
+        customer.current_debt = refreshedCustomer.current_debt
+      }
+
+      const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
+        receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'pending' }),
+        receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'partial' }),
+        receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'overdue' }),
+      ])
+
+      const seen = new Set<string>()
+      const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])].filter((r) => {
+        if (seen.has(r.id)) return false
+        seen.add(r.id)
+        return true
+      })
+
+      return { success: true as const, data: { customer, receipts } }
+    }
+
     const receiptNumber = Number(query)
     if (!isNaN(receiptNumber) && receiptNumber > 0 && query.trim() === String(receiptNumber)) {
       const receipt = await receiptService.getReceiptByNumber(receiptNumber)
       if (receipt && receipt.status !== 'cancelled') {
-        const results = await customerService.searchCustomers(receipt.customers?.supply_number || '')
-        const customer = results?.[0]
+        const receiptCustomerResults = await customerService.searchCustomers(receipt.customers?.supply_number || '')
+        const customer = receiptCustomerResults?.[0]
         if (customer) {
           await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
           const { data: refreshedCustomer } = await supabase
@@ -104,40 +137,9 @@ export async function searchCashierCustomerAction(query: string) {
           return { success: true as const, data: { customer, receipts: [receipt] } }
         }
       }
-      return { success: true as const, data: null }
     }
 
-    const results = await customerService.searchCustomers(query)
-    if (!results || results.length === 0) return { success: true as const, data: null }
-
-    const customer = results[0]
-
-    await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
-
-    const { data: refreshedCustomer } = await supabase
-      .from('customers')
-      .select('current_debt')
-      .eq('id', customer.id)
-      .single()
-
-    if (refreshedCustomer) {
-      customer.current_debt = refreshedCustomer.current_debt
-    }
-
-    const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
-      receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'pending' }),
-      receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'partial' }),
-      receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'overdue' }),
-    ])
-
-    const seen = new Set<string>()
-    const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])].filter((r) => {
-      if (seen.has(r.id)) return false
-      seen.add(r.id)
-      return true
-    })
-
-    return { success: true as const, data: { customer, receipts } }
+    return { success: true as const, data: null }
   } catch (e) {
     return { success: false as const, error: e instanceof Error ? e.message : 'Error al buscar cliente.' }
   }
