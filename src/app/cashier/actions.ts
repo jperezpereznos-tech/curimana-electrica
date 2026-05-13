@@ -85,6 +85,18 @@ export async function searchCashierCustomerAction(query: string) {
 
     const customer = results[0]
 
+    await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
+
+    const { data: refreshedCustomer } = await supabase
+      .from('customers')
+      .select('current_debt')
+      .eq('id', customer.id)
+      .single()
+
+    if (refreshedCustomer) {
+      customer.current_debt = refreshedCustomer.current_debt
+    }
+
     const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
       receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'pending' }),
       receiptService.getAllReceipts({ supplyNumber: customer.supply_number, status: 'partial' }),

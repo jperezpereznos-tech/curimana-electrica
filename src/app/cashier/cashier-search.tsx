@@ -65,10 +65,12 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
     }
   }, [q])
 
-  const totalDebt = useMemo(() =>
-    Math.round(receipts.reduce((sum, r) => sum + Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100, 0) * 100) / 100,
-    [receipts]
-  )
+  const totalDebt = useMemo(() => {
+    const receiptDebt = Math.round(receipts.reduce((sum, r) => sum + Math.round((r.total_amount - (r.paid_amount || 0)) * 100) / 100, 0) * 100) / 100
+    if (receiptDebt > 0) return receiptDebt
+    const customerDebt = Math.round(((customer?.current_debt as number) || 0) * 100) / 100
+    return customerDebt
+  }, [receipts, customer?.current_debt])
 
   const handlePrintVoucher = useCallback((payment: Record<string, unknown>) => {
     const receiptData = payment.receipts as Record<string, unknown> | null
@@ -180,6 +182,11 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed">
                   <AlertCircle className="h-8 w-8 mb-2" />
                   <p>No hay recibos pendientes para este suministro.</p>
+                  {totalDebt > 0 && (
+                    <p className="text-sm mt-2 text-destructive font-medium">
+                      Deuda registrada: {formatCurrency(totalDebt)}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">

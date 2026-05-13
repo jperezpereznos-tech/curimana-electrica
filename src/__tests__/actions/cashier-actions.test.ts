@@ -244,7 +244,12 @@ describe('closeClosureAction', () => {
 describe('searchCashierCustomerAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    const mockFrom = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { current_debt: 0 }, error: null }),
+    })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: 'cashier1' })
   })
 
   it('debería buscar cliente y sus recibos pendientes', async () => {
