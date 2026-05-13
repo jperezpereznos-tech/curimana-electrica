@@ -27,7 +27,7 @@ interface AssignedSector {
 
 export function ReadingRouteClient({ assignedSector }: { assignedSector: AssignedSector | null }) {
   const [customers, setCustomers] = useState<RouteCustomer[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!!assignedSector)
 
   useEffect(() => {
     let cancelled = false

@@ -128,7 +128,10 @@ export default function PendingReadingsPage() {
           </div>
         ) : filteredReadings.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No hay lecturas pendientes
+            <p className="font-medium">No hay lecturas pendientes</p>
+            <p className="text-sm mt-1">
+              {navigator.onLine ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
