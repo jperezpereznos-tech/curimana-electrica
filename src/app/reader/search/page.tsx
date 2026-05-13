@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Zap, ChevronRight, WifiOff } from 'lucide-react'
 import { searchReaderCustomersAction, getReaderAssignedSectorIdAction } from '../actions'
+import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import type { CustomerWithRelations } from '@/types/views'
@@ -20,6 +21,7 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [assignedSectorId, setAssignedSectorId] = useState<string | null>(null)
+  const { syncCustomerCache } = useOfflineSync()
 
   useEffect(() => {
     getReaderAssignedSectorIdAction()
@@ -27,10 +29,11 @@ export default function SearchPage() {
         if (result.success) setAssignedSectorId(result.data ?? null)
       })
       .catch((e) => { console.error('Error fetching assigned sector:', e) })
-  }, [])
+    if (navigator.onLine) void syncCustomerCache()
+  }, [syncCustomerCache])
 
   const filterBySector = (customers: CustomerCache[]): CustomerCache[] => {
-    if (!assignedSectorId) return []
+    if (!assignedSectorId) return customers
     return customers.filter(c => c.sector_id === assignedSectorId)
   }
 
@@ -43,25 +46,35 @@ export default function SearchPage() {
 
     if (navigator.onLine) {
       const result = await searchReaderCustomersAction(searchTerm)
-      if (result.success) {
-        setResults(result.data || [])
+      if (result.success && result.data && result.data.length > 0) {
+        setResults(result.data)
       } else {
-        setResults([])
+        const cached = await db.customers_cache
+          .where('supply_number')
+          .startsWithIgnoreCase(searchTerm)
+          .toArray()
+        let filtered = filterBySector(cached)
+        if (filtered.length === 0) {
+          const byName = await db.customers_cache
+            .filter(c => c.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+            .toArray()
+          filtered = filterBySector(byName)
+        }
+        setResults(filtered)
       }
     } else {
       const cached = await db.customers_cache
         .where('supply_number')
         .startsWithIgnoreCase(searchTerm)
         .toArray()
-      const filtered = filterBySector(cached)
+      let filtered = filterBySector(cached)
       if (filtered.length === 0) {
         const byName = await db.customers_cache
           .filter(c => c.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
           .toArray()
-        setResults(filterBySector(byName))
-      } else {
-        setResults(filtered)
+        filtered = filterBySector(byName)
       }
+      setResults(filtered)
     }
 
     setLoading(false)

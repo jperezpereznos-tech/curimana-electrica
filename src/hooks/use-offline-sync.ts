@@ -269,6 +269,7 @@ export function useOfflineSync() {
     exhaustedSyncCount: exhaustedCount,
     syncStatus,
     lastSyncTime,
-    syncNow
+    syncNow,
+    syncCustomerCache
   }
 }

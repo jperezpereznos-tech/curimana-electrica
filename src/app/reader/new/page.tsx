@@ -12,6 +12,7 @@ import { db } from '@/lib/db/dexie'
 import { getCustomerService } from '@/services/customer-service'
 import { createClient } from '@/lib/supabase/client'
 import { getLatestReadingAction, getReaderAssignedSectorIdAction } from '../actions'
+import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import type { CustomerWithRelations } from '@/types/views'
@@ -33,6 +34,7 @@ function NewReadingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialSupply = searchParams.get('supply') || ''
+  const { syncCustomerCache } = useOfflineSync()
   const [supplyNumber, setSupplyNumber] = useState(initialSupply)
   const [customer, setCustomer] = useState<ReaderCustomer | null>(null)
   const [currentReading, setCurrentReading] = useState('')
@@ -50,7 +52,8 @@ function NewReadingContent() {
         else toast.error(result.error || 'No se pudo obtener el sector asignado')
       })
       .catch(() => { toast.error('No se pudo obtener el sector asignado') })
-  }, [])
+    if (navigator.onLine) void syncCustomerCache()
+  }, [syncCustomerCache])
 
   const handleSearch = useCallback(async (supply: string) => {
     if (!supply) return
@@ -85,36 +88,45 @@ function NewReadingContent() {
           })
         }
       } else if (navigator.onLine) {
-        const results = await getCustomerService(createClient()).searchCustomers(supply, assignedSectorId || undefined)
-        const found = results?.find((c: CustomerWithRelations) => c.supply_number === supply)
+        const supabase = createClient()
+        const onlineResults = await getCustomerService(supabase).searchCustomers(supply)
+        const found = onlineResults?.find((c: CustomerWithRelations) => c.supply_number === supply)
         if (found) {
-          let previousReading = 0
-          const latestResult = await getLatestReadingAction(found.id)
-          if (latestResult.success && latestResult.data) {
-            previousReading = Number(latestResult.data.current_reading) || 0
+          if (assignedSectorId && found.sector_id && found.sector_id !== assignedSectorId) {
+            setSaveError('Este suministro no pertenece a su sector asignado')
+            setNotFound(true)
+          } else if (assignedSectorId && !found.sector_id) {
+            setSaveError('Este suministro no tiene sector asignado')
+            setNotFound(true)
+          } else {
+            let previousReading = 0
+            const latestResult = await getLatestReadingAction(found.id)
+            if (latestResult.success && latestResult.data) {
+              previousReading = Number(latestResult.data.current_reading) || 0
+            }
+            await db.customers_cache.put({
+              id: found.id,
+              supply_number: found.supply_number,
+              full_name: found.full_name,
+              address: found.address || '',
+              sector: found.sector || '',
+              sectorName: found.sectors?.name || '',
+              sector_id: found.sector_id || '',
+              tariff_id: found.tariff_id || '',
+              previous_reading: previousReading,
+              last_updated: Date.now(),
+            })
+            setSaveError(null)
+            setCustomer({
+              id: found.id,
+              full_name: found.full_name,
+              address: found.address,
+              sectorName: found.sectors?.name || found.sector || null,
+              sector_id: found.sector_id,
+              supply_number: found.supply_number,
+              previous_reading: previousReading,
+            })
           }
-          await db.customers_cache.put({
-            id: found.id,
-            supply_number: found.supply_number,
-            full_name: found.full_name,
-            address: found.address || '',
-            sector: found.sector || '',
-            sectorName: found.sectors?.name || '',
-            sector_id: found.sector_id || '',
-            tariff_id: found.tariff_id || '',
-            previous_reading: previousReading,
-            last_updated: Date.now(),
-          })
-          setSaveError(null)
-          setCustomer({
-            id: found.id,
-            full_name: found.full_name,
-            address: found.address,
-            sectorName: found.sectors?.name || found.sector || null,
-            sector_id: found.sector_id,
-            supply_number: found.supply_number,
-            previous_reading: previousReading,
-          })
         } else {
           setNotFound(true)
         }
