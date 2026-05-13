@@ -147,7 +147,7 @@ export default function SyncPage() {
  <Alert variant="destructive">
  <WifiOff className="h-4 w-4" />
  <AlertDescription>
- No hay conexión a internet. Las lecturas se sincronizarán automáticamente cuando recuperes la conexión.
+          No hay conexión a internet. Presiona el botón de sincronización cuando recuperes la conexión.
  </AlertDescription>
  </Alert>
  )}
@@ -173,7 +173,7 @@ export default function SyncPage() {
  <div>
  <p className="font-medium text-destructive">Error de sincronización</p>
  <p className="text-sm text-muted-foreground">
- Algunas lecturas no se pudieron sincronizar. Se reintentarán automáticamente.
+          Algunas lecturas no se pudieron sincronizar. Reinténtalas manualmente.
  </p>
  </div>
  </div>

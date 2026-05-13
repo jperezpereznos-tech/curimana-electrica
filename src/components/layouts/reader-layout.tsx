@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/hooks/use-auth'
+import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { Button } from '@/components/ui/button'
 import { Camera, ClipboardList, LogOut, RefreshCcw } from 'lucide-react'
 import Link from 'next/link'
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils'
 export function ReaderLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth()
   const pathname = usePathname()
+  const { pendingSyncCount } = useOfflineSync()
 
   const navItems = [
     { name: 'Lectura', href: '/reader', icon: Camera },
@@ -32,19 +34,26 @@ export function ReaderLayout({ children }: { children: React.ReactNode }) {
 
       {/* Bottom Navigation */}
       <nav className="h-16 bg-background border-t flex items-center justify-around fixed bottom-0 left-0 right-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center space-y-1 transition-colors",
-              pathname === item.href ? "text-muni-blue" : "text-muted-foreground"
-            )}
-          >
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={cn(
+            "flex flex-col items-center space-y-1 transition-colors relative",
+            pathname === item.href ? "text-muni-blue" : "text-muted-foreground"
+          )}
+        >
+          <div className="relative">
             <item.icon size={24} />
-            <span className="text-[10px] font-medium uppercase tracking-wider">{item.name}</span>
-          </Link>
-        ))}
+            {item.href === '/reader/sync' && pendingSyncCount > 0 && (
+              <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                {pendingSyncCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-medium uppercase tracking-wider">{item.name}</span>
+        </Link>
+      ))}
       </nav>
     </div>
   )

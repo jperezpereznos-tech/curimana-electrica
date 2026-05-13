@@ -10,16 +10,9 @@ import { toast } from 'sonner'
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
 const MAX_RETRIES = 5
-const BASE_SYNC_INTERVAL_MS = 30_000
-const MAX_SYNC_INTERVAL_MS = 300_000
-const IDLE_SYNC_INTERVAL_MS = 120_000
 const READING_INSERT_TIMEOUT_MS = 15_000
 const CACHE_SYNC_TIMEOUT_MS = 10_000
 const PERIOD_FETCH_TIMEOUT_MS = 10_000
-
-function getBackoffDelay(retryCount: number): number {
-  return Math.min(BASE_SYNC_INTERVAL_MS * Math.pow(2, retryCount), MAX_SYNC_INTERVAL_MS)
-}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -103,7 +96,7 @@ export function useOfflineSync() {
     }
   }, [])
 
-  const syncNow = useCallback(async (isManual = false) => {
+  const syncNow = useCallback(async () => {
     if (!isOnline || syncingRef.current) return
 
     syncingRef.current = true
@@ -119,16 +112,15 @@ export function useOfflineSync() {
         return
       }
 
-    const stuckSyncing = await db.pending_readings
-      .where('status').equals('syncing')
-      .toArray()
-    if (stuckSyncing.length > 0) {
-      await db.pending_readings
-        .where('id').anyOf(stuckSyncing.map(r => r.id!))
-        .modify({ status: 'pending' })
-    }
+      const stuckSyncing = await db.pending_readings
+        .where('status').equals('syncing')
+        .toArray()
+      if (stuckSyncing.length > 0) {
+        await db.pending_readings
+          .where('id').anyOf(stuckSyncing.map(r => r.id!))
+          .modify({ status: 'pending' })
+      }
 
-    if (isManual) {
       const failedReadings = await db.pending_readings
         .where('status').equals('failed')
         .toArray()
@@ -137,7 +129,6 @@ export function useOfflineSync() {
           .where('id').anyOf(failedReadings.map(r => r.id!))
           .modify({ status: 'pending', retry_count: 0 })
       }
-    }
 
       await syncCustomerCache()
 
@@ -173,13 +164,6 @@ export function useOfflineSync() {
       let hasError = false
 
       for (const reading of pending) {
-        if (!isManual && (reading.retry_count || 0) >= MAX_RETRIES) {
-          if (!reading.needs_review) {
-            await db.pending_readings.update(reading.id!, { needs_review: true })
-          }
-          continue
-        }
-
         try {
           if (assignedSectorIdRef.current && reading.sector_id && reading.sector_id !== assignedSectorIdRef.current) {
             console.error(`Skipping reading for customer outside assigned sector (supply: ${reading.supply_number}, sector: ${reading.sector_id}, assigned: ${assignedSectorIdRef.current})`)
@@ -212,13 +196,13 @@ export function useOfflineSync() {
             READING_INSERT_TIMEOUT_MS
           )
 
-        if (!actionResult.success) {
-          if (actionResult.error === 'DUPLICATE_READING') {
-            await db.pending_readings.delete(reading.id!)
-            continue
+          if (!actionResult.success) {
+            if (actionResult.error === 'DUPLICATE_READING') {
+              await db.pending_readings.delete(reading.id!)
+              continue
+            }
+            throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
           }
-          throw new Error(actionResult.error || 'Error al registrar lectura en servidor')
-        }
 
           await db.pending_readings.delete(reading.id!)
         } catch (error: unknown) {
@@ -236,9 +220,7 @@ export function useOfflineSync() {
             last_attempt_time: Date.now()
           })
           hasError = true
-          if (isManual) {
-            toast.error(`Error en suministro ${reading.supply_number}: ${errMsg}`)
-          }
+          toast.error(`Error en suministro ${reading.supply_number}: ${errMsg}`)
         }
       }
 
@@ -259,7 +241,11 @@ export function useOfflineSync() {
   }, [isOnline, updateCounter, syncCustomerCache, refreshSession])
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
+    const handleOnline = () => {
+      setIsOnline(true)
+      void syncCustomerCache()
+      void updateCounter()
+    }
     const handleOffline = () => setIsOnline(false)
 
     window.addEventListener('online', handleOnline)
@@ -267,6 +253,7 @@ export function useOfflineSync() {
 
     const timer = window.setTimeout(() => {
       void updateCounter()
+      if (navigator.onLine) void syncCustomerCache()
     }, 0)
 
     return () => {
@@ -274,44 +261,7 @@ export function useOfflineSync() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [updateCounter])
-
-  useEffect(() => {
-    if (!isOnline) return
-
-    let timeoutId: ReturnType<typeof setTimeout>
-    let cancelled = false
-
-    const scheduleNext = async () => {
-      const pendingReadable = await db.pending_readings
-        .where('status').equals('pending')
-        .count()
-      const retryableFailed = await db.pending_readings
-        .where('status').equals('failed')
-        .filter(r => (r.retry_count || 0) < MAX_RETRIES)
-        .sortBy('retry_count')
-      const hasWork = pendingReadable > 0 || retryableFailed.length > 0
-
-      let delay: number
-      if (!hasWork) {
-        delay = IDLE_SYNC_INTERVAL_MS
-      } else if (retryableFailed.length > 0) {
-        const maxRetry = retryableFailed[retryableFailed.length - 1].retry_count || 0
-        delay = getBackoffDelay(maxRetry)
-      } else {
-        delay = BASE_SYNC_INTERVAL_MS
-      }
-
-      if (cancelled) return
-      timeoutId = setTimeout(() => {
-        if (!cancelled) void syncNow(false).then(scheduleNext)
-      }, delay)
-    }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void syncNow(false).then(scheduleNext)
-    return () => { cancelled = true; clearTimeout(timeoutId) }
-  }, [isOnline, syncNow])
+  }, [updateCounter, syncCustomerCache])
 
   return {
     isOnline,
@@ -319,6 +269,6 @@ export function useOfflineSync() {
     exhaustedSyncCount: exhaustedCount,
     syncStatus,
     lastSyncTime,
-    syncNow: () => syncNow(true)
+    syncNow
   }
 }
