@@ -71,10 +71,14 @@ INSERT INTO billing_concepts (code, name, amount, type, applies_to_tariff_id, is
 
 END $$;
 
--- 7. Periodo de Facturación actual
+-- 7. Periodos de Facturación
 INSERT INTO billing_periods (name, year, month, start_date, end_date, is_closed)
 SELECT 'ABRIL 2026', 2026, 4, '2026-03-26', '2026-04-25', false
 WHERE NOT EXISTS (SELECT 1 FROM billing_periods WHERE year = 2026 AND month = 4);
+
+INSERT INTO billing_periods (name, year, month, start_date, end_date, is_closed)
+SELECT 'MAYO 2026', 2026, 5, '2026-04-26', '2026-05-25', false
+WHERE NOT EXISTS (SELECT 1 FROM billing_periods WHERE year = 2026 AND month = 5);
 
 -- ============================================================================
 -- NOTA: Los usuarios se crean desde el dashboard de Supabase Auth

@@ -103,7 +103,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   async getActiveCustomersWithReadings(sectorId?: string) {
     let query = this.supabase
       .from('customers')
-      .select('id, supply_number, full_name, address, sector_id, is_active, readings(id, reading_date), sectors(id, name, code)')
+      .select('id, supply_number, full_name, address, sector_id, is_active, readings(id, current_reading, reading_date), sectors(id, name, code)')
       .eq('is_active', true)
 
     if (sectorId) {
