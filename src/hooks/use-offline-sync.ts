@@ -5,6 +5,7 @@ import { getCustomerService } from '@/services/customer-service'
 import { useAuth } from '@/hooks/use-auth'
 import { createClient } from '@/lib/supabase/client'
 import { registerReadingAction } from '@/app/reader/actions'
+import { toast } from 'sonner'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 
@@ -114,6 +115,7 @@ export function useOfflineSync() {
         setSyncStatus('error')
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
+        toast.error('Error de sincronización: sesión expirada. Inicia sesión de nuevo.')
         return
       }
 
@@ -159,10 +161,12 @@ export function useOfflineSync() {
       }
 
       if (!periodId) {
+        const errMsg = 'No hay un periodo de facturación abierto. Contacta al administrador para abrir el periodo actual.'
         console.error('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
         setSyncStatus('error')
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
+        toast.error(errMsg)
         return
       }
 
@@ -228,6 +232,9 @@ export function useOfflineSync() {
             last_attempt_time: Date.now()
           })
           hasError = true
+          if (isManual) {
+            toast.error(`Error en suministro ${reading.supply_number}: ${errMsg}`)
+          }
         }
       }
 
@@ -235,10 +242,12 @@ export function useOfflineSync() {
       setLastSyncTime(new Date().toISOString())
       await updateCounter()
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error)
       console.error('Sync failed:', error)
       setSyncStatus('error')
       setLastSyncTime(new Date().toISOString())
       await updateCounter()
+      toast.error(`Error de sincronización: ${errMsg}`)
     } finally {
       syncingRef.current = false
       setTimeout(() => setSyncStatus('idle'), 10000)
