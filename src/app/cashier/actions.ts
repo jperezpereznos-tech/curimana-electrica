@@ -45,6 +45,9 @@ export async function processBatchPaymentAction(data: {
 
     const result = await paymentService.processBatchPayment({ ...data, cashierUserId: userId })
     revalidatePath('/cashier')
+    revalidatePath('/admin/customers')
+    revalidatePath('/admin/receipts')
+    revalidatePath('/admin/payments')
     return { success: true as const, data: result }
   } catch (e) {
     return { success: false as const, error: e instanceof Error ? e.message : 'Error al procesar el pago lote.' }

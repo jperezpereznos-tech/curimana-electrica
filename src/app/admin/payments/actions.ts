@@ -37,6 +37,7 @@ export async function voidPaymentAction(paymentId: string) {
     await paymentService.voidPayment(paymentId, userId)
     revalidatePath('/admin/payments')
     revalidatePath('/admin/receipts')
+    revalidatePath('/admin/customers')
     return { success: true as const }
   } catch (e) {
     return { success: false as const, error: e instanceof Error ? e.message : 'Error al anular el pago' }
