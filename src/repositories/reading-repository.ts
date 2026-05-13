@@ -78,8 +78,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
     const { count, error } = await this.supabase
       .from('readings')
       .select('id', { count: 'exact', head: true })
-      .gte('reading_date', today)
-      .lt('reading_date', today + 'T23:59:59')
+      .eq('reading_date', today)
 
     if (error) throw new Error(error.message)
     return count || 0

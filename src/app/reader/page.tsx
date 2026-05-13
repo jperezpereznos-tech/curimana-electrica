@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
@@ -14,7 +14,7 @@ import { getReaderDashboardDataAction } from './actions'
 export default function ReaderDashboard() {
   const { isOnline, pendingSyncCount, syncNow } = useOfflineSync()
   const [hasMounted, setHasMounted] = useState(false)
-  const [todayCount, setTodayCount] = useState(0)
+  const [localPendingToday, setLocalPendingToday] = useState(0)
   const [syncedCount, setSyncedCount] = useState(0)
   const [activeCustomers, setActiveCustomers] = useState(0)
   const [periodInfo, setPeriodInfo] = useState<{ name: string; endDate: string } | null>(null)
@@ -32,7 +32,7 @@ export default function ReaderDashboard() {
       .where('reading_date')
       .startsWith(today)
       .count()
-      .then(count => { if (!cancelled) setTodayCount(count) })
+      .then(count => { if (!cancelled) setLocalPendingToday(count) })
 
     if (navigator.onLine) {
       getReaderDashboardDataAction()
@@ -105,7 +105,7 @@ export default function ReaderDashboard() {
       <CardTitle className="text-xs uppercase text-muted-foreground">Lecturas Hoy</CardTitle>
     </CardHeader>
     <CardContent className="p-4 pt-2">
-      <div className="text-2xl font-bold">{todayCount} / {activeCustomers}</div>
+      <div className="text-2xl font-bold">{syncedCount + localPendingToday} / {activeCustomers}</div>
     </CardContent>
   </Card>
   <Card>
