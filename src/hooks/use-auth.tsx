@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import { db } from '@/lib/db/dexie'
+import { ROLE_COOKIE } from '@/lib/auth/constants'
 
 type AuthContextType = {
   user: User | null
@@ -12,8 +14,6 @@ type AuthContextType = {
   profileError: string | null
   signOut: () => Promise<void>
 }
-
-const ROLE_COOKIE = 'x-user-role'
 
 const getRoleFromCookie = (): string | null => {
   if (typeof document === 'undefined') return null
@@ -182,6 +182,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (signingOutRef.current) return
+
+    if (typeof window !== 'undefined') {
+      try {
+        const pendingCount = await db.pending_readings
+          .where('status')
+          .anyOf(['pending', 'failed'])
+          .count()
+
+        if (pendingCount > 0) {
+          const confirmed = window.confirm(
+            `Tienes ${pendingCount} lectura(s) pendiente(s) de sincronizar. Si cierras sesión se perderán. ¿Deseas continuar?`
+          )
+          if (!confirmed) return
+        }
+      } catch {
+        // Dexie unavailable — proceed with logout
+      }
+    }
+
     signingOutRef.current = true
 
     setUser(null)

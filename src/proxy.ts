@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { ROLE_COOKIE } from '@/lib/auth/constants'
 
-const ROLE_COOKIE = 'x-user-role'
 const ROLE_COOKIE_MAX_AGE = 3600
 
 export async function proxy(request: NextRequest) {
@@ -61,12 +61,12 @@ export async function proxy(request: NextRequest) {
  }
  const role = data as string | null
  if (role) {
- supabaseResponse.cookies.set(ROLE_COOKIE, role, {
- path: '/',
- maxAge: ROLE_COOKIE_MAX_AGE,
- httpOnly: true,
- sameSite: 'lax',
- })
+    supabaseResponse.cookies.set(ROLE_COOKIE, role, {
+      path: '/',
+      maxAge: ROLE_COOKIE_MAX_AGE,
+      httpOnly: false,
+      sameSite: 'lax',
+    })
  }
  return role
  }

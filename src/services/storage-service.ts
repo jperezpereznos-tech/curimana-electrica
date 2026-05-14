@@ -43,7 +43,7 @@ export class StorageService {
         })
 
       if (error) {
-        throw error
+        throw new Error(error.message)
       }
 
       // Obtener URL pública
@@ -69,7 +69,7 @@ export class StorageService {
         .remove([filePath])
 
       if (error) {
-        throw error
+        throw new Error(error.message)
       }
     } catch (error) {
       console.error('Error deleting photo:', error)

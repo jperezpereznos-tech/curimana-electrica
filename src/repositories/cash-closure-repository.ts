@@ -21,13 +21,19 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
     return data
   }
 
-  async getSessionTotal(cashierId: string, from: string): Promise<{ total: number; count: number }> {
-    const { data, error } = await this.supabase
+  async getSessionTotal(cashierId: string, from: string, cashClosureId?: string): Promise<{ total: number; count: number }> {
+    let query = this.supabase
       .from('payments')
       .select('amount')
       .eq('cashier_id', cashierId)
       .gte('created_at', from)
       .neq('status', 'voided')
+
+    if (cashClosureId) {
+      query = query.eq('cash_closure_id', cashClosureId)
+    }
+
+    const { data, error } = await query
 
     if (error) throw new Error(error.message)
     const payments = data ?? []

@@ -19,8 +19,8 @@ export class CashClosureService {
     return await this.cashClosureRepo.getActiveClosure(userId)
   }
 
-  async getSessionSummary(cashierId: string, from: string) {
-    return await this.cashClosureRepo.getSessionTotal(cashierId, from)
+  async getSessionSummary(cashierId: string, from: string, cashClosureId?: string) {
+    return await this.cashClosureRepo.getSessionTotal(cashierId, from, cashClosureId)
   }
 
   async openClosure(userId: string, initialAmount: number) {
@@ -66,7 +66,8 @@ export class CashClosureService {
 
     const summary = await this.cashClosureRepo.getSessionTotal(
       closure.cashier_id,
-      closure.created_at ?? new Date().toISOString()
+      closure.created_at ?? new Date().toISOString(),
+      closure.id
     )
 
     const result = await this.cashClosureRepo.close(id, {

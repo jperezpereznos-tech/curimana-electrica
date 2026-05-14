@@ -762,10 +762,10 @@ municipality_config: {
         Args: { p_customer_id: string }
         Returns: number
       }
-      void_payment: {
-        Args: { p_payment_id: string; p_user_id: string }
-        Returns: undefined
-      }
+void_payment: {
+      Args: { p_payment_id: string }
+      Returns: undefined
+    }
     }
     Enums: {
       [_ in never]: never

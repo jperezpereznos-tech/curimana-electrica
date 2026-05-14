@@ -262,25 +262,23 @@ describe('PaymentService - voidPayment', () => {
     ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: null })
   })
 
-  it('deberia llamar a void_payment RPC', async () => {
+  it('deberia llamar a void_payment RPC sin p_user_id', async () => {
     const service = new PaymentService(mockSupabase)
 
     await service.voidPayment('p1', 'user1')
 
     expect(mockSupabase.rpc).toHaveBeenCalledWith('void_payment', {
       p_payment_id: 'p1',
-      p_user_id: 'user1',
     })
   })
 
-  it('deberia llamar a void_payment con string vacio si no hay userId', async () => {
+  it('deberia llamar a void_payment con solo p_payment_id si no hay userId', async () => {
     const service = new PaymentService(mockSupabase)
 
     await service.voidPayment('p1')
 
     expect(mockSupabase.rpc).toHaveBeenCalledWith('void_payment', {
       p_payment_id: 'p1',
-      p_user_id: '',
     })
   })
 

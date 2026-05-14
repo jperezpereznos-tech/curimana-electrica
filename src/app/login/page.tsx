@@ -7,16 +7,12 @@ import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useRouter } from 'next/navigation'
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -27,6 +23,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClient()
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -51,10 +48,8 @@ export default function LoginPage() {
       return
     }
 
-    // Esperamos un momento para que @supabase/ssr pueda establecer la cookie
-    setTimeout(() => {
-      window.location.href = '/'
-    }, 500)
+    router.push('/')
+    router.refresh()
   }
 
   return (

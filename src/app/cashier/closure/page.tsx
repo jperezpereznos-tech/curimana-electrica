@@ -40,7 +40,7 @@ export default async function CashClosurePage() {
   if (activeClosure) {
     const [sessionPayments, summary] = await Promise.all([
       paymentSvc.getPaymentsByCashier(userId, { from: activeClosure.created_at ?? undefined }),
-      cashClosureSvc.getSessionSummary(userId, activeClosure.created_at ?? new Date().toISOString())
+      cashClosureSvc.getSessionSummary(userId, activeClosure.created_at ?? new Date().toISOString(), activeClosure.id)
     ])
     payments = sessionPayments
     totalCollected = summary.total

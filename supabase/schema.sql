@@ -39,12 +39,17 @@ BEGIN
 END;
 $$;
 
--- Revocar acceso anónimo a funciones sensibles
-REVOKE EXECUTE ON FUNCTION public.get_user_role() FROM anon;
-REVOKE EXECUTE ON FUNCTION public."current_role"() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_user_sector_id() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.calculate_energy_amount(NUMERIC, UUID) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.close_billing_period(UUID) FROM anon;
+-- Revocar acceso anónimo y público a funciones sensibles
+REVOKE EXECUTE ON FUNCTION public.get_user_role() FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.get_user_role() TO authenticated;
+REVOKE EXECUTE ON FUNCTION public."current_role"() FROM anon, public;
+GRANT EXECUTE ON FUNCTION public."current_role"() TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_user_sector_id() FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.get_user_sector_id() TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.calculate_energy_amount(NUMERIC, UUID) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.calculate_energy_amount(NUMERIC, UUID) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.close_billing_period(UUID) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.close_billing_period(UUID) TO authenticated;
 
 -- ============================================================================
 -- 2. TABLAS
@@ -160,8 +165,8 @@ CREATE TABLE IF NOT EXISTS billing_periods (
 -- Lecturas de medidor
 CREATE TABLE IF NOT EXISTS readings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID REFERENCES customers(id),
-  billing_period_id UUID REFERENCES billing_periods(id),
+  customer_id UUID NOT NULL REFERENCES customers(id),
+  billing_period_id UUID NOT NULL REFERENCES billing_periods(id),
   previous_reading NUMERIC NOT NULL CHECK (previous_reading >= 0),
   current_reading NUMERIC NOT NULL CHECK (current_reading >= 0),
   consumption NUMERIC NOT NULL DEFAULT 0 CHECK (consumption >= 0),
@@ -173,7 +178,8 @@ CREATE TABLE IF NOT EXISTS readings (
   meter_reader_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   sync_id TEXT,
   is_synced BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(customer_id, billing_period_id)
 );
 
 -- Secuencia para números de recibo
@@ -183,58 +189,59 @@ CREATE SEQUENCE IF NOT EXISTS receipt_number_seq START 1;
 CREATE TABLE IF NOT EXISTS receipts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   receipt_number BIGINT NOT NULL UNIQUE DEFAULT nextval('receipt_number_seq'),
-  customer_id UUID REFERENCES customers(id),
+  customer_id UUID NOT NULL REFERENCES customers(id),
   reading_id UUID REFERENCES readings(id),
-  billing_period_id UUID REFERENCES billing_periods(id),
-  previous_reading NUMERIC NOT NULL,
-  current_reading NUMERIC NOT NULL,
-  consumption_kwh NUMERIC NOT NULL,
+  billing_period_id UUID NOT NULL REFERENCES billing_periods(id),
+  previous_reading NUMERIC NOT NULL CHECK (previous_reading >= 0),
+  current_reading NUMERIC NOT NULL CHECK (current_reading >= 0),
+  consumption_kwh NUMERIC NOT NULL CHECK (consumption_kwh >= 0),
   period_start DATE NOT NULL,
   period_end DATE NOT NULL,
   energy_amount NUMERIC NOT NULL CHECK (energy_amount >= 0),
-  fixed_charges NUMERIC NOT NULL,
-  subtotal NUMERIC NOT NULL,
-  igv NUMERIC DEFAULT 0, -- Exonerado en Ucayali; reservado para uso futuro
-  previous_debt NUMERIC DEFAULT 0,
+  fixed_charges NUMERIC NOT NULL CHECK (fixed_charges >= 0),
+  subtotal NUMERIC NOT NULL CHECK (subtotal >= 0),
+  igv NUMERIC DEFAULT 0,
+  previous_debt NUMERIC DEFAULT 0 CHECK (previous_debt >= 0),
   total_amount NUMERIC NOT NULL CHECK (total_amount >= 0),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),
   issue_date DATE DEFAULT CURRENT_DATE,
   due_date DATE NOT NULL,
-  paid_amount NUMERIC DEFAULT 0,
+  paid_amount NUMERIC DEFAULT 0 CHECK (paid_amount >= 0),
   paid_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(customer_id, billing_period_id)
+);
+
+-- Cierre de caja
+CREATE TABLE IF NOT EXISTS cash_closures (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL DEFAULT auth.uid(),
+  closure_date DATE DEFAULT CURRENT_DATE,
+  opening_amount NUMERIC NOT NULL CHECK (opening_amount >= 0),
+  total_collected NUMERIC DEFAULT 0,
+  total_receipts INT DEFAULT 0,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  closed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Pagos registrados
 CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  receipt_id UUID REFERENCES receipts(id),
-  customer_id UUID REFERENCES customers(id),
+  receipt_id UUID NOT NULL REFERENCES receipts(id),
+  customer_id UUID NOT NULL REFERENCES customers(id),
   amount NUMERIC NOT NULL CHECK (amount > 0),
   method TEXT DEFAULT 'cash' CHECK (method = 'cash'),
   reference TEXT,
   cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  cash_closure_id UUID REFERENCES cash_closures(id),
-  received_amount NUMERIC DEFAULT 0,
-  change_amount NUMERIC DEFAULT 0,
+  cash_closure_id UUID NOT NULL REFERENCES cash_closures(id),
+  received_amount NUMERIC DEFAULT 0 CHECK (received_amount >= 0),
+  change_amount NUMERIC DEFAULT 0 CHECK (change_amount >= 0),
   payment_date DATE DEFAULT CURRENT_DATE,
   status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'voided')),
   voided_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Cierre de caja
-CREATE TABLE IF NOT EXISTS cash_closures (
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL DEFAULT auth.uid(),
-closure_date DATE DEFAULT CURRENT_DATE,
-  opening_amount NUMERIC NOT NULL CHECK (opening_amount >= 0),
-total_collected NUMERIC DEFAULT 0,
-total_receipts INT DEFAULT 0,
-status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
-closed_at TIMESTAMPTZ,
-created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Registro de auditoría
@@ -263,27 +270,25 @@ AS $$
 DECLARE
   v_total NUMERIC := 0;
   v_tier RECORD;
-  v_remaining NUMERIC := p_consumption;
   v_tier_consumption NUMERIC;
 BEGIN
   FOR v_tier IN
-    SELECT min_kwh, max_kwh, price_per_kwh
-    FROM tariff_tiers
-    WHERE tariff_id = p_tariff_id
-    ORDER BY order_index ASC
+  SELECT min_kwh, max_kwh, price_per_kwh
+  FROM tariff_tiers
+  WHERE tariff_id = p_tariff_id
+  ORDER BY order_index ASC
   LOOP
-    IF v_remaining <= 0 THEN
-      EXIT;
+    IF p_consumption <= v_tier.min_kwh THEN
+      CONTINUE;
     END IF;
 
     IF v_tier.max_kwh IS NULL THEN
-      v_tier_consumption := v_remaining;
+      v_tier_consumption := p_consumption - v_tier.min_kwh;
     ELSE
-      v_tier_consumption := LEAST(v_remaining, v_tier.max_kwh - v_tier.min_kwh);
+      v_tier_consumption := LEAST(p_consumption, v_tier.max_kwh) - v_tier.min_kwh;
     END IF;
 
     v_total := v_total + (v_tier_consumption * v_tier.price_per_kwh);
-    v_remaining := v_remaining - v_tier_consumption;
   END LOOP;
 
   RETURN ROUND(v_total, 2);
@@ -403,7 +408,7 @@ DECLARE
   v_is_fully_paid BOOLEAN;
 BEGIN
   SELECT total_amount, paid_amount, status INTO v_receipt
-  FROM receipts WHERE id = p_receipt_id;
+  FROM receipts WHERE id = p_receipt_id FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Recibo no encontrado';
@@ -421,7 +426,7 @@ BEGIN
     RAISE EXCEPTION 'El monto excede el saldo pendiente';
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM cash_closures WHERE id = p_cash_closure_id AND status = 'open') THEN
+  IF NOT EXISTS (SELECT 1 FROM cash_closures WHERE id = p_cash_closure_id AND status = 'open' FOR UPDATE) THEN
     RAISE EXCEPTION 'La caja esta cerrada. No se pueden registrar pagos.';
   END IF;
 
@@ -450,8 +455,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.void_payment(
-  p_payment_id UUID,
-  p_user_id UUID
+  p_payment_id UUID
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -465,14 +469,14 @@ DECLARE
   v_new_status TEXT;
   v_user_role TEXT;
 BEGIN
-  SELECT role INTO v_user_role FROM profiles WHERE id = p_user_id;
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
 
   IF v_user_role NOT IN ('admin', 'cashier') THEN
     RAISE EXCEPTION 'Permiso denegado: solo administradores o cajeros pueden anular pagos';
   END IF;
 
   SELECT id, receipt_id, amount, status INTO v_payment
-  FROM payments WHERE id = p_payment_id;
+  FROM payments WHERE id = p_payment_id FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Pago no encontrado (id: %)', p_payment_id;
@@ -486,7 +490,7 @@ BEGIN
   WHERE id = p_payment_id;
 
   SELECT id, paid_amount, total_amount, status, customer_id INTO v_receipt
-  FROM receipts WHERE id = v_payment.receipt_id;
+  FROM receipts WHERE id = v_payment.receipt_id FOR UPDATE;
 
   IF FOUND AND v_receipt.customer_id IS NOT NULL THEN
     v_new_paid_amount := GREATEST(0, COALESCE(v_receipt.paid_amount, 0) - v_payment.amount);
@@ -507,7 +511,7 @@ CREATE OR REPLACE FUNCTION public.generate_period_receipts(
   p_period_id UUID,
   p_receipts JSONB
 )
-RETURNS TABLE (generated_count INTEGER, skipped_count INTEGER)
+RETURNS TABLE (generated_count INTEGER, skipped_count INTEGER, errors TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = 'public'
@@ -517,6 +521,9 @@ DECLARE
   v_receipt_id UUID;
   v_count INTEGER := 0;
   v_skipped INTEGER := 0;
+  v_errors TEXT := '';
+  v_customer_id UUID;
+  v_err_msg TEXT;
 BEGIN
   IF EXISTS (SELECT 1 FROM billing_periods WHERE id = p_period_id AND is_closed = true) THEN
     RAISE EXCEPTION 'El periodo ya esta cerrado';
@@ -525,6 +532,14 @@ BEGIN
   FOR v_receipt IN SELECT * FROM jsonb_array_elements(p_receipts)
   LOOP
     BEGIN
+      v_customer_id := (v_receipt->>'customer_id')::UUID;
+
+      IF EXISTS (SELECT 1 FROM receipts WHERE customer_id = v_customer_id AND billing_period_id = p_period_id) THEN
+        v_skipped := v_skipped + 1;
+        v_errors := v_errors || format('Cliente %s ya tiene recibo para este periodo. ', v_customer_id);
+        CONTINUE;
+      END IF;
+
       INSERT INTO receipts (
         customer_id, billing_period_id, reading_id,
         previous_reading, current_reading, consumption_kwh,
@@ -533,7 +548,7 @@ BEGIN
         total_amount, paid_amount, status,
         issue_date, due_date
       ) VALUES (
-        (v_receipt->>'customer_id')::UUID,
+        v_customer_id,
         p_period_id,
         (v_receipt->>'reading_id')::UUID,
         COALESCE((v_receipt->>'previous_reading')::NUMERIC, 0),
@@ -554,27 +569,41 @@ BEGIN
       ) RETURNING id INTO v_receipt_id;
 
       PERFORM adjust_customer_debt(
-        (v_receipt->>'customer_id')::UUID,
+        v_customer_id,
         COALESCE((v_receipt->>'total_amount')::NUMERIC, 0)
       );
 
       v_count := v_count + 1;
-    EXCEPTION WHEN OTHERS THEN
-      v_skipped := v_skipped + 1;
+    EXCEPTION
+      WHEN unique_violation THEN
+        v_skipped := v_skipped + 1;
+        v_errors := v_errors || format('Recibo duplicado para cliente %s. ', v_customer_id);
+      WHEN foreign_key_violation THEN
+        v_skipped := v_skipped + 1;
+        v_errors := v_errors || format('FK invalida para cliente %s. ', v_customer_id);
+      WHEN check_violation THEN
+        v_skipped := v_skipped + 1;
+        v_errors := v_errors || format('CHECK violation para cliente %s. ', v_customer_id);
+      WHEN OTHERS THEN
+        v_skipped := v_skipped + 1;
+        v_err_msg := SQLERRM;
+        v_errors := v_errors || format('Error cliente %s: %s. ', v_customer_id, v_err_msg);
+        RAISE WARNING 'generate_period_receipts error for customer %: %', v_customer_id, v_err_msg;
     END;
   END LOOP;
 
   generated_count := v_count;
   skipped_count := v_skipped;
+  errors := v_errors;
   RETURN NEXT;
 END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.void_payment(UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.void_payment(UUID) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) FROM anon;
 GRANT EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.void_payment(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.void_payment(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) TO authenticated;
 
 REVOKE EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) FROM anon, public;
@@ -750,8 +779,12 @@ WITH CHECK (
 );
 
 CREATE POLICY "Admin insert profiles" ON profiles
-FOR INSERT TO authenticated
-WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Trigger insert profiles" ON profiles
+  FOR INSERT TO authenticated
+  WITH CHECK (id = auth.uid());
 
 CREATE POLICY "Admin update all profiles" ON profiles
 FOR UPDATE TO authenticated
@@ -870,8 +903,9 @@ USING ((SELECT public.get_user_role()) = 'admin')
 WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Cashier update receipts" ON receipts
-FOR UPDATE TO authenticated
-USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
+  FOR UPDATE TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'))
+  WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
 
 CREATE POLICY "Cashier insert receipts" ON receipts
 FOR INSERT TO authenticated

@@ -44,9 +44,9 @@ describe('CashClosureService - getSessionSummary', () => {
     const mockSummary = { total: 150.50, count: 3 }
     vi.spyOn(CashClosureRepository.prototype, 'getSessionTotal').mockResolvedValue(mockSummary)
 
-    const result = await service.getSessionSummary('user1', '2025-06-01T00:00:00Z')
+    const result = await service.getSessionSummary('user1', '2025-06-01T00:00:00Z', 'cl1')
 
-    expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', '2025-06-01T00:00:00Z')
+    expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', '2025-06-01T00:00:00Z', 'cl1')
     expect(result).toEqual(mockSummary)
   })
 })
@@ -123,7 +123,7 @@ describe('CashClosureService - closeClosure', () => {
 
     await service.closeClosure('cl1')
 
-    expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', '2026-05-01T00:00:00Z')
+    expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', '2026-05-01T00:00:00Z', 'cl1')
     expect(CashClosureRepository.prototype.close).toHaveBeenCalledWith('cl1', expect.objectContaining({
       total_collected: 100,
       total_receipts: 2
@@ -192,6 +192,6 @@ describe('CashClosureService - closeClosure', () => {
 
     await service.closeClosure('cl1')
 
-    expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', expect.any(String))
+    expect(CashClosureRepository.prototype.getSessionTotal).toHaveBeenCalledWith('user1', expect.any(String), 'cl1')
   })
 })

@@ -116,20 +116,21 @@ export class PaymentService {
         completedPayments.push({ id: result.id, receiptId: item.receiptId, amount: item.amount })
       }
       return completedPayments
-    } catch (batchError) {
-      const voidErrors: string[] = []
-      for (const completed of completedPayments) {
-        try {
-          await this.voidPayment(completed.id, data.cashierUserId)
-} catch (voidErr: unknown) {
-      voidErrors.push(`Pago ${completed.id}: ${voidErr instanceof Error ? voidErr.message : String(voidErr)}`)
-        }
+  } catch (batchError) {
+    const voidErrors: string[] = []
+    for (const completed of completedPayments) {
+      try {
+        await this.voidPayment(completed.id, data.cashierUserId)
+      } catch (voidErr: unknown) {
+        voidErrors.push(`Pago ${completed.id}: ${voidErr instanceof Error ? voidErr.message : String(voidErr)}`)
       }
-      if (voidErrors.length > 0) {
-        console.error('Batch rollback partial failure — voided payments could not be reversed:', voidErrors)
-      }
-      throw batchError
     }
+    if (voidErrors.length > 0) {
+      const originalMsg = batchError instanceof Error ? batchError.message : String(batchError)
+      throw new Error(`${originalMsg} (ADVERTENCIA: ${voidErrors.length} pago(s) no pudieron revertirse — revise manualmente)`)
+    }
+    throw batchError
+  }
   }
 
   async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {
@@ -139,7 +140,6 @@ export class PaymentService {
   async voidPayment(paymentId: string, userId?: string) {
     const { error: rpcError } = await this.supabase.rpc('void_payment', {
       p_payment_id: paymentId,
-      p_user_id: userId || '',
     })
 
     if (rpcError) throw new Error(rpcError.message)
@@ -152,10 +152,10 @@ export class PaymentService {
           action: 'UPDATE',
           old_data: { status: 'completed' },
           new_data: { status: 'voided' },
-        user_id: userId,
-      })
-    } catch (e) { console.error('Audit log failed for voidPayment:', e) }
-  }
+          user_id: userId,
+        })
+      } catch (e) { console.error('Audit log failed for voidPayment:', e) }
+    }
   }
 
   async getAllPayments(filters?: { cashierId?: string; from?: string; to?: string }) {
