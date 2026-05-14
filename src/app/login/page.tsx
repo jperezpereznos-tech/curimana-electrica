@@ -37,19 +37,33 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    })
+    try {
+      const rateRes = await fetch('/api/auth/login', { method: 'POST' })
+      const rateData = await rateRes.json()
 
-    if (authError) {
-      setError('Credenciales inválidas')
+      if (!rateData.allowed) {
+        setError(`Demasiados intentos. Espere ${rateData.retryAfter} segundos antes de intentar de nuevo.`)
+        setIsLoading(false)
+        return
+      }
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      })
+
+      if (authError) {
+        setError('Credenciales inválidas')
+        setIsLoading(false)
+        return
+      }
+
+      router.push('/')
+      router.refresh()
+    } catch {
+      setError('Error de conexión. Intente de nuevo.')
       setIsLoading(false)
-      return
     }
-
-    router.push('/')
-    router.refresh()
   }
 
   return (

@@ -4,6 +4,7 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getCustomerService } from '@/services/customer-service'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { uuidSchema } from '@/lib/validations/schemas'
 
 const customerSchema = z.object({
   full_name: z.string().min(1),
@@ -34,6 +35,7 @@ export async function registerCustomerAction(data: unknown): Promise<{ success: 
 
 export async function updateCustomerAction(id: string, data: unknown): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const customerService = getCustomerService(supabase)
     const parsed = customerSchema.partial().parse(data)
@@ -48,6 +50,7 @@ export async function updateCustomerAction(id: string, data: unknown): Promise<{
 
 export async function deleteCustomerAction(id: string): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const customerService = getCustomerService(supabase)
 

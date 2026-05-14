@@ -6,21 +6,15 @@ import { getCashClosureService } from '@/services/cash-closure-service'
 import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
 import { revalidatePath } from 'next/cache'
+import { paymentActionSchema, batchPaymentActionSchema, openClosureSchema, uuidSchema, querySchema } from '@/lib/validations/schemas'
 
-export async function processPaymentAction(data: {
-  receiptId: string
-  customerId: string
-  cashClosureId: string
-  amount: number
-  paymentMethod: 'cash'
-  receivedAmount: number
-  changeAmount: number
-}) {
+export async function processPaymentAction(data: unknown) {
   try {
+    const parsed = paymentActionSchema.parse(data)
     const { supabase, userId } = await requireCashierAuth()
     const paymentService = getPaymentService(supabase)
 
-    const result = await paymentService.processPayment({ ...data, cashierUserId: userId })
+    const result = await paymentService.processPayment({ ...parsed, cashierUserId: userId })
     revalidatePath('/cashier')
     revalidatePath('/admin/customers')
     revalidatePath('/admin/receipts')
@@ -31,19 +25,13 @@ export async function processPaymentAction(data: {
   }
 }
 
-export async function processBatchPaymentAction(data: {
-  payments: { receiptId: string; amount: number }[]
-  customerId: string
-  cashClosureId: string
-  paymentMethod: 'cash'
-  receivedAmount?: number
-  changeAmount?: number
-}) {
+export async function processBatchPaymentAction(data: unknown) {
   try {
+    const parsed = batchPaymentActionSchema.parse(data)
     const { supabase, userId } = await requireCashierAuth()
     const paymentService = getPaymentService(supabase)
 
-    const result = await paymentService.processBatchPayment({ ...data, cashierUserId: userId })
+    const result = await paymentService.processBatchPayment({ ...parsed, cashierUserId: userId })
     revalidatePath('/cashier')
     revalidatePath('/admin/customers')
     revalidatePath('/admin/receipts')
@@ -54,12 +42,13 @@ export async function processBatchPaymentAction(data: {
   }
 }
 
-export async function openClosureAction(amount: number) {
+export async function openClosureAction(amount: unknown) {
   try {
+    const parsed = openClosureSchema.parse(amount)
     const { supabase, userId } = await requireCashierAuth()
     const cashClosureService = getCashClosureService(supabase)
 
-    const result = await cashClosureService.openClosure(userId, amount)
+    const result = await cashClosureService.openClosure(userId, parsed)
     revalidatePath('/cashier')
     return { success: true as const, data: result }
   } catch (e) {
@@ -69,6 +58,7 @@ export async function openClosureAction(amount: number) {
 
 export async function closeClosureAction(closureId: string) {
   try {
+    uuidSchema.parse(closureId)
     const { supabase, userId } = await requireCashierAuth()
     const cashClosureService = getCashClosureService(supabase)
 
@@ -82,11 +72,12 @@ export async function closeClosureAction(closureId: string) {
 
 export async function searchCashierCustomerAction(query: string) {
   try {
+    const parsed = querySchema.parse(query)
     const { supabase } = await requireCashierAuth()
     const receiptService = getReceiptService(supabase)
     const customerService = getCustomerService(supabase)
 
-    const customer = await customerService.getBySupplyNumber(query.trim())
+    const customer = await customerService.getBySupplyNumber(parsed.trim())
 
     if (customer) {
       await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
@@ -117,9 +108,9 @@ export async function searchCashierCustomerAction(query: string) {
       return { success: true as const, data: { customer, receipts } }
     }
 
-    const results = await customerService.searchCustomers(query)
+    const results = await customerService.searchCustomers(parsed)
     if (results && results.length > 0) {
-      const matchedCustomer = results.find(c => c.supply_number === query.trim()) || results[0]
+      const matchedCustomer = results.find(c => c.supply_number === parsed.trim()) || results[0]
 
       await supabase.rpc('recalculate_customer_debt', { p_customer_id: matchedCustomer.id })
 
@@ -149,8 +140,8 @@ export async function searchCashierCustomerAction(query: string) {
       return { success: true as const, data: { customer: matchedCustomer, receipts } }
     }
 
-    const receiptNumber = Number(query)
-    if (!isNaN(receiptNumber) && receiptNumber > 0 && query.trim() === String(receiptNumber)) {
+    const receiptNumber = Number(parsed)
+    if (!isNaN(receiptNumber) && receiptNumber > 0 && parsed.trim() === String(receiptNumber)) {
       const receipt = await receiptService.getReceiptByNumber(receiptNumber)
       if (receipt && receipt.status !== 'cancelled') {
         const receiptCustomer = await customerService.getBySupplyNumber(receipt.customers?.supply_number || '')
@@ -176,6 +167,7 @@ export async function searchCashierCustomerAction(query: string) {
 
 export async function getCustomerPaymentsAction(customerId: string) {
   try {
+    uuidSchema.parse(customerId)
     const { supabase } = await requireCashierAuth()
     const paymentService = getPaymentService(supabase)
     const data = await paymentService.getPaymentsByCustomer(customerId)
@@ -187,6 +179,7 @@ export async function getCustomerPaymentsAction(customerId: string) {
 
 export async function getPaymentVoucherDataAction(paymentId: string) {
   try {
+    uuidSchema.parse(paymentId)
     const { supabase } = await requireCashierAuth()
     const paymentService = getPaymentService(supabase)
     const data = await paymentService.getPaymentDetails(paymentId)
@@ -198,11 +191,12 @@ export async function getPaymentVoucherDataAction(paymentId: string) {
 
 export async function getPaymentsByCashierAction(userId: string, dateFilterParams: { from?: string; to?: string }) {
   try {
+    uuidSchema.parse(userId)
     const { supabase } = await requireCashierAuth()
     const paymentService = getPaymentService(supabase)
 
- const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
- const mapped = data?.map((p) => ({
+    const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
+    const mapped = data?.map((p) => ({
       id: p.id,
       receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
       customer_name: p.receipts?.customers?.full_name || 'Desconocido',

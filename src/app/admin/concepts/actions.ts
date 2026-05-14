@@ -4,6 +4,7 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getConceptService } from '@/services/concept-service'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { uuidSchema } from '@/lib/validations/schemas'
 
 const conceptCreateSchema = z.object({
   code: z.string().min(2),
@@ -39,6 +40,7 @@ export async function registerConceptAction(data: unknown) {
 
 export async function toggleConceptStatusAction(id: string, isActive: boolean) {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const conceptService = getConceptService(supabase)
     const result = await conceptService.toggleConceptStatus(id, isActive, userId)
@@ -51,6 +53,7 @@ export async function toggleConceptStatusAction(id: string, isActive: boolean) {
 
 export async function deleteConceptAction(id: string) {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const conceptService = getConceptService(supabase)
     const result = await conceptService.deleteConcept(id, userId)
@@ -63,6 +66,7 @@ export async function deleteConceptAction(id: string) {
 
 export async function updateConceptAction(id: string, data: unknown) {
   try {
+    uuidSchema.parse(id)
     const parsed = conceptUpdateSchema.parse(data)
     const { supabase, userId } = await requireAdminAuth()
     const conceptService = getConceptService(supabase)

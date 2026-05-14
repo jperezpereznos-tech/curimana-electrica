@@ -86,20 +86,20 @@ const {
 describe('processPaymentAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería procesar pago y revalidar ruta', async () => {
-    const mockResult = { id: 'pay1', amount: 50 }
+    const mockResult = { id: '00000000-0000-4000-8400-000000000040', amount: 50 }
     mockProcessPayment.mockResolvedValue(mockResult)
 
     const result = await processPaymentAction({
-      receiptId: 'r1', customerId: 'c1', cashClosureId: 'cl1',
+      receiptId: '00000000-0000-4000-8200-000000000020', customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070',
       amount: 50, paymentMethod: 'cash', receivedAmount: 50, changeAmount: 0
     })
 
     expect(mockRequireCashierAuth).toHaveBeenCalled()
-    expect(mockProcessPayment).toHaveBeenCalledWith(expect.objectContaining({ receiptId: 'r1', cashierUserId: 'cashier1' }))
+    expect(mockProcessPayment).toHaveBeenCalledWith(expect.objectContaining({ receiptId: '00000000-0000-4000-8200-000000000020', cashierUserId: '00000000-0000-4000-8200-000000000002' }))
     expect(mockRevalidatePath).toHaveBeenCalledWith('/cashier')
     expect(result).toEqual({ success: true, data: mockResult })
   })
@@ -108,7 +108,7 @@ describe('processPaymentAction', () => {
     mockRequireCashierAuth.mockRejectedValue(new Error('No autenticado'))
 
     const result = await processPaymentAction({
-      receiptId: 'r1', customerId: 'c1', cashClosureId: 'cl1',
+      receiptId: '00000000-0000-4000-8200-000000000020', customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070',
       amount: 50, paymentMethod: 'cash', receivedAmount: 50, changeAmount: 0
     })
 
@@ -119,7 +119,7 @@ describe('processPaymentAction', () => {
     mockProcessPayment.mockRejectedValue(new Error('Caja cerrada'))
 
     const result = await processPaymentAction({
-      receiptId: 'r1', customerId: 'c1', cashClosureId: 'cl1',
+      receiptId: '00000000-0000-4000-8200-000000000020', customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070',
       amount: 50, paymentMethod: 'cash', receivedAmount: 50, changeAmount: 0
     })
 
@@ -130,7 +130,7 @@ describe('processPaymentAction', () => {
     mockProcessPayment.mockRejectedValue('string error')
 
     const result = await processPaymentAction({
-      receiptId: 'r1', customerId: 'c1', cashClosureId: 'cl1',
+      receiptId: '00000000-0000-4000-8200-000000000020', customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070',
       amount: 50, paymentMethod: 'cash', receivedAmount: 50, changeAmount: 0
     })
 
@@ -141,19 +141,19 @@ describe('processPaymentAction', () => {
 describe('processBatchPaymentAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería procesar lote y revalidar ruta', async () => {
-    const mockResult = [{ id: 'pay1', receiptId: 'r1', amount: 50 }]
+    const mockResult = [{ id: '00000000-0000-4000-8400-000000000040', receiptId: '00000000-0000-4000-8200-000000000020', amount: 50 }]
     mockProcessBatchPayment.mockResolvedValue(mockResult)
 
     const result = await processBatchPaymentAction({
-      payments: [{ receiptId: 'r1', amount: 50 }],
-      customerId: 'c1', cashClosureId: 'cl1', paymentMethod: 'cash'
+      payments: [{ receiptId: '00000000-0000-4000-8200-000000000020', amount: 50 }],
+      customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070', paymentMethod: 'cash'
     })
 
-    expect(mockProcessBatchPayment).toHaveBeenCalledWith(expect.objectContaining({ cashierUserId: 'cashier1' }))
+    expect(mockProcessBatchPayment).toHaveBeenCalledWith(expect.objectContaining({ cashierUserId: '00000000-0000-4000-8200-000000000002' }))
     expect(mockRevalidatePath).toHaveBeenCalledWith('/cashier')
     expect(result).toEqual({ success: true, data: mockResult })
   })
@@ -162,7 +162,7 @@ describe('processBatchPaymentAction', () => {
     mockProcessBatchPayment.mockRejectedValue(new Error('Lote fallido'))
 
     const result = await processBatchPaymentAction({
-      payments: [], customerId: 'c1', cashClosureId: 'cl1', paymentMethod: 'cash'
+      payments: [{ receiptId: '00000000-0000-4000-8200-000000000020', amount: 50 }], customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070', paymentMethod: 'cash'
     })
 
     expect(result).toEqual({ success: false, error: 'Lote fallido' })
@@ -172,7 +172,7 @@ describe('processBatchPaymentAction', () => {
     mockProcessBatchPayment.mockRejectedValue(null)
 
     const result = await processBatchPaymentAction({
-      payments: [], customerId: 'c1', cashClosureId: 'cl1', paymentMethod: 'cash'
+      payments: [{ receiptId: '00000000-0000-4000-8200-000000000020', amount: 50 }], customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070', paymentMethod: 'cash'
     })
 
     expect(result).toEqual({ success: false, error: 'Error al procesar el pago lote.' })
@@ -182,16 +182,16 @@ describe('processBatchPaymentAction', () => {
 describe('openClosureAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería abrir caja y revalidar ruta', async () => {
-    const mockResult = { id: 'cl1', status: 'open' }
+    const mockResult = { id: '00000000-0000-4000-8700-000000000070', status: 'open' }
     mockOpenClosure.mockResolvedValue(mockResult)
 
     const result = await openClosureAction(200)
 
-    expect(mockOpenClosure).toHaveBeenCalledWith('cashier1', 200)
+    expect(mockOpenClosure).toHaveBeenCalledWith('00000000-0000-4000-8200-000000000002', 200)
     expect(mockRevalidatePath).toHaveBeenCalledWith('/cashier')
     expect(result).toEqual({ success: true, data: mockResult })
   })
@@ -216,16 +216,16 @@ describe('openClosureAction', () => {
 describe('closeClosureAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería cerrar caja y revalidar ruta', async () => {
-    const mockResult = { id: 'cl1', status: 'closed' }
+    const mockResult = { id: '00000000-0000-4000-8700-000000000070', status: 'closed' }
     mockCloseClosure.mockResolvedValue(mockResult)
 
-    const result = await closeClosureAction('cl1')
+    const result = await closeClosureAction('00000000-0000-4000-8700-000000000070')
 
-    expect(mockCloseClosure).toHaveBeenCalledWith('cl1', 'cashier1')
+    expect(mockCloseClosure).toHaveBeenCalledWith('00000000-0000-4000-8700-000000000070', '00000000-0000-4000-8200-000000000002')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/cashier')
     expect(result).toEqual({ success: true, data: mockResult })
   })
@@ -233,7 +233,7 @@ describe('closeClosureAction', () => {
   it('debería retornar error si closeClosure falla', async () => {
     mockCloseClosure.mockRejectedValue(new Error('La caja ya está cerrada'))
 
-    const result = await closeClosureAction('cl1')
+    const result = await closeClosureAction('00000000-0000-4000-8700-000000000070')
 
     expect(result).toEqual({ success: false, error: 'La caja ya está cerrada' })
   })
@@ -241,7 +241,7 @@ describe('closeClosureAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockCloseClosure.mockRejectedValue('str')
 
-    const result = await closeClosureAction('cl1')
+    const result = await closeClosureAction('00000000-0000-4000-8700-000000000070')
 
     expect(result).toEqual({ success: false, error: 'Error al cerrar caja.' })
   })
@@ -255,13 +255,13 @@ describe('searchCashierCustomerAction', () => {
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { current_debt: 0 }, error: null }),
     })
-    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería buscar cliente por supply_number exacto y sus recibos pendientes', async () => {
-    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    const mockCustomer = { id: '00000000-0000-4000-8300-000000000030', supply_number: '608132421', full_name: 'Juan' }
     mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
-    mockGetAllReceipts.mockResolvedValue([{ id: 'r1' }])
+    mockGetAllReceipts.mockResolvedValue([{ id: '00000000-0000-4000-8200-000000000020' }])
 
     const result = await searchCashierCustomerAction('608132421')
 
@@ -298,8 +298,8 @@ describe('searchCashierCustomerAction', () => {
   })
 
   it('debería buscar por número de recibo como fallback cuando no hay cliente', async () => {
-    const mockReceipt = { id: 'r1', receipt_number: 42, customer_id: 'c1', status: 'pending', customers: { supply_number: '608132421' } }
-    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan', current_debt: 50 }
+    const mockReceipt = { id: '00000000-0000-4000-8200-000000000020', receipt_number: 42, customer_id: '00000000-0000-4000-8300-000000000030', status: 'pending', customers: { supply_number: '608132421' } }
+    const mockCustomer = { id: '00000000-0000-4000-8300-000000000030', supply_number: '608132421', full_name: 'Juan', current_debt: 50 }
     mockGetBySupplyNumber.mockResolvedValue(null)
     mockSearchCustomers.mockResolvedValue([])
     mockGetReceiptByNumber.mockResolvedValue(mockReceipt)
@@ -308,7 +308,7 @@ describe('searchCashierCustomerAction', () => {
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: mockCustomer, error: null }),
     })
-    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: '00000000-0000-4000-8200-000000000002' })
 
     const result = await searchCashierCustomerAction('42')
 
@@ -323,7 +323,7 @@ describe('searchCashierCustomerAction', () => {
     mockGetBySupplyNumber.mockResolvedValue(null)
     mockSearchCustomers.mockResolvedValue([])
     mockGetReceiptByNumber.mockResolvedValue(null)
-    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: vi.fn() }, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: vi.fn() }, userId: '00000000-0000-4000-8200-000000000002' })
 
     const result = await searchCashierCustomerAction('999')
 
@@ -331,9 +331,9 @@ describe('searchCashierCustomerAction', () => {
   })
 
   it('debería encontrar cliente por supply number numérico vía getBySupplyNumber', async () => {
-    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    const mockCustomer = { id: '00000000-0000-4000-8300-000000000030', supply_number: '608132421', full_name: 'Juan' }
     mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
-    mockGetAllReceipts.mockResolvedValue([{ id: 'r1' }])
+    mockGetAllReceipts.mockResolvedValue([{ id: '00000000-0000-4000-8200-000000000020' }])
 
     const result = await searchCashierCustomerAction('608132421')
 
@@ -346,11 +346,11 @@ describe('searchCashierCustomerAction', () => {
   })
 
   it('debería deduplicar recibos por id al concatenar', async () => {
-    const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
+    const mockCustomer = { id: '00000000-0000-4000-8300-000000000030', supply_number: '608132421', full_name: 'Juan' }
     mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
-    const duplicateReceipt = { id: 'r1', receipt_number: 1, status: 'pending' }
+    const duplicateReceipt = { id: '00000000-0000-4000-8200-000000000020', receipt_number: 1, status: 'pending' }
     mockGetAllReceipts.mockImplementation((filters: any) => {
-      if (filters.status === 'pending') return Promise.resolve([duplicateReceipt, { id: 'r2', status: 'pending' }])
+      if (filters.status === 'pending') return Promise.resolve([duplicateReceipt, { id: '00000000-0000-4000-8200-000000000021', status: 'pending' }])
       if (filters.status === 'partial') return Promise.resolve([duplicateReceipt])
       return Promise.resolve([])
     })
@@ -359,14 +359,14 @@ describe('searchCashierCustomerAction', () => {
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { current_debt: 0 }, error: null }),
     })
-    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: vi.fn().mockResolvedValue({ data: 0, error: null }), from: mockFrom }, userId: '00000000-0000-4000-8200-000000000002' })
 
     const result = await searchCashierCustomerAction('608132421')
 
     expect(result.success).toBe(true)
     if (result.success && result.data) {
       expect(result.data.receipts.length).toBe(2)
-      expect(result.data.receipts.map((r: any) => r.id)).toEqual(['r1', 'r2'])
+      expect(result.data.receipts.map((r: any) => r.id)).toEqual(['00000000-0000-4000-8200-000000000020', '00000000-0000-4000-8200-000000000021'])
     }
   })
 })
@@ -374,14 +374,14 @@ describe('searchCashierCustomerAction', () => {
 describe('getCustomerPaymentsAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener pagos del cliente', async () => {
-    const mockPayments = [{ id: 'p1', amount: 50 }]
+    const mockPayments = [{ id: '00000000-0000-4000-8400-000000000040', amount: 50 }]
     mockGetPaymentsByCustomer.mockResolvedValue(mockPayments)
 
-    const result = await getCustomerPaymentsAction('c1')
+    const result = await getCustomerPaymentsAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: true, data: mockPayments })
   })
@@ -389,7 +389,7 @@ describe('getCustomerPaymentsAction', () => {
   it('debería retornar error si falla', async () => {
     mockGetPaymentsByCustomer.mockRejectedValue(new Error('DB error'))
 
-    const result = await getCustomerPaymentsAction('c1')
+    const result = await getCustomerPaymentsAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: false, error: 'DB error' })
   })
@@ -398,14 +398,14 @@ describe('getCustomerPaymentsAction', () => {
 describe('getPaymentVoucherDataAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener datos del comprobante', async () => {
-    const mockData = { id: 'p1', amount: 50, receipts: {} }
+    const mockData = { id: '00000000-0000-4000-8400-000000000040', amount: 50, receipts: {} }
     mockGetPaymentDetails.mockResolvedValue(mockData)
 
-    const result = await getPaymentVoucherDataAction('p1')
+    const result = await getPaymentVoucherDataAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: true, data: mockData })
   })
@@ -413,7 +413,7 @@ describe('getPaymentVoucherDataAction', () => {
   it('debería retornar error si falla', async () => {
     mockGetPaymentDetails.mockRejectedValue(new Error('Not found'))
 
-    const result = await getPaymentVoucherDataAction('p1')
+    const result = await getPaymentVoucherDataAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: false, error: 'Not found' })
   })
@@ -422,31 +422,31 @@ describe('getPaymentVoucherDataAction', () => {
 describe('getPaymentsByCashierAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: 'cashier1' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener pagos del cajero y mapear campos', async () => {
     const mockPayments = [{
-      id: 'p1', amount: 50, payment_date: '2025-06-10', status: 'completed', reference: 'ref1',
+      id: '00000000-0000-4000-8400-000000000040', amount: 50, payment_date: '2025-06-10', status: 'completed', reference: 'ref1',
       receipts: { receipt_number: '1', customers: { full_name: 'Juan', supply_number: 'SUM-001' } }
     }]
     mockGetPaymentsByCashier.mockResolvedValue(mockPayments)
 
-    const result = await getPaymentsByCashierAction('user1', {})
+    const result = await getPaymentsByCashierAction('00000000-0000-4000-8100-000000000001', {})
 
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data[0]).toEqual(expect.objectContaining({
-        id: 'p1', amount: 50, customer_name: 'Juan', supply_number: 'SUM-001'
+        id: '00000000-0000-4000-8400-000000000040', amount: 50, customer_name: 'Juan', supply_number: 'SUM-001'
       }))
     }
   })
 
   it('debería manejar recibos sin datos', async () => {
-    const mockPayments = [{ id: 'p1', amount: 50, payment_date: null, status: null, reference: null, receipts: null }]
+    const mockPayments = [{ id: '00000000-0000-4000-8400-000000000040', amount: 50, payment_date: null, status: null, reference: null, receipts: null }]
     mockGetPaymentsByCashier.mockResolvedValue(mockPayments)
 
-    const result = await getPaymentsByCashierAction('user1', {})
+    const result = await getPaymentsByCashierAction('00000000-0000-4000-8100-000000000001', {})
 
     expect(result.success).toBe(true)
     if (result.success) {
@@ -458,7 +458,7 @@ describe('getPaymentsByCashierAction', () => {
   it('debería retornar error si falla', async () => {
     mockGetPaymentsByCashier.mockRejectedValue(new Error('DB error'))
 
-    const result = await getPaymentsByCashierAction('user1', {})
+    const result = await getPaymentsByCashierAction('00000000-0000-4000-8100-000000000001', {})
 
     expect(result).toEqual({ success: false, error: 'DB error' })
   })

@@ -4,6 +4,7 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getProfileService } from '@/services/profile-service'
 import { getSectorService } from '@/services/sector-service'
 import { revalidatePath } from 'next/cache'
+import { uuidSchema, roleSchema, inviteUserSchema } from '@/lib/validations/schemas'
 
 export async function getUsersWithRolesAction() {
   const { supabase } = await requireAdminAuth()
@@ -20,6 +21,8 @@ export async function getUsersWithRolesAction() {
 
 export async function updateUserRoleAction(userId: string, role: string): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(userId)
+    roleSchema.parse(role)
     const { supabase } = await requireAdminAuth()
     const profileService = getProfileService(supabase)
     await profileService.updateRole(userId, role)
@@ -32,6 +35,8 @@ export async function updateUserRoleAction(userId: string, role: string): Promis
 
 export async function assignSectorToUserAction(userId: string, sectorId: string | null): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(userId)
+    if (sectorId !== null) uuidSchema.parse(sectorId)
     const { supabase } = await requireAdminAuth()
     const profileService = getProfileService(supabase)
     await profileService.assignSector(userId, sectorId)
@@ -50,20 +55,21 @@ export async function inviteUserAction(
   sectorId?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const parsed = inviteUserSchema.parse({ email, fullName, role, sectorId })
     const { supabase } = await requireAdminAuth()
     const profileService = getProfileService(supabase)
 
-    const authResult = await profileService.inviteUser(email, '', fullName)
+    const authResult = await profileService.inviteUser(parsed.email, '', parsed.fullName)
     if (!authResult.user) {
       return { success: false, error: 'No se pudo crear el usuario' }
     }
 
     const userId = authResult.user.id
 
-    if (role !== 'meter_reader') {
+    if (parsed.role !== 'meter_reader') {
       for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          await profileService.updateRole(userId, role)
+          await profileService.updateRole(userId, parsed.role)
           break
         } catch {
           if (attempt === 4) {
@@ -74,10 +80,10 @@ export async function inviteUserAction(
       }
     }
 
-    if (sectorId) {
+    if (parsed.sectorId) {
       for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          await profileService.assignSector(userId, sectorId)
+          await profileService.assignSector(userId, parsed.sectorId)
           break
         } catch {
           if (attempt === 4) {
@@ -97,6 +103,7 @@ export async function inviteUserAction(
 
 export async function deleteUserAction(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(userId)
     const { supabase } = await requireAdminAuth()
 
     const { data: currentUser } = await supabase.auth.getClaims()

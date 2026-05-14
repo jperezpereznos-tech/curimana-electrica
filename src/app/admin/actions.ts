@@ -3,9 +3,11 @@
 import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
+import { topDebtorsLimitSchema } from '@/lib/validations/schemas'
 
 export async function getTopDebtorsAction(limit: number = 5) {
   const { supabase } = await requireAdminAuth()
+  topDebtorsLimitSchema.parse(limit)
   const customerService = getCustomerService(supabase)
   return await customerService.getTopDebtors(limit)
 }

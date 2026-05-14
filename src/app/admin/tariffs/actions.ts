@@ -4,6 +4,7 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getTariffService } from '@/services/tariff-service'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { uuidSchema } from '@/lib/validations/schemas'
 
 const tariffSchema = z.object({
   name: z.string().min(1),
@@ -35,6 +36,7 @@ export async function registerTariffAction(tariff: unknown, tiers: unknown) {
 
 export async function toggleTariffStatusAction(id: string, isActive: boolean) {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const tariffService = getTariffService(supabase)
 
@@ -48,6 +50,7 @@ export async function toggleTariffStatusAction(id: string, isActive: boolean) {
 
 export async function deleteTariffAction(id: string) {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const tariffService = getTariffService(supabase)
 
@@ -61,6 +64,7 @@ export async function deleteTariffAction(id: string) {
 
 export async function updateTariffAction(id: string, tariff: unknown, tiers: unknown) {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const tariffService = getTariffService(supabase)
     const parsedTariff = tariffSchema.partial().parse(tariff)

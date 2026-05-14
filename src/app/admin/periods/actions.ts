@@ -3,9 +3,11 @@
 import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getPeriodService } from '@/services/period-service'
 import { revalidatePath } from 'next/cache'
+import { uuidSchema } from '@/lib/validations/schemas'
 
 export async function closePeriodAction(id: string) {
   try {
+    uuidSchema.parse(id)
     const { supabase, userId } = await requireAdminAuth()
     const periodService = getPeriodService(supabase)
     const result = await periodService.closePeriod(id, userId)

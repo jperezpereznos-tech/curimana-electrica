@@ -4,9 +4,11 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
 import { revalidatePath } from 'next/cache'
+import { uuidSchema, updateReadingSchema } from '@/lib/validations/schemas'
 
 export async function getReadingsAdminAction(periodId?: string, needsReviewOnly?: boolean) {
   try {
+    if (periodId) uuidSchema.parse(periodId)
     const { supabase } = await requireAdminAuth()
     const readingService = getReadingService(supabase)
     const data = await readingService.getAllForAdmin(periodId, needsReviewOnly)
@@ -27,16 +29,13 @@ export async function getPeriodsForFilterAction() {
   }
 }
 
-export async function updateReadingAction(readingId: string, data: {
-  current_reading?: number
-  previous_reading?: number
-  needs_review?: boolean
-  notes?: string
-}) {
+export async function updateReadingAction(readingId: string, data: unknown) {
   try {
+    uuidSchema.parse(readingId)
+    const parsed = updateReadingSchema.parse(data)
     const { supabase, userId } = await requireAdminAuth()
     const readingService = getReadingService(supabase)
-    const updated = await readingService.updateReading(readingId, data, userId)
+    const updated = await readingService.updateReading(readingId, parsed, userId)
     revalidatePath('/admin/readings')
     return { success: true as const, data: updated }
   } catch (e) {

@@ -65,12 +65,12 @@ const {
 describe('getUsersWithRolesAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería obtener usuarios y sectores en paralelo', async () => {
-    const mockUsers = [{ id: 'u1', full_name: 'Admin' }]
-    const mockSectors = [{ id: 's1', name: 'Centro' }]
+    const mockUsers = [{ id: '00000000-0000-4000-8100-000000000001', full_name: 'Admin' }]
+    const mockSectors = [{ id: '00000000-0000-4000-8100-000000000010', name: 'Centro' }]
     mockGetAllUsers.mockResolvedValue(mockUsers)
     mockGetActiveSectors.mockResolvedValue(mockSectors)
 
@@ -83,15 +83,15 @@ describe('getUsersWithRolesAction', () => {
 describe('updateUserRoleAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería actualizar rol y revalidar ruta', async () => {
-    mockUpdateRole.mockResolvedValue({ id: 'u1', role: 'admin' })
+    mockUpdateRole.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000001', role: 'admin' })
 
-    const result = await updateUserRoleAction('u1', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
 
-    expect(mockUpdateRole).toHaveBeenCalledWith('u1', 'admin')
+    expect(mockUpdateRole).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000001', 'admin')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
     expect(result).toEqual({ success: true })
   })
@@ -99,7 +99,7 @@ describe('updateUserRoleAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await updateUserRoleAction('u1', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -107,7 +107,7 @@ describe('updateUserRoleAction', () => {
   it('debería retornar error si el servicio falla', async () => {
     mockUpdateRole.mockRejectedValue(new Error('Update failed'))
 
-    const result = await updateUserRoleAction('u1', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
 
     expect(result).toEqual({ success: false, error: 'Update failed' })
   })
@@ -115,7 +115,7 @@ describe('updateUserRoleAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockUpdateRole.mockRejectedValue('fail')
 
-    const result = await updateUserRoleAction('u1', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
 
     expect(result).toEqual({ success: false, error: 'Error al cambiar rol' })
   })
@@ -124,15 +124,15 @@ describe('updateUserRoleAction', () => {
 describe('assignSectorToUserAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería asignar sector y revalidar ambas rutas', async () => {
-    mockAssignSector.mockResolvedValue({ id: 'u1' })
+    mockAssignSector.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000001' })
 
-    const result = await assignSectorToUserAction('u1', 's1')
+    const result = await assignSectorToUserAction('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
 
-    expect(mockAssignSector).toHaveBeenCalledWith('u1', 's1')
+    expect(mockAssignSector).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/sectors')
     expect(result).toEqual({ success: true })
@@ -141,7 +141,7 @@ describe('assignSectorToUserAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await assignSectorToUserAction('u1', 's1')
+    const result = await assignSectorToUserAction('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -149,7 +149,7 @@ describe('assignSectorToUserAction', () => {
   it('debería retornar error si el servicio falla', async () => {
     mockAssignSector.mockRejectedValue(new Error('Not found'))
 
-    const result = await assignSectorToUserAction('u1', 's1')
+    const result = await assignSectorToUserAction('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'Not found' })
   })
@@ -157,7 +157,7 @@ describe('assignSectorToUserAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockAssignSector.mockRejectedValue(null)
 
-    const result = await assignSectorToUserAction('u1', 's1')
+    const result = await assignSectorToUserAction('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'Error al asignar sector' })
   })
@@ -166,7 +166,7 @@ describe('assignSectorToUserAction', () => {
 describe('inviteUserAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
     vi.useFakeTimers()
   })
 
@@ -175,11 +175,11 @@ describe('inviteUserAction', () => {
   })
 
   it('debería invitar usuario y revalidar ruta', async () => {
-    mockInviteUser.mockResolvedValue({ user: { id: 'u1', email: 'test@test.com' } })
-    mockUpdateRole.mockResolvedValue({ id: 'u1', role: 'cashier' })
-    mockAssignSector.mockResolvedValue({ id: 'u1' })
+    mockInviteUser.mockResolvedValue({ user: { id: '00000000-0000-4000-8100-000000000001', email: 'test@test.com' } })
+    mockUpdateRole.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000001', role: 'cashier' })
+    mockAssignSector.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000001' })
 
-    const result = await inviteUserAction('test@test.com', 'Juan', 'cashier', 's1')
+    const result = await inviteUserAction('test@test.com', 'Juan', 'cashier', '00000000-0000-4000-8100-000000000010')
 
     expect(mockInviteUser).toHaveBeenCalledWith('test@test.com', '', 'Juan')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
@@ -195,7 +195,7 @@ describe('inviteUserAction', () => {
   })
 
   it('debería omitir updateRole para meter_reader', async () => {
-    mockInviteUser.mockResolvedValue({ user: { id: 'u1', email: 'test@test.com' } })
+    mockInviteUser.mockResolvedValue({ user: { id: '00000000-0000-4000-8100-000000000001', email: 'test@test.com' } })
 
     const result = await inviteUserAction('test@test.com', 'Lector', 'meter_reader')
 
@@ -223,24 +223,24 @@ describe('inviteUserAction', () => {
 describe('deleteUserAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería eliminar usuario y revalidar ruta', async () => {
-    mockGetClaims.mockResolvedValue({ data: { claims: { sub: 'other-user' } } })
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: '00000000-0000-4000-8200-000000000002' } } })
     mockDeleteUser.mockResolvedValue(undefined)
 
-    const result = await deleteUserAction('u1')
+    const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
-    expect(mockDeleteUser).toHaveBeenCalledWith('u1')
+    expect(mockDeleteUser).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
     expect(result).toEqual({ success: true })
   })
 
   it('debería rechazar eliminación de propia cuenta', async () => {
-    mockGetClaims.mockResolvedValue({ data: { claims: { sub: 'admin1' } } })
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: '00000000-0000-4000-8100-000000000001' } } })
 
-    const result = await deleteUserAction('admin1')
+    const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
     expect(result).toEqual({ success: false, error: 'No puedes eliminar tu propia cuenta' })
     expect(mockDeleteUser).not.toHaveBeenCalled()
@@ -249,25 +249,25 @@ describe('deleteUserAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await deleteUserAction('u1')
+    const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
-    mockGetClaims.mockResolvedValue({ data: { claims: { sub: 'other-user' } } })
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: '00000000-0000-4000-8200-000000000002' } } })
     mockDeleteUser.mockRejectedValue(new Error('Not found'))
 
-    const result = await deleteUserAction('u1')
+    const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
     expect(result).toEqual({ success: false, error: 'Not found' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
-    mockGetClaims.mockResolvedValue({ data: { claims: { sub: 'other-user' } } })
+    mockGetClaims.mockResolvedValue({ data: { claims: { sub: '00000000-0000-4000-8200-000000000002' } } })
     mockDeleteUser.mockRejectedValue('fail')
 
-    const result = await deleteUserAction('u1')
+    const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
     expect(result).toEqual({ success: false, error: 'Error al eliminar usuario' })
   })

@@ -38,11 +38,11 @@ const {
 describe('getTopDebtorsAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería obtener top deudores con límite', async () => {
-    const mockDebtors = [{ id: 'c1', current_debt: 500 }]
+    const mockDebtors = [{ id: '00000000-0000-4000-8300-000000000030', current_debt: 500 }]
     mockGetTopDebtors.mockResolvedValue(mockDebtors)
 
     const result = await getTopDebtorsAction(10)
@@ -56,11 +56,11 @@ describe('getTopDebtorsAction', () => {
 describe('getCustomersWithDebtAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería obtener todos los clientes con deuda', async () => {
-    const mockCustomers = [{ id: 'c1', current_debt: 100 }]
+    const mockCustomers = [{ id: '00000000-0000-4000-8300-000000000030', current_debt: 100 }]
     mockGetCustomersWithDebt.mockResolvedValue(mockCustomers)
 
     const result = await getCustomersWithDebtAction()
@@ -73,11 +73,11 @@ describe('getCustomersWithDebtAction', () => {
 describe('getPaidReceiptsAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería obtener recibos pagados', async () => {
-    const mockReceipts = [{ id: 'r1', status: 'paid' }]
+    const mockReceipts = [{ id: '00000000-0000-4000-8200-000000000020', status: 'paid' }]
     mockGetAllReceipts.mockResolvedValue(mockReceipts)
 
     const result = await getPaidReceiptsAction()

@@ -3,13 +3,15 @@
 import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getSectorService } from '@/services/sector-service'
 import { revalidatePath } from 'next/cache'
+import { uuidSchema, sectorCreateSchema, sectorUpdateSchema } from '@/lib/validations/schemas'
 
-export async function createSectorAction(data: { name: string; code: string; description?: string }): Promise<{ success: boolean; error?: string }> {
+export async function createSectorAction(data: unknown): Promise<{ success: boolean; error?: string }> {
   try {
+    const parsed = sectorCreateSchema.parse(data)
     const { supabase } = await requireAdminAuth()
     const sectorService = getSectorService(supabase)
 
-    await sectorService.createSector(data)
+    await sectorService.createSector(parsed)
     revalidatePath('/admin/sectors')
     return { success: true }
   } catch (e) {
@@ -17,12 +19,14 @@ export async function createSectorAction(data: { name: string; code: string; des
   }
 }
 
-export async function updateSectorAction(id: string, data: { name?: string; code?: string; description?: string; is_active?: boolean }): Promise<{ success: boolean; error?: string }> {
+export async function updateSectorAction(id: string, data: unknown): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(id)
+    const parsed = sectorUpdateSchema.parse(data)
     const { supabase } = await requireAdminAuth()
     const sectorService = getSectorService(supabase)
 
-    await sectorService.updateSector(id, data)
+    await sectorService.updateSector(id, parsed)
     revalidatePath('/admin/sectors')
     return { success: true }
   } catch (e) {
@@ -32,6 +36,7 @@ export async function updateSectorAction(id: string, data: { name?: string; code
 
 export async function deleteSectorAction(id: string): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(id)
     const { supabase } = await requireAdminAuth()
     const sectorService = getSectorService(supabase)
 
@@ -45,6 +50,8 @@ export async function deleteSectorAction(id: string): Promise<{ success: boolean
 
 export async function assignReaderToSectorAction(readerId: string, sectorId: string | null): Promise<{ success: boolean; error?: string }> {
   try {
+    uuidSchema.parse(readerId)
+    if (sectorId !== null) uuidSchema.parse(sectorId)
     const { supabase } = await requireAdminAuth()
     const { error } = await supabase
       .from('profiles')

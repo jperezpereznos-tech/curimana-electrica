@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockSupabaseFrom = vi.fn()
+const mockFrom = vi.fn()
 
-const mockCreateClient = vi.fn().mockResolvedValue({
-  from: mockSupabaseFrom
-})
+const mockRequireAdminAuth = vi.fn()
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: () => mockCreateClient()
+vi.mock('@/lib/auth/server-admin-auth', () => ({
+  requireAdminAuth: () => mockRequireAdminAuth()
 }))
 
 const mockRevalidatePath = vi.fn()
@@ -42,15 +40,15 @@ describe('updateMunicipalityConfigAction', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCreateClient.mockResolvedValue({ from: mockSupabaseFrom })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: { from: mockFrom }, userId: '00000000-0000-4000-8100-000000000001', role: 'admin' })
   })
 
   it('debería actualizar la configuración y revalidar las rutas', async () => {
     let updatePayload: any = null
 
-    const fetchChain = createAwaitableChain({ data: { id: 'cfg1' }, error: null })
+    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
     const updateChain = (() => {
-      const promise = Promise.resolve({ data: { id: 'cfg1' }, error: null })
+      const promise = Promise.resolve({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
       const chain: any = {
         eq: vi.fn().mockReturnThis(),
         then: promise.then.bind(promise),
@@ -58,9 +56,9 @@ describe('updateMunicipalityConfigAction', () => {
       return chain
     })()
 
-    mockSupabaseFrom.mockImplementation((table: string) => {
+    mockFrom.mockImplementation((table: string) => {
       if (table === 'municipality_config') {
-        const callCount = mockSupabaseFrom.mock.calls.filter((c: any[]) => c[0] === 'municipality_config').length
+        const callCount = mockFrom.mock.calls.filter((c: any[]) => c[0] === 'municipality_config').length
         if (callCount === 1) return fetchChain
         return {
           update: vi.fn((payload: any) => {
@@ -89,7 +87,7 @@ describe('updateMunicipalityConfigAction', () => {
   })
 
   it('debería retornar error si no existe registro de configuración', async () => {
-    mockSupabaseFrom.mockImplementation((table: string) => {
+    mockFrom.mockImplementation((table: string) => {
       if (table === 'municipality_config') {
         return createAwaitableChain({ data: null, error: { message: 'No rows found' } })
       }
@@ -103,7 +101,7 @@ describe('updateMunicipalityConfigAction', () => {
   })
 
   it('debería retornar error si el fetch retorna data null sin error', async () => {
-    mockSupabaseFrom.mockImplementation((table: string) => {
+    mockFrom.mockImplementation((table: string) => {
       if (table === 'municipality_config') {
         return createAwaitableChain({ data: null, error: null })
       }
@@ -116,7 +114,7 @@ describe('updateMunicipalityConfigAction', () => {
   })
 
   it('debería retornar error si el update falla', async () => {
-    const fetchChain = createAwaitableChain({ data: { id: 'cfg1' }, error: null })
+    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
     const updateChain = (() => {
       const promise = Promise.resolve({ data: null, error: { message: 'Update failed' } })
       const chain: any = {
@@ -127,7 +125,7 @@ describe('updateMunicipalityConfigAction', () => {
     })()
 
     let callCount = 0
-    mockSupabaseFrom.mockImplementation((table: string) => {
+    mockFrom.mockImplementation((table: string) => {
       if (table === 'municipality_config') {
         callCount++
         if (callCount === 1) return fetchChain
@@ -147,9 +145,9 @@ describe('updateMunicipalityConfigAction', () => {
   it('debería usar logo_url null si se pasa string vacío', async () => {
     let updatePayload: any = null
 
-    const fetchChain = createAwaitableChain({ data: { id: 'cfg1' }, error: null })
+    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
     const updateChain = (() => {
-      const promise = Promise.resolve({ data: { id: 'cfg1' }, error: null })
+      const promise = Promise.resolve({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
       const chain: any = {
         eq: vi.fn().mockReturnThis(),
         then: promise.then.bind(promise),
@@ -158,7 +156,7 @@ describe('updateMunicipalityConfigAction', () => {
     })()
 
     let callCount = 0
-    mockSupabaseFrom.mockImplementation((table: string) => {
+    mockFrom.mockImplementation((table: string) => {
       if (table === 'municipality_config') {
         callCount++
         if (callCount === 1) return fetchChain
@@ -181,9 +179,9 @@ describe('updateMunicipalityConfigAction', () => {
   it('debería usar logo_url proporcionado si no está vacío', async () => {
     let updatePayload: any = null
 
-    const fetchChain = createAwaitableChain({ data: { id: 'cfg1' }, error: null })
+    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
     const updateChain = (() => {
-      const promise = Promise.resolve({ data: { id: 'cfg1' }, error: null })
+      const promise = Promise.resolve({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
       const chain: any = {
         eq: vi.fn().mockReturnThis(),
         then: promise.then.bind(promise),
@@ -192,7 +190,7 @@ describe('updateMunicipalityConfigAction', () => {
     })()
 
     let callCount = 0
-    mockSupabaseFrom.mockImplementation((table: string) => {
+    mockFrom.mockImplementation((table: string) => {
       if (table === 'municipality_config') {
         callCount++
         if (callCount === 1) return fetchChain

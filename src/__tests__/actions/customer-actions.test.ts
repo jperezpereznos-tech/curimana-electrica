@@ -36,16 +36,16 @@ const {
 describe('registerCustomerAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería registrar cliente y revalidar ruta', async () => {
-    mockRegisterCustomer.mockResolvedValue({ id: 'c1' })
+    mockRegisterCustomer.mockResolvedValue({ id: '00000000-0000-4000-8300-000000000030' })
 
     const result = await registerCustomerAction({ full_name: 'Juan', supply_number: '123', address: 'Calle 1' })
 
     expect(mockRequireAdminAuth).toHaveBeenCalled()
-    expect(mockRegisterCustomer).toHaveBeenCalledWith(expect.objectContaining({ full_name: 'Juan' }), 'admin1')
+    expect(mockRegisterCustomer).toHaveBeenCalledWith(expect.objectContaining({ full_name: 'Juan' }), '00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/customers')
     expect(result).toEqual({ success: true })
   })
@@ -84,15 +84,15 @@ describe('registerCustomerAction', () => {
 describe('updateCustomerAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería actualizar cliente y revalidar ruta', async () => {
-    mockUpdateCustomer.mockResolvedValue({ id: 'c1' })
+    mockUpdateCustomer.mockResolvedValue({ id: '00000000-0000-4000-8300-000000000030' })
 
-    const result = await updateCustomerAction('c1', { full_name: 'Pedro' })
+    const result = await updateCustomerAction('00000000-0000-4000-8300-000000000030', { full_name: 'Pedro' })
 
-    expect(mockUpdateCustomer).toHaveBeenCalledWith('c1', expect.objectContaining({ full_name: 'Pedro' }), 'admin1')
+    expect(mockUpdateCustomer).toHaveBeenCalledWith('00000000-0000-4000-8300-000000000030', expect.objectContaining({ full_name: 'Pedro' }), '00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/customers')
     expect(result).toEqual({ success: true })
   })
@@ -100,7 +100,7 @@ describe('updateCustomerAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await updateCustomerAction('c1', { full_name: 'Pedro' })
+    const result = await updateCustomerAction('00000000-0000-4000-8300-000000000030', { full_name: 'Pedro' })
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -108,7 +108,7 @@ describe('updateCustomerAction', () => {
   it('debería retornar error si el servicio falla', async () => {
     mockUpdateCustomer.mockRejectedValue(new Error('Not found'))
 
-    const result = await updateCustomerAction('c1', { full_name: 'Pedro' })
+    const result = await updateCustomerAction('00000000-0000-4000-8300-000000000030', { full_name: 'Pedro' })
 
     expect(result).toEqual({ success: false, error: 'Not found' })
   })
@@ -116,7 +116,7 @@ describe('updateCustomerAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockUpdateCustomer.mockRejectedValue(null)
 
-    const result = await updateCustomerAction('c1', { full_name: 'Pedro' })
+    const result = await updateCustomerAction('00000000-0000-4000-8300-000000000030', { full_name: 'Pedro' })
 
     expect(result).toEqual({ success: false, error: 'Error al actualizar cliente' })
   })
@@ -125,15 +125,15 @@ describe('updateCustomerAction', () => {
 describe('deleteCustomerAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería eliminar cliente y revalidar ruta', async () => {
     mockDeleteCustomer.mockResolvedValue({ success: true })
 
-    const result = await deleteCustomerAction('c1')
+    const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
-    expect(mockDeleteCustomer).toHaveBeenCalledWith('c1', 'admin1')
+    expect(mockDeleteCustomer).toHaveBeenCalledWith('00000000-0000-4000-8300-000000000030', '00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/customers')
     expect(result).toEqual({ success: true })
   })
@@ -141,7 +141,7 @@ describe('deleteCustomerAction', () => {
   it('debería retornar error del servicio si deleteCustomer falla', async () => {
     mockDeleteCustomer.mockResolvedValue({ success: false, error: 'Tiene recibos' })
 
-    const result = await deleteCustomerAction('c1')
+    const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: false, error: 'Tiene recibos' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
@@ -150,7 +150,7 @@ describe('deleteCustomerAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await deleteCustomerAction('c1')
+    const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -158,7 +158,7 @@ describe('deleteCustomerAction', () => {
   it('debería retornar error si el servicio lanza excepción', async () => {
     mockDeleteCustomer.mockRejectedValue(new Error('DB error'))
 
-    const result = await deleteCustomerAction('c1')
+    const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: false, error: 'DB error' })
   })
@@ -166,7 +166,7 @@ describe('deleteCustomerAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockDeleteCustomer.mockRejectedValue('fail')
 
-    const result = await deleteCustomerAction('c1')
+    const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: false, error: 'Error al eliminar cliente' })
   })

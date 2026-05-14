@@ -5,6 +5,32 @@ import { ROLE_COOKIE } from '@/lib/auth/constants'
 
 const ROLE_COOKIE_MAX_AGE = 3600
 
+const LOGIN_RATE_LIMIT = 5
+const LOGIN_RATE_WINDOW_MS = 60_000
+const loginAttempts = new Map<string, { count: number; windowStart: number }>()
+
+function isLoginRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = loginAttempts.get(ip)
+
+  if (!entry || now - entry.windowStart > LOGIN_RATE_WINDOW_MS) {
+    loginAttempts.set(ip, { count: 1, windowStart: now })
+    return false
+  }
+
+  entry.count++
+  if (entry.count > LOGIN_RATE_LIMIT) {
+    return true
+  }
+  return false
+}
+
+function getClientIp(request: NextRequest): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip')
+    || 'unknown'
+}
+
 export async function proxy(request: NextRequest) {
  const url = request.nextUrl.clone()
 
@@ -45,6 +71,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!userId && url.pathname === '/login') {
+    if (request.method === 'POST' && isLoginRateLimited(getClientIp(request))) {
+      return new NextResponse('Demasiados intentos. Espere un momento.', { status: 429 })
+    }
     supabaseResponse.cookies.delete(ROLE_COOKIE)
     return supabaseResponse
   }

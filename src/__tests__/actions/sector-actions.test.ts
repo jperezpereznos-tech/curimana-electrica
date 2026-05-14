@@ -48,11 +48,11 @@ const {
 describe('createSectorAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería crear sector y revalidar ruta', async () => {
-    mockCreateSector.mockResolvedValue({ id: 's1' })
+    mockCreateSector.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000010' })
 
     const result = await createSectorAction({ name: 'Centro', code: 'CTR' })
 
@@ -89,15 +89,15 @@ describe('createSectorAction', () => {
 describe('updateSectorAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería actualizar sector y revalidar ruta', async () => {
-    mockUpdateSector.mockResolvedValue({ id: 's1', name: 'Norte' })
+    mockUpdateSector.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000010', name: 'Norte' })
 
-    const result = await updateSectorAction('s1', { name: 'Norte' })
+    const result = await updateSectorAction('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
 
-    expect(mockUpdateSector).toHaveBeenCalledWith('s1', { name: 'Norte' })
+    expect(mockUpdateSector).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/sectors')
     expect(result).toEqual({ success: true })
   })
@@ -105,7 +105,7 @@ describe('updateSectorAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await updateSectorAction('s1', { name: 'Norte' })
+    const result = await updateSectorAction('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -113,7 +113,7 @@ describe('updateSectorAction', () => {
   it('debería retornar error si el servicio falla', async () => {
     mockUpdateSector.mockRejectedValue(new Error('Not found'))
 
-    const result = await updateSectorAction('s1', { name: 'Norte' })
+    const result = await updateSectorAction('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
 
     expect(result).toEqual({ success: false, error: 'Not found' })
   })
@@ -121,7 +121,7 @@ describe('updateSectorAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockUpdateSector.mockRejectedValue(null)
 
-    const result = await updateSectorAction('s1', { name: 'Norte' })
+    const result = await updateSectorAction('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
 
     expect(result).toEqual({ success: false, error: 'Error al actualizar sector' })
   })
@@ -130,15 +130,15 @@ describe('updateSectorAction', () => {
 describe('deleteSectorAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería eliminar sector y revalidar ruta', async () => {
     mockDeleteSector.mockResolvedValue(true)
 
-    const result = await deleteSectorAction('s1')
+    const result = await deleteSectorAction('00000000-0000-4000-8100-000000000010')
 
-    expect(mockDeleteSector).toHaveBeenCalledWith('s1')
+    expect(mockDeleteSector).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000010')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/sectors')
     expect(result).toEqual({ success: true })
   })
@@ -146,7 +146,7 @@ describe('deleteSectorAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await deleteSectorAction('s1')
+    const result = await deleteSectorAction('00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -154,7 +154,7 @@ describe('deleteSectorAction', () => {
   it('debería retornar error si el servicio falla', async () => {
     mockDeleteSector.mockRejectedValue(new Error('FK constraint'))
 
-    const result = await deleteSectorAction('s1')
+    const result = await deleteSectorAction('00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'FK constraint' })
   })
@@ -162,7 +162,7 @@ describe('deleteSectorAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockDeleteSector.mockRejectedValue('fail')
 
-    const result = await deleteSectorAction('s1')
+    const result = await deleteSectorAction('00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'Error al eliminar sector' })
   })
@@ -171,21 +171,21 @@ describe('deleteSectorAction', () => {
 describe('assignReaderToSectorAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería asignar sector al lector y revalidar ruta', async () => {
     const mockUpdateChain = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockResolvedValue({ data: [{ id: 'u1' }], error: null }),
+      select: vi.fn().mockResolvedValue({ data: [{ id: '00000000-0000-4000-8100-000000000002' }], error: null }),
     }
     mockFrom.mockReturnValue(mockUpdateChain)
 
-    const result = await assignReaderToSectorAction('reader1', 's1')
+    const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
     expect(mockFrom).toHaveBeenCalledWith('profiles')
-    expect(mockUpdateChain.eq).toHaveBeenCalledWith('id', 'reader1')
+    expect(mockUpdateChain.eq).toHaveBeenCalledWith('id', '00000000-0000-4000-8200-000000000002')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/sectors')
     expect(result).toEqual({ success: true })
   })
@@ -194,11 +194,11 @@ describe('assignReaderToSectorAction', () => {
     const mockUpdateChain = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockResolvedValue({ data: [{ id: 'u1' }], error: null }),
+      select: vi.fn().mockResolvedValue({ data: [{ id: '00000000-0000-4000-8100-000000000002' }], error: null }),
     }
     mockFrom.mockReturnValue(mockUpdateChain)
 
-    const result = await assignReaderToSectorAction('reader1', null)
+    const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', null)
 
     expect(mockUpdateChain.update).toHaveBeenCalledWith({ assigned_sector_id: null })
     expect(result).toEqual({ success: true })
@@ -212,7 +212,7 @@ describe('assignReaderToSectorAction', () => {
     }
     mockFrom.mockReturnValue(mockUpdateChain)
 
-    const result = await assignReaderToSectorAction('reader1', 's1')
+    const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'Update failed' })
   })
@@ -220,7 +220,7 @@ describe('assignReaderToSectorAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await assignReaderToSectorAction('reader1', 's1')
+    const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -228,7 +228,7 @@ describe('assignReaderToSectorAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockFrom.mockImplementation(() => { throw 'fail' })
 
-    const result = await assignReaderToSectorAction('reader1', 's1')
+    const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
     expect(result).toEqual({ success: false, error: 'Error al asignar lector' })
   })

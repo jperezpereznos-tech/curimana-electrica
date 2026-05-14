@@ -4,6 +4,7 @@ import { requireReaderAuth } from '@/lib/auth/server-reader-auth'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
 import { getCustomerService } from '@/services/customer-service'
+import { readingActionSchema, uuidSchema, querySchema } from '@/lib/validations/schemas'
 
 type AuthedSupabase = Awaited<ReturnType<typeof requireReaderAuth>>['supabase']
 
@@ -91,11 +92,12 @@ export async function getReaderDashboardDataAction() {
 
 export async function searchReaderCustomersAction(query: string) {
   try {
+    const parsed = querySchema.parse(query)
     const { supabase, userId } = await requireReaderAuth()
     const sectorId = await getAssignedSectorId(userId, supabase)
     if (!sectorId) return { success: false as const, error: 'No tiene un sector asignado. Contacte al administrador.' }
     const customerService = getCustomerService(supabase)
-    const data = await customerService.searchCustomers(query, sectorId)
+    const data = await customerService.searchCustomers(parsed, sectorId)
     return { success: true as const, data }
   } catch (e) {
     return { success: false as const, error: e instanceof Error ? e.message : 'Error al buscar clientes.' }
@@ -104,6 +106,7 @@ export async function searchReaderCustomersAction(query: string) {
 
 export async function getLatestReadingAction(customerId: string) {
   try {
+    uuidSchema.parse(customerId)
     const { supabase } = await requireReaderAuth()
     const readingService = getReadingService(supabase)
     const data = await readingService.getLatestReading(customerId)
@@ -113,23 +116,16 @@ export async function getLatestReadingAction(customerId: string) {
   }
 }
 
-export async function registerReadingAction(data: {
-  customer_id: string
-  billing_period_id: string
-  previous_reading: number
-  current_reading: number
-  reading_date: string
-  notes?: string
-  photo_url?: string
-}) {
+export async function registerReadingAction(data: unknown) {
   try {
+    const parsed = readingActionSchema.parse(data)
     const { supabase, userId } = await requireReaderAuth()
     const sectorId = await getAssignedSectorId(userId, supabase)
 
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .select('sector_id, is_active')
-      .eq('id', data.customer_id)
+      .eq('id', parsed.customer_id)
       .single()
 
     if (customerError || !customer) {
@@ -148,7 +144,7 @@ export async function registerReadingAction(data: {
 
     const readingService = getReadingService(supabase)
     try {
-      const result = await readingService.registerReading(data, userId)
+      const result = await readingService.registerReading(parsed, userId)
       return { success: true as const, data: result }
     } catch (insertError: unknown) {
       const errMsg = insertError instanceof Error ? insertError.message : String(insertError)

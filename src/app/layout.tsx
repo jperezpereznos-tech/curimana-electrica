@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { SerwistProvider } from "@serwist/turbopack/react"
 import { AuthProvider } from "@/hooks/use-auth";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { Toaster } from "@/components/ui/sonner";
@@ -43,11 +44,13 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md">
           Saltar al contenido
         </a>
-        <AuthProvider>
-          {children}
-          <PWAInstallPrompt />
-          <Toaster position="top-right" richColors closeButton />
-        </AuthProvider>
+    <SerwistProvider swUrl="/serwist/sw.js">
+      <AuthProvider>
+        {children}
+        <PWAInstallPrompt />
+        <Toaster position="top-right" richColors closeButton />
+      </AuthProvider>
+    </SerwistProvider>
       </body>
     </html>
   );

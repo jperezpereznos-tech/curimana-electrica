@@ -4,12 +4,14 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getReceiptService } from '@/services/receipt-service'
 import { getConceptService } from '@/services/concept-service'
 import { revalidatePath } from 'next/cache'
+import { cancelReceiptSchema } from '@/lib/validations/schemas'
 
 export async function cancelReceiptAction(id: string, reason: string) {
   try {
+    const parsed = cancelReceiptSchema.parse({ id, reason })
     const { supabase, userId } = await requireAdminAuth()
     const receiptService = getReceiptService(supabase)
-    const result = await receiptService.cancelReceipt(id, reason, userId)
+    const result = await receiptService.cancelReceipt(parsed.id, parsed.reason, userId)
     revalidatePath('/admin/receipts')
     return { success: true as const, data: result }
   } catch (e) {

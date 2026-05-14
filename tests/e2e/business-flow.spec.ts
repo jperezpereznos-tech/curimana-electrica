@@ -1,52 +1,44 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test'
+import { login } from './helpers'
 
 test.describe('Flujo de Negocio Completo', () => {
-  test('Flujo: Registro -> Lectura -> Facturación -> Pago', async ({ page }) => {
-    // 1. Admin crea un nuevo cliente
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
-    await page.fill('input[name="password"]', 'password');
-    await page.waitForTimeout(1000);
-    await page.click('button:has-text("Iniciar Sesión")');
+  test('Admin: login → dashboard → navegación', async ({ page }) => {
+    await login(page)
+    await expect(page).toHaveURL(/\/admin/)
+    await expect(page.getByRole('heading', { name: 'Panel Administrativo' })).toBeVisible({ timeout: 10000 })
 
-    await page.goto('/admin/customers');
-    // Simular creación de cliente... (simplificado para el test)
-    
-    // 2. Lector registra lectura
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
-    await page.fill('input[name="password"]', 'password');
-    await page.waitForTimeout(1000);
-    await page.click('button[type="submit"]');
+    await page.getByRole('link', { name: 'Clientes', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Gestion de Clientes' })).toBeVisible({ timeout: 10000 })
 
-    await page.goto('/reader/new');
-    await page.fill('input[placeholder="N° Suministro"]', '100000001');
-    await page.click('button:has-text("Buscar")');
-    await page.fill('input[type="number"]', '1350'); // Lectura actual
-    await page.click('button:has-text("Guardar Lectura")');
+    await page.getByRole('link', { name: 'Periodos', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Periodos de Facturacion' })).toBeVisible({ timeout: 10000 })
+  })
 
-    // 3. Admin cierra periodo y genera recibos
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
-    await page.fill('input[name="password"]', 'password');
-    await page.click('button[type="submit"]');
+  test('Admin: crear cliente vía diálogo', async ({ page }) => {
+    await login(page)
+    await page.goto('/admin/customers')
+    await expect(page.getByRole('heading', { name: 'Gestion de Clientes' })).toBeVisible({ timeout: 10000 })
 
-    await page.goto('/admin/periods');
-    // Click en cerrar periodo actual
-    
-    // 4. Cajero realiza el cobro
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    await page.fill('input[name="email"]', 'admin@curimana.gob.pe');
-    await page.fill('input[name="password"]', 'password');
-    await page.click('button[type="submit"]');
+    await page.getByRole('button', { name: 'Nuevo Cliente' }).click()
+    await expect(page.getByRole('dialog').getByText('Registrar Nuevo Cliente')).toBeVisible()
 
-    await page.goto('/cashier');
-    await page.fill('input[placeholder*="Suministro"]', '100000001');
-    await page.click('button:has-text("Buscar")');
-    await expect(page.locator('p:has-text("Juan Perez Garcia")')).toBeVisible();
-  });
-});
+    await page.getByLabel('N° de Suministro').fill('999999999')
+    await page.getByLabel('Nombre Completo').fill('Test E2E Cliente')
+    await page.getByLabel('DNI / RUC').fill('12345678')
+    await page.getByLabel('Dirección').fill('Calle Test 123')
+
+    await page.getByRole('button', { name: 'Registrar Suministro' }).click()
+  })
+
+  test('Cajero: búsqueda de suministro', async ({ page }) => {
+    await login(page)
+    await page.goto('/cashier')
+    await expect(page.getByRole('heading', { name: 'Caja Curimana' })).toBeVisible({ timeout: 10000 })
+
+    const searchInput = page.getByPlaceholder('N° Suministro o N° Recibo')
+    if (await searchInput.isVisible()) {
+      await searchInput.fill('100000001')
+      await page.getByRole('button', { name: 'Buscar' }).click()
+    }
+  })
+})

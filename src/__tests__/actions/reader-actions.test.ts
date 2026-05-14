@@ -68,27 +68,27 @@ const {
 describe('registerReadingAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería registrar lectura si el cliente pertenece al sector del lecturador', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010' }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: '00000000-0000-4000-8100-000000000010', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
     })
 
-    const mockResult = { id: 'rd1', consumption: 50 }
+    const mockResult = { id: '00000000-0000-4000-8800-000000000080', consumption: 50 }
     mockRegisterReading.mockResolvedValue(mockResult)
 
     const result = await registerReadingAction({
-      customer_id: 'c1', billing_period_id: 'p1',
+      customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
@@ -102,14 +102,14 @@ describe('registerReadingAction', () => {
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: '00000000-0000-4000-8100-000000000010', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
     })
 
     const result = await registerReadingAction({
-      customer_id: 'c1', billing_period_id: 'p1',
+      customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
@@ -122,18 +122,18 @@ describe('registerReadingAction', () => {
   it('debería rechazar si el cliente está fuera del sector asignado', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010' }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's2', is_active: true }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: '00000000-0000-4000-8100-000000000011', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
     })
 
     const result = await registerReadingAction({
-      customer_id: 'c1', billing_period_id: 'p1',
+      customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
@@ -147,7 +147,7 @@ describe('registerReadingAction', () => {
     mockRequireReaderAuth.mockRejectedValue(new Error('No autenticado'))
 
     const result = await registerReadingAction({
-      customer_id: 'c1', billing_period_id: 'p1',
+      customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
@@ -155,14 +155,14 @@ describe('registerReadingAction', () => {
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010' }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: '00000000-0000-4000-8100-000000000010', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
 			return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -170,7 +170,7 @@ describe('registerReadingAction', () => {
 		mockRegisterReading.mockRejectedValue('fail')
 
     const result = await registerReadingAction({
-      customer_id: 'c1', billing_period_id: 'p1',
+      customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
@@ -180,11 +180,11 @@ describe('registerReadingAction', () => {
   it('debería devolver DUPLICATE_READING si ya existe lectura para ese cliente y periodo', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010' }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       if (table === 'customers') {
-        const promise = Promise.resolve({ data: { sector_id: 's1', is_active: true }, error: null })
+        const promise = Promise.resolve({ data: { sector_id: '00000000-0000-4000-8100-000000000010', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -192,7 +192,7 @@ describe('registerReadingAction', () => {
     mockRegisterReading.mockRejectedValue(new Error('duplicate key value violates unique constraint "readings_customer_period_unique"'))
 
     const result = await registerReadingAction({
-      customer_id: 'c1', billing_period_id: 'p1',
+      customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
@@ -203,14 +203,14 @@ describe('registerReadingAction', () => {
 describe('getLatestReadingAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener la última lectura del cliente', async () => {
-    const mockReading = { id: 'rd1', consumption: 30 }
+    const mockReading = { id: '00000000-0000-4000-8800-000000000080', consumption: 30 }
     mockGetLatestReading.mockResolvedValue(mockReading)
 
-    const result = await getLatestReadingAction('c1')
+    const result = await getLatestReadingAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: true, data: mockReading })
   })
@@ -218,7 +218,7 @@ describe('getLatestReadingAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireReaderAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await getLatestReadingAction('c1')
+    const result = await getLatestReadingAction('00000000-0000-4000-8300-000000000030')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -227,15 +227,15 @@ describe('getLatestReadingAction', () => {
 describe('searchReaderCustomersAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería buscar clientes en el sector asignado', async () => {
-    const mockCustomers = [{ id: 'c1', full_name: 'Juan' }]
+    const mockCustomers = [{ id: '00000000-0000-4000-8300-000000000030', full_name: 'Juan' }]
     mockSearchCustomers.mockResolvedValue(mockCustomers)
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010' }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -247,7 +247,7 @@ describe('searchReaderCustomersAction', () => {
     if (result.success) {
       expect(result.data).toEqual(mockCustomers)
     }
-    expect(mockSearchCustomers).toHaveBeenCalledWith('SUM-001', 's1')
+    expect(mockSearchCustomers).toHaveBeenCalledWith('SUM-001', '00000000-0000-4000-8100-000000000010')
   })
 
   it('debería retornar error si no tiene sector asignado', async () => {
@@ -271,7 +271,7 @@ describe('searchReaderCustomersAction', () => {
 describe('getReaderDashboardDataAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener datos del dashboard', async () => {
@@ -280,7 +280,7 @@ describe('getReaderDashboardDataAction', () => {
     mockGetActiveCustomersCount.mockResolvedValue(45)
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1', sectors: { id: 's1', name: 'Centro', code: 'CTR' } }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010', sectors: { id: '00000000-0000-4000-8100-000000000010', name: 'Centro', code: 'CTR' } }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -308,11 +308,11 @@ describe('getReaderDashboardDataAction', () => {
 describe('getReaderAssignedSectorAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener el sector asignado del lecturador', async () => {
-    const mockProfile = { assigned_sector_id: 's1', sectors: { id: 's1', name: 'Centro', code: 'CTR' } }
+    const mockProfile = { assigned_sector_id: '00000000-0000-4000-8100-000000000010', sectors: { id: '00000000-0000-4000-8100-000000000010', name: 'Centro', code: 'CTR' } }
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
         const promise = Promise.resolve({ data: mockProfile, error: null })
@@ -344,13 +344,13 @@ describe('getReaderAssignedSectorAction', () => {
 describe('getReaderAssignedSectorIdAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: 'reader1' })
+    mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
   })
 
   it('debería obtener el ID del sector asignado', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        const promise = Promise.resolve({ data: { assigned_sector_id: 's1' }, error: null })
+        const promise = Promise.resolve({ data: { assigned_sector_id: '00000000-0000-4000-8100-000000000010' }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
       return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
@@ -358,6 +358,6 @@ describe('getReaderAssignedSectorIdAction', () => {
 
     const result = await getReaderAssignedSectorIdAction()
 
-    expect(result).toEqual({ success: true, data: 's1' })
+    expect(result).toEqual({ success: true, data: '00000000-0000-4000-8100-000000000010' })
   })
 })

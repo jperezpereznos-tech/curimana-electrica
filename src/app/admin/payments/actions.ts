@@ -5,14 +5,16 @@ import { getPaymentService } from '@/services/payment-service'
 import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
 import { revalidatePath } from 'next/cache'
+import { uuidSchema, querySchema } from '@/lib/validations/schemas'
 
 export async function adminSearchCustomerReceiptsAction(query: string) {
   try {
+    const parsed = querySchema.parse(query)
     const { supabase } = await requireAdminAuth()
     const customerService = getCustomerService(supabase)
     const receiptService = getReceiptService(supabase)
 
-    const customer = await customerService.getBySupplyNumber(query.trim())
+    const customer = await customerService.getBySupplyNumber(parsed.trim())
     if (!customer) return { success: true as const, data: null }
 
     const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
@@ -30,6 +32,7 @@ export async function adminSearchCustomerReceiptsAction(query: string) {
 
 export async function voidPaymentAction(paymentId: string) {
   try {
+    uuidSchema.parse(paymentId)
     const { supabase, userId } = await requireAdminAuth()
     const paymentService = getPaymentService(supabase)
     await paymentService.voidPayment(paymentId, userId)
@@ -44,6 +47,7 @@ export async function voidPaymentAction(paymentId: string) {
 
 export async function getPaymentDetailsAction(paymentId: string) {
   try {
+    uuidSchema.parse(paymentId)
     const { supabase } = await requireAdminAuth()
     const paymentService = getPaymentService(supabase)
     const data = await paymentService.getPaymentDetails(paymentId)

@@ -39,11 +39,11 @@ const { getReadingsAdminAction, getPeriodsForFilterAction, updateReadingAction }
 describe('getReadingsAdminAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería obtener lecturas sin filtros', async () => {
-    const mockReadings = [{ id: 'rd1', consumption: 50 }]
+    const mockReadings = [{ id: '00000000-0000-4000-8800-000000000080', consumption: 50 }]
     mockGetAllForAdmin.mockResolvedValue(mockReadings)
 
     const result = await getReadingsAdminAction()
@@ -53,12 +53,12 @@ describe('getReadingsAdminAction', () => {
   })
 
   it('debería obtener lecturas con filtros', async () => {
-    const mockReadings = [{ id: 'rd1', needs_review: true }]
+    const mockReadings = [{ id: '00000000-0000-4000-8800-000000000080', needs_review: true }]
     mockGetAllForAdmin.mockResolvedValue(mockReadings)
 
-    const result = await getReadingsAdminAction('p1', true)
+    const result = await getReadingsAdminAction('00000000-0000-4000-8600-000000000060', true)
 
-    expect(mockGetAllForAdmin).toHaveBeenCalledWith('p1', true)
+    expect(mockGetAllForAdmin).toHaveBeenCalledWith('00000000-0000-4000-8600-000000000060', true)
     expect(result).toEqual({ success: true, data: mockReadings })
   })
 
@@ -90,11 +90,11 @@ describe('getReadingsAdminAction', () => {
 describe('getPeriodsForFilterAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería obtener periodos para filtro', async () => {
-    const mockPeriods = [{ id: 'p1', name: 'JUNIO 2025' }]
+    const mockPeriods = [{ id: '00000000-0000-4000-8600-000000000060', name: 'JUNIO 2025' }]
     mockGetAllPeriods.mockResolvedValue(mockPeriods)
 
     const result = await getPeriodsForFilterAction()
@@ -130,16 +130,16 @@ describe('getPeriodsForFilterAction', () => {
 describe('updateReadingAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería actualizar lectura y revalidar ruta', async () => {
-    const mockUpdated = { id: 'rd1', consumption: 50 }
+    const mockUpdated = { id: '00000000-0000-4000-8800-000000000080', consumption: 50 }
     mockUpdateReading.mockResolvedValue(mockUpdated)
 
-    const result = await updateReadingAction('rd1', { current_reading: 150 })
+    const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { current_reading: 150 })
 
-    expect(mockUpdateReading).toHaveBeenCalledWith('rd1', { current_reading: 150 }, 'admin1')
+    expect(mockUpdateReading).toHaveBeenCalledWith('00000000-0000-4000-8800-000000000080', { current_reading: 150 }, '00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/readings')
     expect(result).toEqual({ success: true, data: mockUpdated })
   })
@@ -147,7 +147,7 @@ describe('updateReadingAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await updateReadingAction('rd1', { needs_review: false })
+    const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { needs_review: false })
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
@@ -156,7 +156,7 @@ describe('updateReadingAction', () => {
   it('debería retornar error si updateReading falla', async () => {
     mockUpdateReading.mockRejectedValue(new Error('Lectura no encontrada'))
 
-    const result = await updateReadingAction('rd1', { current_reading: 150 })
+    const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { current_reading: 150 })
 
     expect(result).toEqual({ success: false, error: 'Lectura no encontrada' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
@@ -165,18 +165,18 @@ describe('updateReadingAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockUpdateReading.mockRejectedValue(42)
 
-    const result = await updateReadingAction('rd1', { current_reading: 150 })
+    const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { current_reading: 150 })
 
     expect(result).toEqual({ success: false, error: 'Error al actualizar lectura' })
   })
 
   it('debería actualizar solo needs_review sin relecturas', async () => {
-    const mockUpdated = { id: 'rd1', needs_review: false }
+    const mockUpdated = { id: '00000000-0000-4000-8800-000000000080', needs_review: false }
     mockUpdateReading.mockResolvedValue(mockUpdated)
 
-    const result = await updateReadingAction('rd1', { needs_review: false })
+    const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { needs_review: false })
 
-    expect(mockUpdateReading).toHaveBeenCalledWith('rd1', { needs_review: false }, 'admin1')
+    expect(mockUpdateReading).toHaveBeenCalledWith('00000000-0000-4000-8800-000000000080', { needs_review: false }, '00000000-0000-4000-8100-000000000001')
     expect(result).toEqual({ success: true, data: mockUpdated })
   })
 })

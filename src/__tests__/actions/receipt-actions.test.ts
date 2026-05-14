@@ -32,17 +32,17 @@ const { cancelReceiptAction, getConceptsForBreakdownAction } = await import('@/a
 describe('cancelReceiptAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería anular el recibo y revalidar la ruta', async () => {
-    const mockResult = { id: 'r1', status: 'cancelled' }
+    const mockResult = { id: '00000000-0000-4000-8200-000000000020', status: 'cancelled' }
     mockCancelReceipt.mockResolvedValue(mockResult)
 
-    const result = await cancelReceiptAction('r1', 'Error en lectura')
+    const result = await cancelReceiptAction('00000000-0000-4000-8200-000000000020', 'Error en lectura')
 
     expect(mockRequireAdminAuth).toHaveBeenCalled()
-    expect(mockCancelReceipt).toHaveBeenCalledWith('r1', 'Error en lectura', 'admin1')
+    expect(mockCancelReceipt).toHaveBeenCalledWith('00000000-0000-4000-8200-000000000020', 'Error en lectura', '00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/receipts')
     expect(result).toEqual({ success: true, data: mockResult })
   })
@@ -50,7 +50,7 @@ describe('cancelReceiptAction', () => {
   it('debería retornar error si requireAdminAuth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await cancelReceiptAction('r1', 'razón')
+    const result = await cancelReceiptAction('00000000-0000-4000-8200-000000000020', 'razón')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
     expect(mockCancelReceipt).not.toHaveBeenCalled()
@@ -60,7 +60,7 @@ describe('cancelReceiptAction', () => {
   it('debería retornar error si cancelReceipt falla', async () => {
     mockCancelReceipt.mockRejectedValue(new Error('El recibo ya está anulado'))
 
-    const result = await cancelReceiptAction('r1', 'razón')
+    const result = await cancelReceiptAction('00000000-0000-4000-8200-000000000020', 'razón')
 
     expect(result).toEqual({ success: false, error: 'El recibo ya está anulado' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
@@ -69,7 +69,7 @@ describe('cancelReceiptAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockCancelReceipt.mockRejectedValue('string error')
 
-    const result = await cancelReceiptAction('r1', 'razón')
+    const result = await cancelReceiptAction('00000000-0000-4000-8200-000000000020', 'razón')
 
     expect(result).toEqual({ success: false, error: 'Error al anular el recibo' })
   })
@@ -78,13 +78,13 @@ describe('cancelReceiptAction', () => {
 describe('getConceptsForBreakdownAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería retornar conceptos activos', async () => {
     const mockConcepts = [
-      { id: 'c1', name: 'Cargo Fijo', amount: 3.50, type: 'fixed', is_active: true },
-      { id: 'c2', name: 'Alumbrado', amount: 4.20, type: 'fixed', is_active: true }
+      { id: '00000000-0000-4000-8900-000000000090', name: 'Cargo Fijo', amount: 3.50, type: 'fixed', is_active: true },
+      { id: '00000000-0000-4000-8900-000000000091', name: 'Alumbrado', amount: 4.20, type: 'fixed', is_active: true }
     ]
     mockGetActiveConcepts.mockResolvedValue(mockConcepts)
 

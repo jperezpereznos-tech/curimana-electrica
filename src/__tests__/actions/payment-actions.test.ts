@@ -42,16 +42,16 @@ const { voidPaymentAction, adminSearchCustomerReceiptsAction, getPaymentDetailsA
 describe('voidPaymentAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: 'admin1' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001' })
   })
 
   it('debería anular el pago y revalidar rutas', async () => {
     mockVoidPayment.mockResolvedValue(undefined)
 
-    const result = await voidPaymentAction('p1')
+    const result = await voidPaymentAction('00000000-0000-4000-8400-000000000040')
 
     expect(mockRequireAdminAuth).toHaveBeenCalled()
-    expect(mockVoidPayment).toHaveBeenCalledWith('p1', 'admin1')
+    expect(mockVoidPayment).toHaveBeenCalledWith('00000000-0000-4000-8400-000000000040', '00000000-0000-4000-8100-000000000001')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/payments')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/receipts')
     expect(result).toEqual({ success: true })
@@ -60,7 +60,7 @@ describe('voidPaymentAction', () => {
   it('debería retornar error si requireAdminAuth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await voidPaymentAction('p1')
+    const result = await voidPaymentAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
     expect(mockVoidPayment).not.toHaveBeenCalled()
@@ -70,7 +70,7 @@ describe('voidPaymentAction', () => {
   it('debería retornar error si voidPayment falla', async () => {
     mockVoidPayment.mockRejectedValue(new Error('El pago ya esta anulado'))
 
-    const result = await voidPaymentAction('p1')
+    const result = await voidPaymentAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: false, error: 'El pago ya esta anulado' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
@@ -79,7 +79,7 @@ describe('voidPaymentAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockVoidPayment.mockRejectedValue('string error')
 
-    const result = await voidPaymentAction('p1')
+    const result = await voidPaymentAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: false, error: 'Error al anular el pago' })
   })
@@ -92,9 +92,9 @@ describe('adminSearchCustomerReceiptsAction', () => {
   })
 
   it('debería retornar cliente y recibos cobrables', async () => {
-    const mockCustomer = { id: 'c1', supply_number: 'SUM-001', full_name: 'Juan' }
-    const mockPending = [{ id: 'r1', status: 'pending' }]
-    const mockPartial = [{ id: 'r2', status: 'partial' }]
+    const mockCustomer = { id: '00000000-0000-4000-8300-000000000030', supply_number: 'SUM-001', full_name: 'Juan' }
+    const mockPending = [{ id: '00000000-0000-4000-8200-000000000020', status: 'pending' }]
+    const mockPartial = [{ id: '00000000-0000-4000-8200-000000000021', status: 'partial' }]
 
     mockGetBySupplyNumber.mockResolvedValue(mockCustomer)
     mockGetAllReceipts
@@ -105,9 +105,9 @@ describe('adminSearchCustomerReceiptsAction', () => {
     const result = await adminSearchCustomerReceiptsAction('SUM-001')
 
     expect(mockGetBySupplyNumber).toHaveBeenCalledWith('SUM-001')
-    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: 'c1', status: 'pending' })
-    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: 'c1', status: 'partial' })
-    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: 'c1', status: 'overdue' })
+    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: '00000000-0000-4000-8300-000000000030', status: 'pending' })
+    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: '00000000-0000-4000-8300-000000000030', status: 'partial' })
+    expect(mockGetAllReceipts).toHaveBeenCalledWith({ customerId: '00000000-0000-4000-8300-000000000030', status: 'overdue' })
     expect(result).toEqual({
       success: true, data: { customer: mockCustomer, receipts: [...mockPending, ...mockPartial] }
     })
@@ -162,20 +162,20 @@ describe('getPaymentDetailsAction', () => {
   })
 
   it('debería retornar detalles del pago', async () => {
-    const mockDetail = { id: 'p1', amount: 100, receipts: { receipt_number: 1 }, cashier: { full_name: 'Ana' } }
+    const mockDetail = { id: '00000000-0000-4000-8400-000000000040', amount: 100, receipts: { receipt_number: 1 }, cashier: { full_name: 'Ana' } }
     mockGetPaymentDetails.mockResolvedValue(mockDetail)
 
-    const result = await getPaymentDetailsAction('p1')
+    const result = await getPaymentDetailsAction('00000000-0000-4000-8400-000000000040')
 
     expect(mockRequireAdminAuth).toHaveBeenCalled()
-    expect(mockGetPaymentDetails).toHaveBeenCalledWith('p1')
+    expect(mockGetPaymentDetails).toHaveBeenCalledWith('00000000-0000-4000-8400-000000000040')
     expect(result).toEqual({ success: true, data: mockDetail })
   })
 
   it('debería retornar error si requireAdminAuth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await getPaymentDetailsAction('p1')
+    const result = await getPaymentDetailsAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
@@ -183,7 +183,7 @@ describe('getPaymentDetailsAction', () => {
   it('debería retornar error si getPaymentDetails falla', async () => {
     mockGetPaymentDetails.mockRejectedValue(new Error('Pago no encontrado'))
 
-    const result = await getPaymentDetailsAction('missing')
+    const result = await getPaymentDetailsAction('00000000-0000-4000-8400-000000000041')
 
     expect(result).toEqual({ success: false, error: 'Pago no encontrado' })
   })
@@ -191,7 +191,7 @@ describe('getPaymentDetailsAction', () => {
   it('debería manejar errores que no son instancias de Error', async () => {
     mockGetPaymentDetails.mockRejectedValue('unknown')
 
-    const result = await getPaymentDetailsAction('p1')
+    const result = await getPaymentDetailsAction('00000000-0000-4000-8400-000000000040')
 
     expect(result).toEqual({ success: false, error: 'Error al obtener detalles del pago' })
   })

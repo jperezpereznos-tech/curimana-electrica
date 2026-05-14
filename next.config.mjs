@@ -1,8 +1,7 @@
+import { withSerwist } from "@serwist/turbopack";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración de Turbopack (vacía para compatibilidad)
-  turbopack: {},
-  // Configuración de imágenes para Supabase Storage
   images: {
     remotePatterns: [
       {
@@ -14,9 +13,20 @@ const nextConfig = {
     ],
   },
 
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ]
+  },
 }
 
-// Serwist temporalmente deshabilitado - causa conflictos con Turbopack
-// TODO: Migrar a configurator mode o usar --webpack flag
-// Ver: https://github.com/serwist/serwist/issues/54
-export default nextConfig
+export default withSerwist(nextConfig)
