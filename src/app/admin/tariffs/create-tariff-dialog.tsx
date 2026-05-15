@@ -29,8 +29,9 @@ import { registerTariffAction } from './actions'
 
 const tierSchema = z.object({
   min_kwh: z.number().min(0),
-  max_kwh: z.number().nullable().optional(),
-  price_per_kwh: z.number().min(0),
+  max_kwh: z.union([z.number(), z.nan()]).nullable().optional()
+    .transform(v => (v === null || v === undefined || Number.isNaN(v)) ? null : v),
+  price_per_kwh: z.number().min(0, 'Precio requerido'),
 })
 
 const tariffSchema = z.object({
@@ -39,19 +40,13 @@ const tariffSchema = z.object({
   tiers: z.array(tierSchema).min(1, 'Debe haber al menos un tramo'),
 })
 
-function getNextMinKwh(fields: { min_kwh: number; max_kwh?: number | null | undefined }[]): number {
-  if (fields.length === 0) return 0
-  const lastField = fields[fields.length - 1]
-  const lastMax = lastField.max_kwh
-  if (lastMax == null || isNaN(lastMax)) return 0
-  return lastMax + 1
-}
+type TariffFormValues = z.input<typeof tariffSchema>
 
 export function CreateTariffDialog() {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
-  const form = useForm<z.infer<typeof tariffSchema>>({
+  const form = useForm<TariffFormValues>({
     resolver: zodResolver(tariffSchema),
     defaultValues: {
       name: '',
@@ -67,7 +62,24 @@ export function CreateTariffDialog() {
 
   const [formError, setFormError] = useState<string | null>(null)
 
-  const onSubmit = async (values: z.infer<typeof tariffSchema>) => {
+  const handleMaxKwhBlur = (index: number) => {
+    const tiers = form.getValues('tiers')
+    const currentMax = tiers[index].max_kwh
+    const isLast = index === tiers.length - 1
+    const hasValidMax = currentMax != null && !isNaN(currentMax)
+
+    if (isLast && hasValidMax) {
+      append({ min_kwh: Number(currentMax) + 1, max_kwh: null, price_per_kwh: 0 })
+    }
+
+    if (!isLast && (currentMax == null || isNaN(currentMax))) {
+      for (let i = tiers.length - 1; i > index; i--) {
+        remove(i)
+      }
+    }
+  }
+
+  const onSubmit = async (values: TariffFormValues) => {
     setFormError(null)
     const result = await registerTariffAction(
       {
@@ -77,7 +89,7 @@ export function CreateTariffDialog() {
       },
       values.tiers.map((t, i) => ({
         min_kwh: t.min_kwh,
-        max_kwh: isNaN(t.max_kwh as number) ? null : (t.max_kwh ?? null),
+        max_kwh: t.max_kwh ?? null,
         price_per_kwh: t.price_per_kwh,
         order_index: i + 1,
       }))
@@ -108,7 +120,7 @@ export function CreateTariffDialog() {
         <DialogHeader>
           <DialogTitle>Crear Nueva Tarifa</DialogTitle>
           <DialogDescription>
-            Define el nombre y los tramos de consumo para esta tarifa.
+            Define el nombre y los tramos de consumo. Al completar el límite superior de un tramo, el siguiente se agregará automáticamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -143,34 +155,25 @@ export function CreateTariffDialog() {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Tramos de Consumo</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ min_kwh: getNextMinKwh(form.getValues('tiers')), max_kwh: null, price_per_kwh: 0 })}
-              >
-                Agregar Tramo
-              </Button>
-            </div>
+            <Label>Tramos de Consumo</Label>
 
             {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-4 gap-2 items-end border p-3 rounded-lg bg-muted/50">
+              <div key={field.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end border p-3 rounded-lg bg-muted/50">
                 <div className="space-y-1">
                   <Label className="text-xs">Min kWh</Label>
-              <Input
-                  type="number"
-                  readOnly={index === 0}
-                  className={index === 0 ? 'bg-muted cursor-not-allowed' : ''}
-                  {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })}
-                />
+                  <Input
+                    type="number"
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Max kWh (vacio = ilimitado)</Label>
+                  <Label className="text-xs">{index === fields.length - 1 ? 'Max kWh (vacío = ilimitado)' : 'Max kWh'}</Label>
                   <Input
                     type="number"
                     {...form.register(`tiers.${index}.max_kwh`, { valueAsNumber: true })}
+                    onBlur={() => handleMaxKwhBlur(index)}
                   />
                 </div>
                 <div className="space-y-1">
