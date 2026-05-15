@@ -149,7 +149,7 @@ export function CreateTariffDialog() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ min_kwh: getNextMinKwh(fields), max_kwh: null, price_per_kwh: 0 })}
+                onClick={() => append({ min_kwh: getNextMinKwh(form.getValues('tiers')), max_kwh: null, price_per_kwh: 0 })}
               >
                 Agregar Tramo
               </Button>
