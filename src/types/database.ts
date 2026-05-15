@@ -269,39 +269,42 @@ export type Database = {
         ]
       }
 municipality_config: {
-  Row: {
-    address: string
-    billing_cut_day: number | null
-    created_at: string | null
-    id: string
-    logo_url: string | null
-    name: string
-    payment_grace_days: number | null
-    ruc: string
-    updated_at: string | null
-  }
-  Insert: {
-    address: string
-    billing_cut_day?: number | null
-    created_at?: string | null
-    id?: string
-    logo_url?: string | null
-    name: string
-    payment_grace_days?: number | null
-    ruc: string
-    updated_at?: string | null
-  }
-  Update: {
-    address?: string
-    billing_cut_day?: number | null
-    created_at?: string | null
-    id?: string
-    logo_url?: string | null
-    name?: string
-    payment_grace_days?: number | null
-    ruc?: string
-    updated_at?: string | null
-  }
+      Row: {
+        address: string
+        billing_cut_day: number | null
+        created_at: string | null
+        id: string
+        logo_url: string | null
+        name: string
+        om_number: string | null
+        payment_grace_days: number | null
+        ruc: string
+        updated_at: string | null
+      }
+      Insert: {
+        address: string
+        billing_cut_day?: number | null
+        created_at?: string | null
+        id?: string
+        logo_url?: string | null
+        name: string
+        om_number?: string | null
+        payment_grace_days?: number | null
+        ruc: string
+        updated_at?: string | null
+      }
+      Update: {
+        address?: string
+        billing_cut_day?: number | null
+        created_at?: string | null
+        id?: string
+        logo_url?: string | null
+        name?: string
+        om_number?: string | null
+        payment_grace_days?: number | null
+        ruc?: string
+        updated_at?: string | null
+      }
         Relationships: []
       }
       payments: {

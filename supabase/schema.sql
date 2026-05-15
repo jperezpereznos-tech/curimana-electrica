@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS municipality_config (
   ruc TEXT NOT NULL,
   address TEXT NOT NULL,
   logo_url TEXT,
+  om_number TEXT,
   billing_cut_day INT DEFAULT 25,
   payment_grace_days INT DEFAULT 15,
   created_at TIMESTAMPTZ DEFAULT now(),
