@@ -67,6 +67,34 @@ describe('TariffService - validateTiers', () => {
 
     expect(() => service.validateTiers(tiers)).not.toThrow()
   })
+
+  it('debería aceptar tramos contiguos donde max_kwh del anterior iguala min_kwh del siguiente', () => {
+    const tiers = [
+      { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
+      { order_index: 2, min_kwh: 30, max_kwh: 100, price_per_kwh: 0.62 },
+      { order_index: 3, min_kwh: 100, max_kwh: null, price_per_kwh: 0.64 },
+    ]
+
+    expect(() => service.validateTiers(tiers)).not.toThrow()
+  })
+
+  it('debería aceptar tramos con gap entre ellos', () => {
+    const tiers = [
+      { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
+      { order_index: 2, min_kwh: 32, max_kwh: 100, price_per_kwh: 0.62 },
+    ]
+
+    expect(() => service.validateTiers(tiers)).not.toThrow()
+  })
+
+  it('debería rechazar tramos superpuestos incluso con validación estricta', () => {
+    const tiers = [
+      { order_index: 1, min_kwh: 0, max_kwh: 50, price_per_kwh: 0.5 },
+      { order_index: 2, min_kwh: 40, max_kwh: 100, price_per_kwh: 0.8 },
+    ]
+
+    expect(() => service.validateTiers(tiers)).toThrow('Tramos superpuestos')
+  })
 })
 
 describe('TariffService - createTariffWithValidation', () => {

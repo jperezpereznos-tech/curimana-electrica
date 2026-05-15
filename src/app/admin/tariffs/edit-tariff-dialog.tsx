@@ -47,6 +47,14 @@ interface EditTariffDialogProps {
   trigger?: React.ReactNode
 }
 
+function getNextMinKwh(fields: { min_kwh: number; max_kwh?: number | null | undefined }[]): number {
+  if (fields.length === 0) return 0
+  const lastField = fields[fields.length - 1]
+  const lastMax = lastField.max_kwh
+  if (lastMax == null || isNaN(lastMax)) return 0
+  return lastMax + 1
+}
+
 export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
   const [open, setOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -101,11 +109,11 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
         name: values.name,
         connection_type: values.connection_type,
       },
-      values.tiers.map((t: { min_kwh: number; max_kwh?: number | null | undefined; price_per_kwh: number }, i: number) => ({
-        ...t,
-        max_kwh: t.max_kwh || null,
-        order_index: i + 1,
-      }))
+  values.tiers.map((t: { min_kwh: number; max_kwh?: number | null | undefined; price_per_kwh: number }, i: number) => ({
+      ...t,
+      max_kwh: isNaN(t.max_kwh as number) ? null : (t.max_kwh || null),
+      order_index: i + 1,
+    }))
     )
     if (result.success) {
       setOpen(false)
@@ -168,7 +176,7 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ min_kwh: 0, max_kwh: null, price_per_kwh: 0 })}
+                onClick={() => append({ min_kwh: getNextMinKwh(fields), max_kwh: null, price_per_kwh: 0 })}
               >
                 Agregar Tramo
               </Button>
@@ -177,7 +185,7 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
               <div key={field.id} className="grid grid-cols-4 gap-2 items-end border p-3 rounded-lg bg-muted/50">
                 <div className="space-y-1">
                   <Label className="text-xs">Min kWh</Label>
-                  <Input type="number" {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })} />
+                  <Input type="number" readOnly={index === 0} className={index === 0 ? 'bg-muted cursor-not-allowed' : ''} {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Max kWh (vacio = ilimitado)</Label>

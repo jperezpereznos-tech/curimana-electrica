@@ -38,7 +38,7 @@ export class TariffService {
         if (currentMax === null) {
           throw new Error('Solo el último tramo puede no tener límite superior (max_kwh null).')
         }
-        if (currentMax >= next.min_kwh) {
+        if (currentMax > next.min_kwh) {
           throw new Error(`Tramos superpuestos detectados: El tramo que termina en ${currentMax} se cruza con el que inicia en ${next.min_kwh}.`)
         }
       }
