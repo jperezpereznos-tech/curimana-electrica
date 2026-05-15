@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recibo Municipalidad de Curimana</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+  }
+
+  body {
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .receipt-container {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 820px;
+    padding: 30px 40px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    color: #000;
+  }
+
+  /* --- HEADER --- */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+  }
+
+  .logo-placeholder {
+    width: 110px;
+    height: 120px;
+    border: 2px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .header-center {
+    text-align: center;
+    flex-grow: 1;
+  }
+
+  .muni-text {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: -5px;
+  }
+
+  .title-text {
+    font-size: 42px;
+    font-weight: bold;
+    color: #0f5934;
+    letter-spacing: 1px;
+  }
+
+  .ruc-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0f5934;
+    margin-top: 2px;
+  }
+
+  .om-text {
+    font-size: 13px;
+    color: #555;
+    margin-top: 5px;
+  }
+
+  .header-right {
+    border: 3px solid #ffcc00;
+    border-radius: 10px;
+    width: 250px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .sum-title {
+    background-color: #ffcc00;
+    padding: 12px 10px;
+    font-weight: bold;
+    font-size: 22px;
+  }
+
+  .sum-num {
+    background-color: #ffffff;
+    padding: 10px;
+    font-weight: bold;
+    font-size: 20px;
+  }
+
+  /* --- GRID LAYOUT --- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+  }
+
+  /* --- COMMON BOX STYLES --- */
+  .box {
+    border: 1px solid #a6a6a6;
+    position: relative;
+    margin-top: 25px;
+    padding: 20px 15px 15px;
+  }
+
+  .box-title {
+    background-color: #c6e0b4;
+    padding: 5px 20px;
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 1px solid #a6a6a6;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .text-center { text-align: center; }
+  .text-red { color: #d30000; }
+  .font-bold { font-weight: bold; }
+
+  /* --- LEFT COLUMN SPECIFICS --- */
+  .client-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .client-table td { padding: 6px 0; }
+  .client-table td:first-child { font-weight: bold; width: 90px; }
+
+  .tech-data-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    font-size: 13px;
+    margin-bottom: 5px;
+    text-align: left;
+  }
+
+  .tech-col-1 { width: 25px; text-align: right; }
+  .tech-col-2 { width: 110px; }
+  .tech-col-3 { width: 50px; }
+
+  /* Corregido: Uso de Grid para alinear perfectamente la caja de Consumo */
+  .consumo-grid {
+    display: grid;
+    grid-template-columns: 150px 80px 80px;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .consumo-label { font-weight: bold; text-align: left; }
+  .consumo-val { text-align: left; padding-left: 10px;}
+  .consumo-unit { text-align: right; }
+
+  .mes-facturado-left {
+    border: 1px solid #a6a6a6;
+    margin-top: 25px;
+  }
+  .mes-facturado-left-header {
+    background-color: #c6e0b4;
+    padding: 10px 15px;
+    border-bottom: 1px solid #a6a6a6;
+    font-weight: bold;
+    display: flex;
+    gap: 20px;
+  }
+  
+  .yellow-banner {
+    background-color: #ffcc00;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 25px;
+    font-size: 15px;
+  }
+
+  /* --- RIGHT COLUMN SPECIFICS --- */
+  .mes-facturado-top {
+    background-color: #c6e0b4;
+    border: 1px solid #a6a6a6;
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-top: 11px;
+    font-size: 14px;
+  }
+
+  .facturacion-table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  .facturacion-table th { padding-bottom: 12px; }
+  .facturacion-table td { padding: 6px 0; }
+
+  .sub-box {
+    border: 1px solid #a6a6a6;
+    padding: 15px 35px;
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 15px;
+  }
+
+  .total-box {
+    border: 2px solid #c49a17;
+    background-color: #fdf5e6;
+    padding: 15px 35px;
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 20px;
+  }
+
+  .dates-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 13px;
+  }
+  .dates-table th {
+    background-color: #daeef3;
+    border: 1px solid #a6a6a6;
+    padding: 10px;
+  }
+  .dates-table td {
+    border: 1px solid #a6a6a6;
+    padding: 12px;
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  .estado-box {
+    border: 1px solid #a6a6a6;
+    padding: 15px;
+    margin-top: 15px;
+    font-size: 13px;
+    height: 65px;
+    display: flex;
+    align-items: center;
+  }
+
+  .referencia-box {
+    border: 1px solid #a6a6a6;
+    margin-top: 15px;
+  }
+  .referencia-header {
+    background-color: #c6e0b4;
+    padding: 8px;
+    text-align: center;
+    border-bottom: 1px solid #a6a6a6;
+    font-weight: bold;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="receipt-container">
+  
+  <header class="header">
+    <div class="logo-placeholder">
+      [ ESCUDO ]
+    </div>
+    
+    <div class="header-center">
+      <div class="muni-text">Municipalidad Distrital de</div>
+      <div class="title-text">CURIMANA</div>
+      <div class="ruc-text">RUC: 20232953421</div>
+      <div class="om-text">OM N° 006-2019-MDC</div>
+    </div>
+    
+    <div class="header-right">
+      <div class="sum-title">Nº SUMINISTRO</div>
+      <div class="sum-num">608132425</div>
+    </div>
+  </header>
+
+  <div class="main-grid">
+    
+    <div>
+      <div class="box">
+        <div class="box-title">DATOS DEL CLIENTE</div>
+        <table class="client-table">
+          <tr>
+            <td>NOMBRE:</td>
+            <td>PEREZ NOA KATIA AKEMI</td>
+          </tr>
+          <tr>
+            <td>DIRECCIÓN:</td>
+            <td>JR. RIO AGUAYTIA MZ. 26E LT. S/N</td>
+          </tr>
+          <tr>
+            <td>SECTOR:</td>
+            <td>PLAZA MAYOR</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="box text-center">
+        <div class="box-title">DATOS TÉCNICOS</div>
+        <div class="font-bold" style="font-size: 13px; margin-bottom: 15px;">TARIFA: BT5B-RESIDENCIAL - MONOFÁSICO</div>
+        
+        <div class="tech-data-row">
+          <div class="tech-col-1">DE:</div>
+          <div class="tech-col-2">0 A 30 kWh:</div>
+          <div class="tech-col-3">S/ 0.31</div>
+        </div>
+        <div class="tech-data-row">
+          <div class="tech-col-1">DE:</div>
+          <div class="tech-col-2">31 A 100 kWh:</div>
+          <div class="tech-col-3">S/ 0.62</div>
+        </div>
+        <div class="tech-data-row">
+          <div class="tech-col-1">DE:</div>
+          <div class="tech-col-2">101 A + kWh:</div>
+          <div class="tech-col-3">S/ 0.64</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">DETALLE DEL CONSUMO</div>
+        
+        <div class="consumo-grid">
+          <div class="consumo-label">LECTURA ACTUAL</div>
+          <div class="consumo-val text-red font-bold">2805</div>
+          <div class="consumo-unit">25/06/2025</div>
+        </div>
+        
+        <div class="consumo-grid">
+          <div class="consumo-label">LECTURA ANTERIOR</div>
+          <div class="consumo-val text-red font-bold">2805</div>
+          <div class="consumo-unit">26/05/2025</div>
+        </div>
+        
+        <div class="consumo-grid" style="margin-bottom: 15px;">
+          <div class="consumo-label">CONSUMO FACTURADO</div>
+          <div class="consumo-val">-</div>
+          <div class="consumo-unit"></div>
+        </div>
+        
+        <div class="consumo-grid">
+          <div class="consumo-label">PRECIO UNIT. X kWH</div>
+          <div class="consumo-val"><span class="font-bold">S/</span> 0.31</div>
+          <div class="consumo-unit font-bold">kW.h</div>
+        </div>
+      </div>
+
+      <div class="box text-center">
+        <div class="box-title">MENSAJES AL CLIENTE</div>
+        <p style="font-size: 14px; margin: 15px 0;">Este recibo corresponde a su consumo durante<br>el mes de <strong style="font-size: 15px;">JUNIO 2025</strong></p>
+      </div>
+
+      <div class="mes-facturado-left">
+        <div class="mes-facturado-left-header">
+          <span>MES FACTURADO</span>
+          <span>JUNIO 2025</span>
+        </div>
+        <div style="padding: 15px; font-size: 14px;">
+          <div class="text-center">DEL: 26/05/2025 AL 25/06/2025</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 0 40px 0 20px;">
+            <strong style="font-size: 18px;">TOTAL</strong>
+            <strong style="font-size: 20px;">***</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="yellow-banner">
+        ¡N USTED YA PAGÓ, OMIFA ESTE RECIBO!
+      </div>
+    </div>
+
+    <div>
+      <div class="mes-facturado-top">
+        <span>MES FACTURADO</span>
+        <span>JUNIO 2025</span>
+      </div>
+
+      <div class="box">
+        <div class="box-title">DETALLE FACTURACIÓN</div>
+        <table class="facturacion-table">
+          <tr>
+            <th style="text-align: left;">CONCEPTO</th>
+            <th style="text-align: right;">IMPORTE S/</th>
+          </tr>
+          <tr>
+            <td>ALUMBRADO PÚBLICO</td>
+            <td style="text-align: right;">1.68</td>
+          </tr>
+          <tr>
+            <td>CARGO FIJO</td>
+            <td style="text-align: right;">4.37</td>
+          </tr>
+          <tr>
+            <td>ENERGÍA AJUSTADA</td>
+            <td style="text-align: right;"></td>
+          </tr>
+          <tr>
+            <td>RECOLECCIÓN RESÍDUOS SÓLIDOS</td>
+            <td style="text-align: right;">0</td>
+          </tr>
+          <tr>
+            <td>SERENAZGO</td>
+            <td style="text-align: right;">0</td>
+          </tr>
+          <tr>
+            <td>BARRIDO DE CALLES</td>
+            <td style="text-align: right;">0</td>
+          </tr>
+          <tr>
+            <td>PARQUES Y JARDINES</td>
+            <td style="text-align: right;">0</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="sub-box">
+        <span>SUB TOTAL :</span>
+        <span>S/6.05</span>
+      </div>
+
+      <div class="sub-box">
+        <span>DEUDAS ANTERIORES S/</span>
+        <span>S/436.27</span>
+      </div>
+
+      <div class="total-box">
+        <span>TOTAL A PAGAR :</span>
+        <span>S/442.32</span>
+      </div>
+
+      <table class="dates-table">
+        <tr>
+          <th>FECHA EMISIÓN</th>
+          <th>ULTIMO DÍA DE PAGO</th>
+        </tr>
+        <tr>
+          <td>05/07/2025</td>
+          <td class="text-red">25/07/2025</td>
+        </tr>
+      </table>
+
+      <div class="estado-box">
+        <strong>ESTADO DE <br> SUMINISTRO:</strong>
+      </div>
+
+      <div class="referencia-box">
+        <div class="referencia-header">REFERENCIA DE MESES ANTERIORES</div>
+        <div class="text-center" style="padding: 15px; font-size: 12px; line-height: 1.8;">
+          <div>PROXIMO MES SE ACTUALIZARÁ LA TARIFA BT5B</div>
+          <div>¡REALIZA TUS PAGOS PUNTUALES Y EVITA LOS CORTES!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

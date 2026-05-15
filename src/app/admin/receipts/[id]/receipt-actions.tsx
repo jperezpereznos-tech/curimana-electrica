@@ -30,11 +30,8 @@ export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBrea
         full_name: receipt.customers.full_name,
         address: receipt.customers.address ?? undefined,
         sectors: receipt.customers.sectors ? { id: receipt.customers.sectors.id, name: receipt.customers.sectors.name } : null,
-        tariffs: receipt.customers.tariffs ? { name: receipt.customers.tariffs.name, connection_type: receipt.customers.tariffs.connection_type } : null,
       } : null,
-      tariff_tiers: receipt.customers?.tariffs?.tariff_tiers ?? [],
-      readings: receipt.readings ? { reading_date: receipt.readings.reading_date } : null,
-      municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name, om_number: municipalityConfig.om_number, logo_url: municipalityConfig.logo_url } : undefined,
+      municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,
       conceptsBreakdown,
     })
   }

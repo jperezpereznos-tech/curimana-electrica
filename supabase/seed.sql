@@ -19,8 +19,8 @@ INSERT INTO sectors (name, code, description) VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- 3. Configuración Municipal
-INSERT INTO municipality_config (ruc, name, address, billing_cut_day, payment_grace_days, om_number)
-SELECT '20232953421', 'Municipalidad Distrital de Curimana', 'Plaza de Armas S/N, Curimana', 26, 20, 'OM N° 006-2019-MDC'
+INSERT INTO municipality_config (ruc, name, address, billing_cut_day, payment_grace_days)
+SELECT '20123456789', 'Municipalidad Distrital de Curimana', 'Plaza de Armas S/N, Curimana', 26, 20
 WHERE NOT EXISTS (SELECT 1 FROM municipality_config);
 
 -- 3. Tarifas

@@ -276,7 +276,6 @@ municipality_config: {
         id: string
         logo_url: string | null
         name: string
-        om_number: string | null
         payment_grace_days: number | null
         ruc: string
         updated_at: string | null
@@ -288,7 +287,6 @@ municipality_config: {
         id?: string
         logo_url?: string | null
         name: string
-        om_number?: string | null
         payment_grace_days?: number | null
         ruc: string
         updated_at?: string | null
@@ -300,7 +298,6 @@ municipality_config: {
         id?: string
         logo_url?: string | null
         name?: string
-        om_number?: string | null
         payment_grace_days?: number | null
         ruc?: string
         updated_at?: string | null

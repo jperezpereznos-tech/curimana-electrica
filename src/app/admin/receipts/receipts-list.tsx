@@ -59,8 +59,7 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters, municip
   const handleDownload = (receipt: ReceiptWithPeriod) => {
     pdfService.generateReceiptPdf({
       ...receipt,
-      tariff_tiers: [],
-      municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name, om_number: municipalityConfig.om_number, logo_url: municipalityConfig.logo_url } : undefined,
+      municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,
     })
   }
 
