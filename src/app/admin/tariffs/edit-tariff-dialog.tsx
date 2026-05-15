@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,9 @@ const tierSchema = z.object({
   min_kwh: z.number().min(0),
   max_kwh: z.union([z.number(), z.nan()]).nullable().optional()
     .transform(v => (v === null || v === undefined || Number.isNaN(v)) ? null : v),
-  price_per_kwh: z.number().min(0, 'Precio requerido'),
+  price_per_kwh: z.union([z.number(), z.nan()]).optional()
+    .transform(v => (v === undefined || Number.isNaN(v)) ? 0 : v)
+    .pipe(z.number().min(0, 'Precio requerido')),
 })
 
 const tariffSchema = z.object({
@@ -42,6 +44,14 @@ const tariffSchema = z.object({
 })
 
 type TariffFormValues = z.input<typeof tariffSchema>
+
+function getNextMinKwh(tiers: { min_kwh: number; max_kwh?: number | null | undefined }[]): number {
+  if (tiers.length === 0) return 0
+  const lastTier = tiers[tiers.length - 1]
+  const lastMax = lastTier.max_kwh
+  if (lastMax == null || isNaN(lastMax)) return 0
+  return lastMax + 1
+}
 
 interface EditTariffDialogProps {
   tariff: TariffWithTiers
@@ -94,23 +104,6 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
     }
   }, [open, tariff, form])
 
-  const handleMaxKwhBlur = (index: number) => {
-    const tiers = form.getValues('tiers')
-    const currentMax = tiers[index].max_kwh
-    const isLast = index === tiers.length - 1
-    const hasValidMax = currentMax != null && !isNaN(currentMax)
-
-    if (isLast && hasValidMax) {
-      append({ min_kwh: Number(currentMax) + 1, max_kwh: null, price_per_kwh: 0 })
-    }
-
-    if (!isLast && (currentMax == null || isNaN(currentMax))) {
-      for (let i = tiers.length - 1; i > index; i--) {
-        remove(i)
-      }
-    }
-  }
-
   const onSubmit = async (values: TariffFormValues) => {
     setFormError(null)
     const result = await updateTariffAction(
@@ -152,9 +145,10 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
         <DialogHeader>
           <DialogTitle>Editar Tarifa</DialogTitle>
           <DialogDescription>
-            Modifica el nombre y los tramos de consumo. Al completar el límite superior de un tramo, el siguiente se agregará automáticamente.
+            Modifica el nombre y los tramos de consumo para esta tarifa.
           </DialogDescription>
         </DialogHeader>
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -180,16 +174,28 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
               </Select>
             </div>
           </div>
+
           <div className="space-y-4">
-            <Label>Tramos de Consumo</Label>
+            <div className="flex items-center justify-between">
+              <Label>Tramos de Consumo</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ min_kwh: getNextMinKwh(form.getValues('tiers')), max_kwh: null, price_per_kwh: 0 })}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Agregar Tramo
+              </Button>
+            </div>
+
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end border p-3 rounded-lg bg-muted/50">
                 <div className="space-y-1">
                   <Label className="text-xs">Min kWh</Label>
                   <Input
                     type="number"
-                    readOnly
-                    className="bg-muted cursor-not-allowed"
+                    readOnly={index === 0}
+                    className={index === 0 ? 'bg-muted cursor-not-allowed' : ''}
                     {...form.register(`tiers.${index}.min_kwh`, { valueAsNumber: true })}
                   />
                 </div>
@@ -198,7 +204,6 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
                   <Input
                     type="number"
                     {...form.register(`tiers.${index}.max_kwh`, { valueAsNumber: true })}
-                    onBlur={() => handleMaxKwhBlur(index)}
                   />
                 </div>
                 <div className="space-y-1">
@@ -225,11 +230,13 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
               <p className="text-xs text-destructive">{String(form.formState.errors.tiers.message)}</p>
             )}
           </div>
+
           {formError && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-md">
               {formError}
             </div>
           )}
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar

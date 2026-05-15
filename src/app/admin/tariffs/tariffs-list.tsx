@@ -89,17 +89,28 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
               <TableRow key={tariff.id}>
                 <TableCell className="font-medium">{tariff.name}</TableCell>
                 <TableCell className="capitalize">{tariff.connection_type}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1 text-xs">
-                    {tariff.tariff_tiers
-                      .sort((a, b) => a.min_kwh - b.min_kwh)
-                      .map((tier) => (
-                        <span key={tier.id}>
-                          {tier.min_kwh} - {tier.max_kwh ?? '+'} kWh: {formatCurrency(tier.price_per_kwh)}
-                        </span>
-                      ))}
-                  </div>
-                </TableCell>
+            <TableCell>
+              <table className="text-xs border-collapse">
+                <thead>
+                  <tr className="text-muted-foreground">
+                    <th className="pr-3 pb-1 text-left font-medium">De</th>
+                    <th className="pr-3 pb-1 text-left font-medium">A</th>
+                    <th className="pb-1 text-left font-medium">Precio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tariff.tariff_tiers
+                    .sort((a, b) => a.min_kwh - b.min_kwh)
+                    .map((tier) => (
+                      <tr key={tier.id} className="border-t border-border/50 first:border-0">
+                        <td className="pr-3 py-0.5">{tier.min_kwh}</td>
+                        <td className="pr-3 py-0.5">{tier.max_kwh ?? '∞'}</td>
+                        <td className="py-0.5">{formatCurrency(tier.price_per_kwh)}/kWh</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </TableCell>
                 <TableCell>
                   <Badge variant={tariff.is_active ? 'default' : 'secondary'}>
                     {tariff.is_active ? 'Activa' : 'Inactiva'}
