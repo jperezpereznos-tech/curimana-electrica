@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Search, User, MapPin, AlertCircle, Receipt, Printer, FileText } from 'lucide-react'
-import { searchCashierCustomerAction, getCustomerPaymentsAction } from './actions'
+import { searchCashierCustomerAction, getCustomerPaymentsAction, getReceiptPrintDataAction } from './actions'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { PaymentModal } from './payment-modal'
 import { BatchPaymentModal } from './batch-payment-modal'
 import { pdfService } from '@/services/pdf-service'
+import { ReceiptPrintLayout } from '@/components/receipt-print-layout'
+import type { ReceiptPrintLayoutProps } from '@/components/receipt-print-layout'
 import type { CustomerWithRelations, ReceiptWithPeriod } from '@/types/views'
 
 type Customer = CustomerWithRelations
@@ -31,6 +33,8 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
   const [payments, setPayments] = useState<Record<string, unknown>[]>([])
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const [printData, setPrintData] = useState<ReceiptPrintLayoutProps | null>(null)
+  const [printingId, setPrintingId] = useState<string | null>(null)
   const searchVersionRef = useRef(0)
 
   const handleSearch = useCallback(async () => {
@@ -71,6 +75,20 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
     const customerDebt = Math.round(((customer?.current_debt as number) || 0) * 100) / 100
     return customerDebt
   }, [receipts, customer?.current_debt])
+
+  const handlePrintReceipt = useCallback(async (receiptId: string) => {
+    setPrintingId(receiptId)
+    const result = await getReceiptPrintDataAction(receiptId)
+    if (result.success && result.data) {
+      setPrintData(result.data as ReceiptPrintLayoutProps)
+      setTimeout(() => {
+        window.print()
+        setPrintingId(null)
+      }, 300)
+    } else {
+      setPrintingId(null)
+    }
+  }, [])
 
   const handlePrintVoucher = useCallback((payment: Record<string, unknown>) => {
     const receiptData = payment.receipts as Record<string, unknown> | null
@@ -127,7 +145,6 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
 
       {customer && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
-          {/* Info Cliente */}
           <Card className="md:col-span-1">
             <CardHeader>
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -170,7 +187,6 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
             </CardContent>
           </Card>
 
-          {/* Recibos Pendientes */}
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -204,7 +220,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
                             <p className="text-sm text-muted-foreground">{receipt.billing_periods?.name ?? 'Periodo no disponible'}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-4">
                           <div className="text-right">
                             {receipt.status === 'partial' && (
                               <p className="text-xs text-muted-foreground">
@@ -214,6 +230,16 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
                             <p className="text-xs text-muted-foreground uppercase">Pendiente</p>
                             <p className="text-xl font-bold">{formatCurrency(pending)}</p>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => handlePrintReceipt(receipt.id)}
+                            disabled={printingId === receipt.id}
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            {printingId === receipt.id ? '...' : ''}
+                          </Button>
                 <PaymentModal
                   receipt={receipt}
                   customer={customer}
@@ -230,7 +256,6 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
         </CardContent>
       </Card>
 
-      {/* Historial de Pagos */}
       {payments.length > 0 && (
         <Card className="md:col-span-3">
           <CardHeader>
@@ -278,6 +303,21 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
       )}
     </div>
   )}
+
+  {printData && (
+    <div id="receipt-municipal-print" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+      <ReceiptPrintLayout {...printData} />
+    </div>
+  )}
+
+  <style>{`
+    @media print {
+      body * { visibility: hidden !important; }
+      #receipt-municipal-print, #receipt-municipal-print * { visibility: visible !important; }
+      #receipt-municipal-print { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: 210mm !important; padding: 5mm !important; margin: 0 !important; }
+      @page { size: A4 portrait; margin: 8mm; }
+    }
+  `}</style>
 </div>
   )
 }

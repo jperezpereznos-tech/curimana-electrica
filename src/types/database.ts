@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       audit_logs: {
@@ -268,40 +243,43 @@ export type Database = {
           },
         ]
       }
-municipality_config: {
-      Row: {
-        address: string
-        billing_cut_day: number | null
-        created_at: string | null
-        id: string
-        logo_url: string | null
-        name: string
-        payment_grace_days: number | null
-        ruc: string
-        updated_at: string | null
-      }
-      Insert: {
-        address: string
-        billing_cut_day?: number | null
-        created_at?: string | null
-        id?: string
-        logo_url?: string | null
-        name: string
-        payment_grace_days?: number | null
-        ruc: string
-        updated_at?: string | null
-      }
-      Update: {
-        address?: string
-        billing_cut_day?: number | null
-        created_at?: string | null
-        id?: string
-        logo_url?: string | null
-        name?: string
-        payment_grace_days?: number | null
-        ruc?: string
-        updated_at?: string | null
-      }
+      municipality_config: {
+        Row: {
+          address: string
+          billing_cut_day: number | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          om_number: string | null
+          payment_grace_days: number | null
+          ruc: string
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          billing_cut_day?: number | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          om_number?: string | null
+          payment_grace_days?: number | null
+          ruc: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          billing_cut_day?: number | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          om_number?: string | null
+          payment_grace_days?: number | null
+          ruc?: string
+          updated_at?: string | null
+        }
         Relationships: []
       }
       payments: {
@@ -689,30 +667,30 @@ municipality_config: {
         ]
       }
       tariffs: {
-      Row: {
-        connection_type: string | null
-        created_at: string | null
-        id: string
-        is_active: boolean | null
-        name: string
-        updated_at: string | null
-      }
-      Insert: {
-        connection_type?: string | null
-        created_at?: string | null
-        id?: string
-        is_active?: boolean | null
-        name: string
-        updated_at?: string | null
-      }
-      Update: {
-        connection_type?: string | null
-        created_at?: string | null
-        id?: string
-        is_active?: boolean | null
-        name?: string
-        updated_at?: string | null
-      }
+        Row: {
+          connection_type: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          connection_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          connection_type?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
         Relationships: []
       }
     }
@@ -762,10 +740,10 @@ municipality_config: {
         Args: { p_customer_id: string }
         Returns: number
       }
-void_payment: {
-      Args: { p_payment_id: string }
-      Returns: undefined
-    }
+      void_payment: {
+        Args: { p_payment_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -894,9 +872,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

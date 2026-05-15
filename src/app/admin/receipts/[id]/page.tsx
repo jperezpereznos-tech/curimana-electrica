@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
 import { ReceiptDetailActions } from './receipt-actions'
+import { ReceiptPrintLayout } from '@/components/receipt-print-layout'
 import './receipt-print.css'
 
 export default async function ReceiptDetailsPage({
@@ -55,6 +56,58 @@ export default async function ReceiptDetailsPage({
     fixedConcepts,
     receipt.previous_debt ?? 0
   )
+
+  const { data: prevReceipts } = await supabase
+    .from('receipts')
+    .select('total_amount, status, billing_periods(name)')
+    .eq('customer_id', receipt.customer_id ?? '')
+    .neq('id', receipt.id)
+    .order('created_at', { ascending: false })
+    .limit(3)
+
+  const previousReceiptRefs = (prevReceipts ?? []).map(r => ({
+    periodName: (r.billing_periods as { name: string } | null)?.name ?? '-',
+    totalAmount: r.total_amount,
+    status: r.status ?? 'pending',
+  }))
+
+  const printLayoutProps = {
+    supplyNumber: receipt.customers?.supply_number ?? '',
+    customerName: receipt.customers?.full_name ?? '',
+    customerAddress: receipt.customers?.address ?? '',
+    sectorName: receipt.customers?.sectors?.name ?? '',
+    tariffName: receipt.customers?.tariffs?.name ?? 'BT5B-RESIDENCIAL',
+    connectionType: receipt.customers?.tariffs?.connection_type ?? 'monofásico',
+    tariffTiers: sortedTiers.map(t => ({
+      min_kwh: t.min_kwh,
+      max_kwh: t.max_kwh,
+      price_per_kwh: t.price_per_kwh,
+      order_index: t.order_index,
+    })),
+    currentReading: receipt.current_reading,
+    previousReading: receipt.previous_reading,
+    consumptionKwh: receipt.consumption_kwh,
+    readingDate: receipt.readings?.reading_date ?? receipt.period_end,
+    previousReadingDate: receipt.period_start,
+    periodName: receipt.billing_periods?.name ?? '',
+    periodStart: receipt.period_start,
+    periodEnd: receipt.period_end,
+    energyAmount: receipt.energy_amount,
+    conceptsBreakdown: breakdown.conceptsBreakdown,
+    subtotal: receipt.subtotal,
+    previousDebt: receipt.previous_debt ?? 0,
+    totalAmount: receipt.total_amount,
+    issueDate: receipt.issue_date,
+    dueDate: receipt.due_date,
+    status: receipt.status,
+    municipalityConfig: municipalityConfig ? {
+      ruc: municipalityConfig.ruc,
+      name: municipalityConfig.name,
+      om_number: municipalityConfig.om_number,
+      logo_url: municipalityConfig.logo_url,
+    } : null,
+    previousReceipts: previousReceiptRefs,
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -158,6 +211,10 @@ export default async function ReceiptDetailsPage({
             <ReceiptDetailActions receipt={receipt} municipalityConfig={municipalityConfig} conceptsBreakdown={breakdown.conceptsBreakdown} />
           </CardFooter>
         </Card>
+      </div>
+
+      <div id="receipt-municipal-print" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <ReceiptPrintLayout {...printLayoutProps} />
       </div>
     </div>
   )

@@ -7,17 +7,39 @@ interface ConceptBreakdownItem {
   amount: number
 }
 
+interface TariffTierItem {
+  min_kwh: number
+  max_kwh: number | null
+  price_per_kwh: number
+  order_index: number
+}
+
 interface ReceiptPdfData {
-  customers?: { supply_number?: string | null; full_name?: string | null; address?: string | null; sectors?: { id: string; name: string } | null } | null
+  customers?: {
+    supply_number?: string | null
+    full_name?: string | null
+    address?: string | null
+    sectors?: { id: string; name: string } | null
+    tariffs?: { name?: string | null; connection_type?: string | null } | null
+  } | null
   billing_periods: { name: string } | null
   receipt_number: string | number
   total_amount: number
   due_date: string
+  issue_date?: string | null
   energy_amount: number
   fixed_charges: number
   previous_debt: number | null
   subtotal: number
-  municipality_config?: { ruc?: string; name?: string } | null
+  previous_reading?: number | null
+  current_reading?: number | null
+  consumption_kwh?: number | null
+  period_start?: string | null
+  period_end?: string | null
+  status?: string | null
+  readings?: { reading_date?: string | null } | null
+  tariff_tiers?: TariffTierItem[]
+  municipality_config?: { ruc?: string; name?: string; om_number?: string | null; logo_url?: string | null } | null
   conceptsBreakdown?: ConceptBreakdownItem[]
 }
 

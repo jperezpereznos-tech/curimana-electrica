@@ -138,8 +138,16 @@ export class PaymentService {
   }
 
   async voidPayment(paymentId: string, userId?: string) {
+    let uid = userId
+    if (!uid) {
+      const { data: { user } } = await this.supabase.auth.getUser()
+      uid = user?.id
+    }
+    if (!uid) throw new Error('Se requiere un usuario autenticado para anular pagos')
+
     const { error: rpcError } = await this.supabase.rpc('void_payment', {
       p_payment_id: paymentId,
+      p_user_id: uid,
     })
 
     if (rpcError) throw new Error(rpcError.message)
