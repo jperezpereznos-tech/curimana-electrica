@@ -13,9 +13,12 @@ vi.mock('@/repositories/payment-repository')
 vi.mock('@/repositories/cash-closure-repository')
 vi.mock('@/services/audit-service')
 
-function createMockSupabase() {
+function createMockSupabase(opts?: { userId?: string | null }) {
   return {
-    rpc: vi.fn().mockResolvedValue({ data: 'payment-id-1', error: null })
+    rpc: vi.fn().mockResolvedValue({ data: 'payment-id-1', error: null }),
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: opts?.userId ? { id: opts.userId } : null } })
+    }
   } as unknown as SupabaseClient<Database>
 }
 
@@ -262,24 +265,22 @@ describe('PaymentService - voidPayment', () => {
     ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: null })
   })
 
-  it('deberia llamar a void_payment RPC sin p_user_id', async () => {
+  it('deberia llamar a void_payment RPC con p_user_id cuando se pasa', async () => {
     const service = new PaymentService(mockSupabase)
 
     await service.voidPayment('p1', 'user1')
 
     expect(mockSupabase.rpc).toHaveBeenCalledWith('void_payment', {
       p_payment_id: 'p1',
+      p_user_id: 'user1',
     })
   })
 
-  it('deberia llamar a void_payment con solo p_payment_id si no hay userId', async () => {
+  it('deberia lanzar error si no hay userId ni auth', async () => {
     const service = new PaymentService(mockSupabase)
 
-    await service.voidPayment('p1')
-
-    expect(mockSupabase.rpc).toHaveBeenCalledWith('void_payment', {
-      p_payment_id: 'p1',
-    })
+    // No pasar userId y mock sin auth
+    await expect(service.voidPayment('p1')).rejects.toThrow('Se requiere un usuario autenticado')
   })
 
   it('deberia lanzar error si la RPC falla', async () => {
@@ -306,6 +307,11 @@ describe('PaymentService - voidPayment', () => {
   })
 
   it('no deberia registrar auditoria si no se pasa userId', async () => {
+    // Configurar auth mock para que devuelva un usuario válido
+    mockSupabase.auth = {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auto-user' } } })
+    } as any
+
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     const service = new PaymentService(mockSupabase)

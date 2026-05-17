@@ -26,15 +26,15 @@ describe('billing-utils - calculateEnergyAmount', () => {
     expect(calculateEnergyAmount(0, tiers)).toBe(0)
   })
 
-  it('debería manejar tiers con gaps entre limites', () => {
-    const gappedTiers = [
-      { min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
-      { min_kwh: 31, max_kwh: 100, price_per_kwh: 0.62 },
-      { min_kwh: 101, max_kwh: null, price_per_kwh: 0.64 }
+  it('debería manejar tiers trifásicos continuos', () => {
+    const triTiers = [
+      { min_kwh: 0, max_kwh: 30, price_per_kwh: 0.39 },
+      { min_kwh: 30, max_kwh: 100, price_per_kwh: 0.70 },
+      { min_kwh: 100, max_kwh: null, price_per_kwh: 0.76 }
     ]
-    // 30 * 0.31 + 19 * 0.62 = 9.30 + 11.78 = 21.08
-    expect(calculateEnergyAmount(50, gappedTiers)).toBe(21.08)
-    // 30 * 0.31 + 69 * 0.62 + 19 * 0.64 = 9.30 + 42.78 + 12.16 = 64.24
-    expect(calculateEnergyAmount(120, gappedTiers)).toBe(64.24)
+    // 30 * 0.39 + 20 * 0.70 = 11.70 + 14.00 = 25.70
+    expect(calculateEnergyAmount(50, triTiers)).toBe(25.70)
+    // 30 * 0.39 + 70 * 0.70 + 20 * 0.76 = 11.70 + 49.00 + 15.20 = 75.90
+    expect(calculateEnergyAmount(120, triTiers)).toBe(75.90)
   })
 })

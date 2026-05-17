@@ -15,7 +15,7 @@ export class TariffService {
     this.auditSvc = new AuditService(supabaseClient)
   }
 
-  validateTiers(tiers: TierInsert[]): void {
+  validateTiers(tiers: TierInsert[], strictContinuity: boolean = true): void {
     if (!tiers || tiers.length === 0) return
 
     const sortedTiers = [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
@@ -40,6 +40,9 @@ export class TariffService {
         }
         if (currentMax > next.min_kwh) {
           throw new Error(`Tramos superpuestos detectados: El tramo que termina en ${currentMax} se cruza con el que inicia en ${next.min_kwh}.`)
+        }
+        if (strictContinuity && currentMax !== next.min_kwh) {
+          throw new Error(`Tramos discontinuos: el tramo termina en ${currentMax} kWh pero el siguiente inicia en ${next.min_kwh} kWh. Los límites deben coincidir.`)
         }
       }
     }

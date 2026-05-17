@@ -14,8 +14,8 @@ describe('TariffService - validateTiers', () => {
   it('debería pasar si los tramos son válidos', () => {
     const tiers = [
       { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.5 },
-      { order_index: 2, min_kwh: 31, max_kwh: 100, price_per_kwh: 0.8 },
-      { order_index: 3, min_kwh: 101, max_kwh: null, price_per_kwh: 1.2 },
+      { order_index: 2, min_kwh: 30, max_kwh: 100, price_per_kwh: 0.8 },
+      { order_index: 3, min_kwh: 100, max_kwh: null, price_per_kwh: 1.2 },
     ]
 
     expect(() => service.validateTiers(tiers)).not.toThrow()
@@ -62,7 +62,7 @@ describe('TariffService - validateTiers', () => {
   it('debería aceptar último tramo sin max_kwh', () => {
     const tiers = [
       { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.5 },
-      { order_index: 2, min_kwh: 31, max_kwh: null, price_per_kwh: 1.2 },
+      { order_index: 2, min_kwh: 30, max_kwh: null, price_per_kwh: 1.2 },
     ]
 
     expect(() => service.validateTiers(tiers)).not.toThrow()
@@ -78,13 +78,22 @@ describe('TariffService - validateTiers', () => {
     expect(() => service.validateTiers(tiers)).not.toThrow()
   })
 
-  it('debería aceptar tramos con gap entre ellos', () => {
+  it('debería rechazar tramos con gap entre ellos por defecto (strictContinuity=true)', () => {
     const tiers = [
       { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
       { order_index: 2, min_kwh: 32, max_kwh: 100, price_per_kwh: 0.62 },
     ]
 
-    expect(() => service.validateTiers(tiers)).not.toThrow()
+    expect(() => service.validateTiers(tiers)).toThrow('Tramos discontinuos')
+  })
+
+  it('debería aceptar tramos con gap si strictContinuity=false', () => {
+    const tiers = [
+      { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 },
+      { order_index: 2, min_kwh: 32, max_kwh: 100, price_per_kwh: 0.62 },
+    ]
+
+    expect(() => service.validateTiers(tiers, false)).not.toThrow()
   })
 
   it('debería rechazar tramos superpuestos incluso con validación estricta', () => {
@@ -94,6 +103,16 @@ describe('TariffService - validateTiers', () => {
     ]
 
     expect(() => service.validateTiers(tiers)).toThrow('Tramos superpuestos')
+  })
+
+  it('debería aceptar tramos trifásicos contiguos', () => {
+    const tiers = [
+      { order_index: 1, min_kwh: 0, max_kwh: 30, price_per_kwh: 0.39 },
+      { order_index: 2, min_kwh: 30, max_kwh: 100, price_per_kwh: 0.70 },
+      { order_index: 3, min_kwh: 100, max_kwh: null, price_per_kwh: 0.76 },
+    ]
+
+    expect(() => service.validateTiers(tiers)).not.toThrow()
   })
 })
 
@@ -108,7 +127,7 @@ describe('TariffService - createTariffWithValidation', () => {
 
     const tiers = [
       { min_kwh: 0, max_kwh: 30, price_per_kwh: 0.5 },
-      { min_kwh: 31, max_kwh: null, price_per_kwh: 1.2 },
+      { min_kwh: 30, max_kwh: null, price_per_kwh: 1.2 },
     ]
     const result = await service.createTariffWithValidation({ name: 'BTSB' } as any, tiers as any)
 
@@ -116,7 +135,7 @@ describe('TariffService - createTariffWithValidation', () => {
       { name: 'BTSB' },
       expect.arrayContaining([
         expect.objectContaining({ order_index: 1, min_kwh: 0 }),
-        expect.objectContaining({ order_index: 2, min_kwh: 31 }),
+        expect.objectContaining({ order_index: 2, min_kwh: 30 }),
       ])
     )
     expect(result).toEqual(mockResult)
@@ -278,7 +297,7 @@ describe('TariffService - updateTariffWithTiers', () => {
 
     const tiers = [
       { min_kwh: 0, max_kwh: 30, price_per_kwh: 0.6 },
-      { min_kwh: 31, max_kwh: null, price_per_kwh: 1.3 },
+      { min_kwh: 30, max_kwh: null, price_per_kwh: 1.3 },
     ]
     const result = await service.updateTariffWithTiers('t1', { name: 'BTSB Updated' } as any, tiers as any)
 

@@ -117,6 +117,23 @@ CREATE TABLE IF NOT EXISTS tariff_tiers (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Historial de versiones de tramos tarifarios (para facturación histórica)
+CREATE TABLE IF NOT EXISTS tariff_tier_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tier_id UUID NOT NULL,
+  tariff_id UUID NOT NULL,
+  min_kwh NUMERIC NOT NULL,
+  max_kwh NUMERIC,
+  price_per_kwh NUMERIC NOT NULL,
+  order_index INT NOT NULL,
+  valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
+  valid_until TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tariff_tier_history_tariff_id ON tariff_tier_history(tariff_id);
+CREATE INDEX IF NOT EXISTS idx_tariff_tier_history_validity ON tariff_tier_history(valid_from, valid_until);
+
 -- Conceptos de cobro adicionales
 CREATE TABLE IF NOT EXISTS billing_concepts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -455,7 +472,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.void_payment(
-  p_payment_id UUID
+  p_payment_id UUID,
+  p_user_id UUID DEFAULT NULL
 )
 RETURNS VOID
 LANGUAGE plpgsql
@@ -468,8 +486,11 @@ DECLARE
   v_new_paid_amount NUMERIC;
   v_new_status TEXT;
   v_user_role TEXT;
+  v_voiding_user UUID;
 BEGIN
-  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  v_voiding_user := COALESCE(p_user_id, auth.uid());
+
+  SELECT role INTO v_user_role FROM profiles WHERE id = v_voiding_user;
 
   IF v_user_role NOT IN ('admin', 'cashier') THEN
     RAISE EXCEPTION 'Permiso denegado: solo administradores o cajeros pueden anular pagos';
@@ -609,6 +630,36 @@ GRANT EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) TO authen
 REVOKE EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) TO authenticated;
 
+-- Trigger: Registrar historial de cambios en tramos tarifarios
+CREATE OR REPLACE FUNCTION public.log_tariff_tier_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Cerrar la versión anterior del tramo correspondiente
+  UPDATE tariff_tier_history
+  SET valid_until = now()
+  WHERE tier_id = NEW.id
+    AND valid_until IS NULL;
+
+  -- Insertar nueva versión
+  INSERT INTO tariff_tier_history (
+    tier_id, tariff_id, min_kwh, max_kwh, price_per_kwh, order_index, valid_from, valid_until
+  ) VALUES (
+    NEW.id, NEW.tariff_id, NEW.min_kwh, NEW.max_kwh, NEW.price_per_kwh, NEW.order_index, now(), NULL
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_log_tariff_tier_change ON tariff_tiers;
+CREATE TRIGGER trg_log_tariff_tier_change
+  AFTER INSERT OR UPDATE ON tariff_tiers
+  FOR EACH ROW EXECUTE FUNCTION public.log_tariff_tier_change();
+
 -- ============================================================================
 -- 4. TRIGGER: Auto-crear perfil cuando se registra un usuario
 -- ============================================================================
@@ -669,6 +720,9 @@ CREATE TRIGGER sectors_updated_at BEFORE UPDATE ON sectors
 CREATE TRIGGER tariffs_updated_at BEFORE UPDATE ON tariffs
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
+CREATE TRIGGER tariff_tier_history_updated_at BEFORE UPDATE ON tariff_tier_history
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
 CREATE TRIGGER billing_concepts_updated_at BEFORE UPDATE ON billing_concepts
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
@@ -718,6 +772,7 @@ ALTER TABLE municipality_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tariffs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tariff_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_concepts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tariff_tier_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_periods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE readings ENABLE ROW LEVEL SECURITY;
@@ -824,6 +879,15 @@ WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 CREATE POLICY "Users read tariff_tiers" ON tariff_tiers
   FOR SELECT TO authenticated
   USING (true);
+
+-- ── tariff_tier_history ──
+CREATE POLICY "Admin read tariff_tier_history" ON tariff_tier_history
+FOR SELECT TO authenticated
+USING ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "System insert tariff_tier_history" ON tariff_tier_history
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) IN ('admin'));
 
 -- ── billing_concepts ──
 CREATE POLICY "Admin CRUD billing_concepts" ON billing_concepts
