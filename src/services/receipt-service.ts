@@ -1,5 +1,4 @@
 import { ReceiptRepository } from '@/repositories/receipt-repository'
-import { CustomerRepository } from '@/repositories/customer-repository'
 import { AuditService } from '@/services/audit-service'
 import { calculateEnergyAmount } from '@/lib/billing-utils'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -9,19 +8,21 @@ type TariffTier = { min_kwh: number; max_kwh: number | null; price_per_kwh: numb
 
 export class ReceiptService {
   private receiptRepo: ReceiptRepository
-  private customerRepo: CustomerRepository
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
   constructor(supabaseClient: SupabaseClient<Database>) {
     this.receiptRepo = new ReceiptRepository(supabaseClient)
-    this.customerRepo = new CustomerRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
     this.supabase = supabaseClient
   }
 
   async getAllReceipts(filters?: { periodId?: string; status?: string; customerId?: string }) {
     return await this.receiptRepo.getAllWithDetails(filters)
+  }
+
+  async getOpenReceiptsByCustomer(customerId: string) {
+    return await this.receiptRepo.getOpenReceiptsByCustomer(customerId)
   }
 
   async getReceiptByNumber(receiptNumber: number) {
@@ -74,16 +75,12 @@ export class ReceiptService {
     const customerId = receipt.customer_id
     if (!customerId) throw new Error('Recibo sin cliente asociado')
 
-    const customer = await this.customerRepo.getById(customerId)
-
     const updatedReceipt = await this.receiptRepo.update(id, { status: 'cancelled' })
 
-    if (customer) {
-      const { error: debtErr } = await this.supabase.rpc('recalculate_customer_debt', {
-        p_customer_id: customerId
-      })
-      if (debtErr) throw new Error('Recibo anulado pero error al recalcular deuda del cliente: ' + debtErr.message)
-    }
+    const { error: debtErr } = await this.supabase.rpc('recalculate_customer_debt', {
+      p_customer_id: customerId
+    })
+    if (debtErr) throw new Error('Recibo anulado pero error al recalcular deuda del cliente: ' + debtErr.message)
 
     if (userId) {
       try {

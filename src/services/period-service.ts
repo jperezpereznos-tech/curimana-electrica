@@ -47,12 +47,16 @@ export class PeriodService {
   }
 
   async createNextPeriod(userId?: string) {
-    const openPeriod = await this.periodRepo.getCurrentPeriod()
+    const [openPeriod, lastPeriodResult] = await Promise.all([
+      this.periodRepo.getCurrentPeriod(),
+      this.getLastPeriod(),
+    ])
+
     if (openPeriod && !openPeriod.is_closed) {
       throw new Error('No se puede crear un nuevo periodo mientras exista uno abierto')
     }
 
-    const lastPeriod = await this.getLastPeriod()
+    const lastPeriod = lastPeriodResult
     let nextYear, nextMonth
 
     if (lastPeriod) {
@@ -122,24 +126,30 @@ export class PeriodService {
     if (!period) throw new Error('Periodo no encontrado')
     if (period.is_closed) throw new Error('El periodo ya está cerrado')
 
-    const { data: config, error: configErr } = await this.supabase
-      .from('municipality_config')
-      .select('payment_grace_days')
-      .limit(1)
-      .single()
+    const [
+      { data: config, error: configErr },
+      activeCustomersResult,
+      activeConcepts,
+      allReadings,
+    ] = await Promise.all([
+      this.supabase
+        .from('municipality_config')
+        .select('payment_grace_days')
+        .limit(1)
+        .single(),
+      this.supabase
+        .from('customers')
+        .select('*, tariffs(*, tariff_tiers(*))')
+        .eq('is_active', true),
+      this.conceptRepo.getAllActive(),
+      this.readingRepo.getReadingsByPeriod(id),
+    ])
+
     if (configErr) throw new Error('Error al obtener configuración municipal (payment_grace_days): ' + configErr.message)
 
     const graceDays = config?.payment_grace_days || 20
-
-    const { data: activeCustomersData, error: customersErr } = await this.supabase
-      .from('customers')
-      .select('*, tariffs(*, tariff_tiers(*))')
-      .eq('is_active', true)
-    if (customersErr) throw customersErr
-
-    const activeCustomers = activeCustomersData || []
-    const activeConcepts = await this.conceptRepo.getAllActive()
-    const allReadings = await this.readingRepo.getReadingsByPeriod(id)
+    const activeCustomers = activeCustomersResult.data || []
+    if (activeCustomersResult.error) throw activeCustomersResult.error
 
   const receiptPayloads: {
     customer_id: string; reading_id: string; previous_reading: number; current_reading: number;

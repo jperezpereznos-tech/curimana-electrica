@@ -33,21 +33,14 @@ export class PaymentService {
     changeAmount: number
     cashierUserId?: string
   }) {
-    const { receiptId, customerId, amount, cashClosureId } = data
+    const { receiptId, customerId, cashClosureId, amount } = data
 
-    const closure = await this.cashClosureRepo.getById(cashClosureId)
-    if (!closure?.cashier_id) throw new Error('Caja no valida para registrar pago')
-    if (closure.status !== 'open') throw new Error('La caja esta cerrada. No se pueden registrar pagos.')
-
-    const receipt = await this.receiptRepo.getById(receiptId)
-    if (!receipt) throw new Error('Recibo no encontrado')
-
-  const remaining = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
-    if (amount < 0.005) throw new Error('El monto debe ser mayor a cero')
-  if (amount - remaining > 0.005) throw new Error('El monto excede el saldo pendiente')
-    if (receipt.status === 'cancelled' || receipt.status === 'paid') {
-      throw new Error('El recibo no permite nuevos pagos')
+    let cashierId = data.cashierUserId
+    if (!cashierId) {
+      const { data: { user } } = await this.supabase.auth.getUser()
+      cashierId = user?.id || ''
     }
+    if (!cashierId) throw new Error('Se requiere un usuario autenticado')
 
     const { data: paymentId, error: rpcError } = await this.supabase.rpc('process_payment', {
       p_receipt_id: receiptId,
@@ -56,7 +49,7 @@ export class PaymentService {
       p_amount: amount,
       p_received_amount: data.receivedAmount,
       p_change_amount: data.changeAmount,
-      p_cashier_id: closure.cashier_id,
+      p_cashier_id: cashierId,
     })
 
     if (rpcError) throw new Error(rpcError.message)
@@ -70,7 +63,7 @@ export class PaymentService {
         record_id: paymentId,
         action: 'INSERT',
         new_data: { amount, method: 'cash', receipt_id: receiptId },
-        user_id: data.cashierUserId || closure.cashier_id
+        user_id: cashierId
       })
     } catch (e) { console.error('Audit log failed for processPayment:', e) }
 
@@ -92,44 +85,59 @@ export class PaymentService {
 
     const completedPayments: { id: string; receiptId: string; amount: number }[] = []
 
-    try {
-      const batchTotal = Math.round(data.payments.reduce((s, p) => s + p.amount, 0) * 100) / 100
-      for (const item of data.payments) {
-      const itemReceivedAmount = data.receivedAmount != null && data.receivedAmount >= batchTotal
-        ? Math.round((item.amount / batchTotal) * data.receivedAmount * 100) / 100
-        : item.amount
-      const itemChangeAmount = data.receivedAmount != null
-        ? Math.max(0, Math.round((itemReceivedAmount - item.amount) * 100) / 100)
-        : 0
+    const cashierId = data.cashierUserId || closure.cashier_id
+    const batchTotal = data.payments.reduce((s, p) => s + p.amount, 0)
 
-        const result = await this.processPayment({
-          receiptId: item.receiptId,
-          customerId: data.customerId,
-          cashClosureId: data.cashClosureId,
-          amount: item.amount,
-          paymentMethod: 'cash',
-          receivedAmount: Math.round(itemReceivedAmount * 100) / 100,
-          changeAmount: Math.round(itemChangeAmount * 100) / 100,
-          cashierUserId: data.cashierUserId,
+    try {
+      for (const item of data.payments) {
+        const itemReceivedAmount = data.receivedAmount != null && data.receivedAmount >= batchTotal
+          ? (item.amount / batchTotal) * data.receivedAmount
+          : item.amount
+        const itemChangeAmount = data.receivedAmount != null
+          ? Math.max(0, itemReceivedAmount - item.amount)
+          : 0
+
+        const { data: paymentId, error: rpcError } = await this.supabase.rpc('process_payment', {
+          p_receipt_id: item.receiptId,
+          p_customer_id: data.customerId,
+          p_cash_closure_id: data.cashClosureId,
+          p_amount: item.amount,
+          p_received_amount: Math.round(itemReceivedAmount * 100) / 100,
+          p_change_amount: Math.round(itemChangeAmount * 100) / 100,
+          p_cashier_id: cashierId,
         })
-        completedPayments.push({ id: result.id, receiptId: item.receiptId, amount: item.amount })
+
+        if (rpcError) throw new Error(rpcError.message)
+        if (!paymentId) throw new Error('Error al procesar el pago')
+
+        completedPayments.push({ id: paymentId, receiptId: item.receiptId, amount: item.amount })
+
+        try {
+          await this.auditSvc.log({
+            table_name: 'payments',
+            record_id: paymentId,
+            action: 'INSERT',
+            new_data: { amount: item.amount, method: 'cash', receipt_id: item.receiptId },
+            user_id: cashierId
+          })
+        } catch (e) { console.error('Audit log failed for batchPayment:', e) }
       }
       return completedPayments
-  } catch (batchError) {
-    const voidErrors: string[] = []
-    for (const completed of completedPayments) {
-      try {
-        await this.voidPayment(completed.id, data.cashierUserId)
-      } catch (voidErr: unknown) {
-        voidErrors.push(`Pago ${completed.id}: ${voidErr instanceof Error ? voidErr.message : String(voidErr)}`)
+    } catch (batchError) {
+      const voidErrors: string[] = []
+      for (const completed of completedPayments) {
+        try {
+          await this.voidPayment(completed.id, data.cashierUserId)
+        } catch (voidErr: unknown) {
+          voidErrors.push(`Pago ${completed.id}: ${voidErr instanceof Error ? voidErr.message : String(voidErr)}`)
+        }
       }
+      if (voidErrors.length > 0) {
+        const originalMsg = batchError instanceof Error ? batchError.message : String(batchError)
+        throw new Error(`${originalMsg} (ADVERTENCIA: ${voidErrors.length} pago(s) no pudieron revertirse — revise manualmente)`)
+      }
+      throw batchError
     }
-    if (voidErrors.length > 0) {
-      const originalMsg = batchError instanceof Error ? batchError.message : String(batchError)
-      throw new Error(`${originalMsg} (ADVERTENCIA: ${voidErrors.length} pago(s) no pudieron revertirse — revise manualmente)`)
-    }
-    throw batchError
-  }
   }
 
   async getPaymentsByCashier(cashierId: string, dateFilter?: { from?: string; to?: string }) {

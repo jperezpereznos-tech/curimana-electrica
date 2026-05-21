@@ -6,25 +6,35 @@ import { LatestReadings } from './latest-readings'
 import { TrendingUp, Users, CreditCard, AlertCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { DownloadReports } from './download-reports'
+import { Suspense } from 'react'
 import type { RevenueEntry, SectorEntry } from '@/types/views'
 
+function DashboardSkeleton() {
+  return <div className="flex flex-col gap-8 animate-pulse"><div className="h-10 w-64 bg-muted rounded" /><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-muted rounded-lg" />)}</div><div className="grid gap-4 grid-cols-1 md:grid-cols-3">{Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-[300px] bg-muted rounded-lg" />)}</div></div>
+}
+
 export default async function AdminDashboard() {
- const supabase = await createClient()
- const { data: claimsData, error: authErr } = await supabase.auth.getClaims()
- const dashboardService = getDashboardService(supabase)
+  const supabase = await createClient()
+  const { data: claimsData, error: authErr } = await supabase.auth.getClaims()
+  const dashboardService = getDashboardService(supabase)
 
- let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
- let revenueHistory: RevenueEntry[] = []
- let sectorData: SectorEntry[] = []
- const fetchErrors: string[] = []
+  let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
+  let revenueHistory: RevenueEntry[] = []
+  let sectorData: SectorEntry[] = []
+  const fetchErrors: string[] = []
 
- if (authErr || !claimsData) {
- fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
- }
-
-  try { kpis = await dashboardService.getSummaryKPIs() } catch (e) { fetchErrors.push(`KPIs: ${e instanceof Error ? e.message : String(e)}`) }
-  try { revenueHistory = await dashboardService.getRevenueHistory() } catch (e) { fetchErrors.push(`Ingresos: ${e instanceof Error ? e.message : String(e)}`) }
-  try { sectorData = await dashboardService.getConsumptionBySector() } catch (e) { fetchErrors.push(`Sectores: ${e instanceof Error ? e.message : String(e)}`) }
+  if (authErr || !claimsData) {
+    fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
+  } else {
+    try {
+      const dashboardData = await dashboardService.getDashboardData()
+      kpis = dashboardData.kpis
+      revenueHistory = dashboardData.revenueHistory
+      sectorData = dashboardData.sectorData
+    } catch (e) {
+      fetchErrors.push(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -75,8 +85,12 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-        <TopDebtors />
-        <LatestReadings />
+        <Suspense fallback={<DashboardSkeleton />}>
+          <TopDebtors />
+        </Suspense>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <LatestReadings />
+        </Suspense>
       </div>
     </div>
   )

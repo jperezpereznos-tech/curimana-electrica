@@ -28,6 +28,18 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
     return data
   }
 
+  async getOpenReceiptsByCustomer(customerId: string) {
+    const { data, error } = await this.supabase
+      .from('receipts')
+      .select('*, customers(full_name, supply_number, address, sectors(id, name)), billing_periods(name)')
+      .eq('customer_id', customerId)
+      .in('status', ['pending', 'partial', 'overdue'])
+      .order('receipt_number', { ascending: false })
+
+    if (error) throw new Error(error.message)
+    return data
+  }
+
   async getByReceiptNumber(receiptNumber: number) {
     const { data, error } = await this.supabase
       .from('receipts')

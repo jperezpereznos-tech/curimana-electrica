@@ -10,7 +10,6 @@ import { searchCashierCustomerAction, getCustomerPaymentsAction, getReceiptPrint
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { PaymentModal } from './payment-modal'
 import { BatchPaymentModal } from './batch-payment-modal'
-import { pdfService } from '@/services/pdf-service'
 import { ReceiptPrintLayout } from '@/components/receipt-print-layout'
 import type { ReceiptPrintLayoutProps } from '@/components/receipt-print-layout'
 import type { CustomerWithRelations, ReceiptWithPeriod } from '@/types/views'
@@ -90,12 +89,13 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
     }
   }, [])
 
-  const handlePrintVoucher = useCallback((payment: Record<string, unknown>) => {
+  const handlePrintVoucher = useCallback(async (payment: Record<string, unknown>) => {
     const receiptData = payment.receipts as Record<string, unknown> | null
     const custData = receiptData?.customers as Record<string, unknown> | null
     const periodData = receiptData?.billing_periods as Record<string, unknown> | null
     const cashierData = payment.cashier as Record<string, unknown> | null
 
+    const { pdfService } = await import('@/services/pdf-service')
     pdfService.generatePaymentVoucherPdf({
       paymentId: payment.id as string,
       reference: (payment.reference as string) || '',

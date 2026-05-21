@@ -29,7 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils'
-import { pdfService } from '@/services/pdf-service'
 import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
 import type { Database } from '@/types/database'
 
@@ -56,7 +55,8 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters, municip
     router.push(`/admin/receipts?${params.toString()}`)
   }
 
-  const handleDownload = (receipt: ReceiptWithPeriod) => {
+  const handleDownload = async (receipt: ReceiptWithPeriod) => {
+    const { pdfService } = await import('@/services/pdf-service')
     pdfService.generateReceiptPdf({
       ...receipt,
       municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,

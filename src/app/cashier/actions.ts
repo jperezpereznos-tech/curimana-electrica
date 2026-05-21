@@ -80,31 +80,10 @@ export async function searchCashierCustomerAction(query: string) {
     const customer = await customerService.getBySupplyNumber(parsed.trim())
 
     if (customer) {
-      await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
+      const { data: debtResult } = await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
+      if (debtResult != null) customer.current_debt = debtResult
 
-      const { data: refreshedCustomer } = await supabase
-        .from('customers')
-        .select('current_debt')
-        .eq('id', customer.id)
-        .single()
-
-      if (refreshedCustomer) {
-        customer.current_debt = refreshedCustomer.current_debt
-      }
-
-      const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
-        receiptService.getAllReceipts({ customerId: customer.id, status: 'pending' }),
-        receiptService.getAllReceipts({ customerId: customer.id, status: 'partial' }),
-        receiptService.getAllReceipts({ customerId: customer.id, status: 'overdue' }),
-      ])
-
-      const seen = new Set<string>()
-      const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])].filter((r) => {
-        if (seen.has(r.id)) return false
-        seen.add(r.id)
-        return true
-      })
-
+      const receipts = await receiptService.getOpenReceiptsByCustomer(customer.id)
       return { success: true as const, data: { customer, receipts } }
     }
 
@@ -112,31 +91,10 @@ export async function searchCashierCustomerAction(query: string) {
     if (results && results.length > 0) {
       const matchedCustomer = results.find(c => c.supply_number === parsed.trim()) || results[0]
 
-      await supabase.rpc('recalculate_customer_debt', { p_customer_id: matchedCustomer.id })
+      const { data: debtResult } = await supabase.rpc('recalculate_customer_debt', { p_customer_id: matchedCustomer.id })
+      if (debtResult != null) matchedCustomer.current_debt = debtResult
 
-      const { data: refreshedCustomer } = await supabase
-        .from('customers')
-        .select('current_debt')
-        .eq('id', matchedCustomer.id)
-        .single()
-
-      if (refreshedCustomer) {
-        matchedCustomer.current_debt = refreshedCustomer.current_debt
-      }
-
-      const [pendingReceipts, partialReceipts, overdueReceipts] = await Promise.all([
-        receiptService.getAllReceipts({ customerId: matchedCustomer.id, status: 'pending' }),
-        receiptService.getAllReceipts({ customerId: matchedCustomer.id, status: 'partial' }),
-        receiptService.getAllReceipts({ customerId: matchedCustomer.id, status: 'overdue' }),
-      ])
-
-      const seen = new Set<string>()
-      const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])].filter((r) => {
-        if (seen.has(r.id)) return false
-        seen.add(r.id)
-        return true
-      })
-
+      const receipts = await receiptService.getOpenReceiptsByCustomer(matchedCustomer.id)
       return { success: true as const, data: { customer: matchedCustomer, receipts } }
     }
 
@@ -146,13 +104,8 @@ export async function searchCashierCustomerAction(query: string) {
       if (receipt && receipt.status !== 'cancelled') {
         const receiptCustomer = await customerService.getBySupplyNumber(receipt.customers?.supply_number || '')
         if (receiptCustomer) {
-          await supabase.rpc('recalculate_customer_debt', { p_customer_id: receiptCustomer.id })
-          const { data: refreshedCustomer } = await supabase
-            .from('customers')
-            .select('current_debt')
-            .eq('id', receiptCustomer.id)
-            .single()
-          if (refreshedCustomer) receiptCustomer.current_debt = refreshedCustomer.current_debt
+          const { data: debtResult } = await supabase.rpc('recalculate_customer_debt', { p_customer_id: receiptCustomer.id })
+          if (debtResult != null) receiptCustomer.current_debt = debtResult
 
           return { success: true as const, data: { customer: receiptCustomer, receipts: [receipt] } }
         }

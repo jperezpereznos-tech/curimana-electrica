@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ReceiptService } from '@/services/receipt-service'
 import { ReceiptRepository } from '@/repositories/receipt-repository'
-import { CustomerRepository } from '@/repositories/customer-repository'
 import { AuditService } from '@/services/audit-service'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
@@ -264,7 +263,6 @@ describe('ReceiptService - cancelReceipt', () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1', current_debt: 100 } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
@@ -307,7 +305,6 @@ describe('ReceiptService - cancelReceipt', () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1', current_debt: 100 } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({} as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
@@ -320,31 +317,16 @@ describe('ReceiptService - cancelReceipt', () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1' } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
     ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: { message: 'RPC connection failed' } })
 
     await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('Recibo anulado pero error al recalcular deuda del cliente: RPC connection failed')
   })
 
-  it('no debería llamar RPC si el cliente es null', async () => {
-    const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
-
-    vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue(null as any)
-    vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
-
-    const result = await service.cancelReceipt('r1', 'razón')
-
-    expect(mockSupabase.rpc).not.toHaveBeenCalled()
-    expect(result).toEqual({ id: 'r1', status: 'cancelled' })
-  })
-
   it('debería permitir anular recibo con paid_amount cercano a cero (tolerancia 0.005)', async () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0.004, customer_id: 'c1' }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1' } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
 
     const result = await service.cancelReceipt('r1', 'razón')
@@ -357,7 +339,6 @@ describe('ReceiptService - cancelReceipt', () => {
     const mockReceipt = { id: 'r1', status: 'pending', total_amount: 100, paid_amount: 0, customer_id: 'c1' }
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
-    vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1' } as any)
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 

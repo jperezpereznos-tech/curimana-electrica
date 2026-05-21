@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Printer } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { pdfService } from '@/services/pdf-service'
 
 export type VoucherPaymentData = {
   reference: string
@@ -44,7 +43,8 @@ type PaymentVoucherDialogProps = {
 export function PaymentVoucherDialog({
   open, onOpenChange, payment, customer, municipalityConfig, cashierName,
 }: PaymentVoucherDialogProps) {
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    const { pdfService } = await import('@/services/pdf-service')
     pdfService.generatePaymentVoucherPdf({
       paymentId: '',
       reference: payment.reference,

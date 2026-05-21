@@ -785,6 +785,7 @@ export type Database = {
           skipped_count: number
         }[]
       }
+      get_dashboard_kpis: { Args: never; Returns: Json }
       get_user_role: { Args: never; Returns: string }
       get_user_sector_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }

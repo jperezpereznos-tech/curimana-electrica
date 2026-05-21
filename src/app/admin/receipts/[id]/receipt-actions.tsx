@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, Printer, XCircle } from 'lucide-react'
-import { pdfService } from '@/services/pdf-service'
 import { cancelReceiptAction } from '../actions'
 import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -22,7 +21,8 @@ export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBrea
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    const { pdfService } = await import('@/services/pdf-service')
     pdfService.generateReceiptPdf({
       ...receipt,
       customers: receipt.customers ? {
