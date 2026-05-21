@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -6,8 +5,8 @@ export class StorageService {
   private supabase: SupabaseClient<Database>
   private bucketName = 'reading-photos'
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
-    this.supabase = supabaseClient ?? createClient()
+  constructor(supabaseClient: SupabaseClient<Database>) {
+    this.supabase = supabaseClient
   }
 
   /**
@@ -90,8 +89,6 @@ export class StorageService {
     return publicUrl
   }
 }
-
-export const storageService = new StorageService()
 
 export function getStorageService(supabaseClient: SupabaseClient<Database>) {
   return new StorageService(supabaseClient)

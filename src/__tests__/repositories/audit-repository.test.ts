@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -32,7 +38,7 @@ describe('AuditRepository - getAllLogs', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new AuditRepository()
+    repo = new AuditRepository(mockSupabase)
   })
 
   it('debería obtener logs ordenados por created_at DESC con límite 500', async () => {

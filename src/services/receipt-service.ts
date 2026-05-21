@@ -2,7 +2,6 @@ import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { CustomerRepository } from '@/repositories/customer-repository'
 import { AuditService } from '@/services/audit-service'
 import { calculateEnergyAmount } from '@/lib/billing-utils'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -14,11 +13,11 @@ export class ReceiptService {
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.receiptRepo = new ReceiptRepository(supabaseClient)
     this.customerRepo = new CustomerRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
+    this.supabase = supabaseClient
   }
 
   async getAllReceipts(filters?: { periodId?: string; status?: string; customerId?: string }) {
@@ -102,8 +101,6 @@ export class ReceiptService {
     return updatedReceipt
   }
 }
-
-export const receiptService = new ReceiptService()
 
 export function getReceiptService(supabaseClient: SupabaseClient<Database>) {
   return new ReceiptService(supabaseClient)

@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 export class ReceiptRepository extends BaseRepository<'receipts'> {
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     super('receipts', supabaseClient)
   }
 

@@ -24,13 +24,6 @@ vi.mock('@/repositories/reading-repository')
 vi.mock('@/repositories/receipt-repository')
 vi.mock('@/repositories/concept-repository')
 vi.mock('@/services/audit-service')
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    rpc: mockRpc,
-    from: mockFrom,
-    auth: { getUser: vi.fn() }
-  })
-}))
 
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
@@ -48,8 +41,24 @@ function createAwaitableChain(resolvedValue: any) {
   return chain
 }
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: mockRpc,
+  auth: {
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
+  },
+  storage: {
+    from: vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.url' } }),
+    }),
+  },
+} as any
+
 describe('PeriodService - calculatePeriodDates', () => {
-  const service = new PeriodService()
+  const service = new PeriodService(mockSupabase)
 
   it('debería calcular correctamente el periodo de JUNIO 2025 (26 Mayo - 25 Junio)', () => {
     const result = service.calculatePeriodDates(2025, 6)
@@ -121,7 +130,7 @@ describe('PeriodService - closePeriod', () => {
       }
       return Promise.resolve({ data: [{ success: true, period_id: 'p1' }], error: null })
     })
-    service = new PeriodService()
+    service = new PeriodService(mockSupabase)
   })
 
   it('debería lanzar error si el periodo no existe', async () => {
@@ -418,7 +427,7 @@ describe('PeriodService - createNextPeriod', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    service = new PeriodService()
+    service = new PeriodService(mockSupabase)
   })
 
   it('debería lanzar error si existe un periodo abierto', async () => {
@@ -572,7 +581,7 @@ describe('PeriodService - getAllPeriods', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    service = new PeriodService()
+    service = new PeriodService(mockSupabase)
   })
 
   it('debería delegar al repositorio', async () => {
@@ -594,7 +603,7 @@ describe('PeriodService - getCurrentPeriod', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    service = new PeriodService()
+    service = new PeriodService(mockSupabase)
   })
 
   it('debería delegar al repositorio', async () => {

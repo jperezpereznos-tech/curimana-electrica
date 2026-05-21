@@ -4,8 +4,38 @@ import { SectorRepository } from '@/repositories/sector-repository'
 
 vi.mock('@/repositories/sector-repository')
 
+const mockSupabase = {
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+  }),
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: {
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
+  },
+  storage: {
+    from: vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.url' } }),
+    }),
+  },
+} as any
+
 describe('SectorService - getAllSectors', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -21,7 +51,7 @@ describe('SectorService - getAllSectors', () => {
 })
 
 describe('SectorService - getActiveSectors', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -37,7 +67,7 @@ describe('SectorService - getActiveSectors', () => {
 })
 
 describe('SectorService - createSector', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -53,7 +83,7 @@ describe('SectorService - createSector', () => {
 })
 
 describe('SectorService - updateSector', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -69,7 +99,7 @@ describe('SectorService - updateSector', () => {
 })
 
 describe('SectorService - deleteSector', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -84,7 +114,7 @@ describe('SectorService - deleteSector', () => {
 })
 
 describe('SectorService - getSectorWithReaders', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -100,7 +130,7 @@ describe('SectorService - getSectorWithReaders', () => {
 })
 
 describe('SectorService - getCustomerCount', () => {
-  const service = new SectorService()
+  const service = new SectorService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 

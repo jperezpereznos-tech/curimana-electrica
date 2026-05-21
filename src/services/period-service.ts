@@ -5,7 +5,6 @@ import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { ConceptRepository } from '@/repositories/concept-repository'
 import { AuditService } from '@/services/audit-service'
 import { calculateEnergyAmount, calculateTotalReceipt } from '@/lib/billing-utils'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { format, subMonths, setDate } from 'date-fns'
@@ -20,14 +19,14 @@ export class PeriodService {
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.periodRepo = new PeriodRepository(supabaseClient)
     this.customerRepo = new CustomerRepository(supabaseClient)
     this.readingRepo = new ReadingRepository(supabaseClient)
     this.receiptRepo = new ReceiptRepository(supabaseClient)
     this.conceptRepo = new ConceptRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
+    this.supabase = supabaseClient
   }
 
   calculatePeriodDates(year: number, month: number, cutDay: number = 26) {
@@ -261,8 +260,6 @@ export class PeriodService {
     return { period_id: id, receiptsGenerated: generatedCount, skipped: skippedCount, errors }
   }
 }
-
-export const periodService = new PeriodService()
 
 export function getPeriodService(supabaseClient: SupabaseClient<Database>) {
   return new PeriodService(supabaseClient)

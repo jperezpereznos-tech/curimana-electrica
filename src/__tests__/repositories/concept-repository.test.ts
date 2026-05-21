@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -31,7 +37,7 @@ describe('ConceptRepository - getAllActive', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ConceptRepository()
+    repo = new ConceptRepository(mockSupabase)
   })
 
   it('debería obtener conceptos activos ordenados por nombre', async () => {

@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -34,7 +40,7 @@ describe('PeriodRepository - getCurrentPeriod', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new PeriodRepository()
+    repo = new PeriodRepository(mockSupabase)
   })
 
   it('debería obtener el periodo abierto más reciente', async () => {
@@ -102,7 +108,7 @@ describe('PeriodRepository - getAllPeriods', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new PeriodRepository()
+    repo = new PeriodRepository(mockSupabase)
   })
 
   it('debería obtener todos los periodos ordenados por year y month DESC', async () => {

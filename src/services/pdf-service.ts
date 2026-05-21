@@ -241,4 +241,5 @@ export class PdfService {
   }
 }
 
+export function getPdfService() { return new PdfService() }
 export const pdfService = new PdfService()

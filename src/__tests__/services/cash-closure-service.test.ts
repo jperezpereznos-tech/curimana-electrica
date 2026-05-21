@@ -7,8 +7,38 @@ vi.mock('@/repositories/cash-closure-repository')
 vi.mock('@/repositories/payment-repository')
 vi.mock('@/services/audit-service')
 
+const mockSupabase = {
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+  }),
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: {
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
+  },
+  storage: {
+    from: vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.url' } }),
+    }),
+  },
+} as any
+
 describe('CashClosureService - getActiveClosure', () => {
-  const service = new CashClosureService()
+  const service = new CashClosureService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -34,7 +64,7 @@ describe('CashClosureService - getActiveClosure', () => {
 })
 
 describe('CashClosureService - getSessionSummary', () => {
-  const service = new CashClosureService()
+  const service = new CashClosureService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -52,7 +82,7 @@ describe('CashClosureService - getSessionSummary', () => {
 })
 
 describe('CashClosureService - openClosure', () => {
-  const service = new CashClosureService()
+  const service = new CashClosureService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -108,7 +138,7 @@ describe('CashClosureService - openClosure', () => {
 })
 
 describe('CashClosureService - closeClosure', () => {
-  const service = new CashClosureService()
+  const service = new CashClosureService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()

@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -33,7 +39,7 @@ describe('TariffRepository - getAllWithTiers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new TariffRepository()
+    repo = new TariffRepository(mockSupabase)
   })
 
   it('debería obtener tarifas con tramos ordenados DESC', async () => {
@@ -76,7 +82,7 @@ describe('TariffRepository - createTariffWithTiers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new TariffRepository()
+    repo = new TariffRepository(mockSupabase)
   })
 
   it('debería crear tarifa y luego insertar tramos', async () => {

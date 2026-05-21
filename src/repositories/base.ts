@@ -1,12 +1,11 @@
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export class BaseRepository<T extends keyof Database['public']['Tables']> {
   protected supabase: SupabaseClient<Database>
 
-  constructor(protected tableName: T, supabaseClient?: SupabaseClient<Database>) {
-    this.supabase = supabaseClient ?? createBrowserClient()
+  constructor(protected tableName: T, supabaseClient: SupabaseClient<Database>) {
+    this.supabase = supabaseClient
   }
 
   async getAll() {

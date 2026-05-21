@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -34,7 +40,7 @@ describe('CustomerRepository - searchCustomers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CustomerRepository()
+    repo = new CustomerRepository(mockSupabase)
   })
 
   it('debería buscar clientes sin sectorId', async () => {
@@ -99,7 +105,7 @@ describe('CustomerRepository - getBySupplyNumber', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CustomerRepository()
+    repo = new CustomerRepository(mockSupabase)
   })
 
   it('debería buscar cliente por supply_number exacto con maybeSingle', async () => {
@@ -175,7 +181,7 @@ describe('CustomerRepository - getTopDebtors', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CustomerRepository()
+    repo = new CustomerRepository(mockSupabase)
   })
 
   it('debería obtener deudores con is_active=true y debt>0', async () => {
@@ -220,7 +226,7 @@ describe('CustomerRepository - getActiveCustomersWithReadings', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CustomerRepository()
+    repo = new CustomerRepository(mockSupabase)
   })
 
   it('debería obtener clientes activos', async () => {
@@ -261,7 +267,7 @@ describe('CustomerRepository - getAllForCache', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CustomerRepository()
+    repo = new CustomerRepository(mockSupabase)
   })
 
   it('debería obtener clientes para caché con previous_reading', async () => {

@@ -6,8 +6,38 @@ import { AuditService } from '@/services/audit-service'
 vi.mock('@/repositories/concept-repository')
 vi.mock('@/services/audit-service')
 
+const mockSupabase = {
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+  }),
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: {
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
+  },
+  storage: {
+    from: vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.url' } }),
+    }),
+  },
+} as any
+
 describe('ConceptService - getAllConcepts', () => {
-  const service = new ConceptService()
+  const service = new ConceptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -25,7 +55,7 @@ describe('ConceptService - getAllConcepts', () => {
 })
 
 describe('ConceptService - getActiveConcepts', () => {
-  const service = new ConceptService()
+  const service = new ConceptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -57,7 +87,7 @@ describe('ConceptService - getActiveConcepts', () => {
 })
 
 describe('ConceptService - createConcept', () => {
-  const service = new ConceptService()
+  const service = new ConceptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -123,7 +153,7 @@ describe('ConceptService - createConcept', () => {
 })
 
 describe('ConceptService - updateConcept', () => {
-  const service = new ConceptService()
+  const service = new ConceptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -180,7 +210,7 @@ describe('ConceptService - updateConcept', () => {
 })
 
 describe('ConceptService - toggleConceptStatus', () => {
-  const service = new ConceptService()
+  const service = new ConceptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -237,7 +267,7 @@ describe('ConceptService - toggleConceptStatus', () => {
 })
 
 describe('ConceptService - deleteConcept', () => {
-  const service = new ConceptService()
+  const service = new ConceptService(mockSupabase)
 
   beforeEach(() => {
     vi.clearAllMocks()

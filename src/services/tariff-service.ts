@@ -10,7 +10,7 @@ export class TariffService {
   private tariffRepo: TariffRepository
   private auditSvc: AuditService
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.tariffRepo = new TariffRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
   }
@@ -141,8 +141,6 @@ export class TariffService {
     return result
   }
 }
-
-export const tariffService = new TariffService()
 
 export function getTariffService(supabaseClient: SupabaseClient<Database>) {
   return new TariffService(supabaseClient)

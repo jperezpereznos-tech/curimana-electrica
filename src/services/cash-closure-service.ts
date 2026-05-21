@@ -9,7 +9,7 @@ export class CashClosureService {
   private paymentRepo: PaymentRepository
   private auditSvc: AuditService
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.cashClosureRepo = new CashClosureRepository(supabaseClient)
     this.paymentRepo = new PaymentRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
@@ -91,8 +91,6 @@ export class CashClosureService {
     return result
   }
 }
-
-export const cashClosureService = new CashClosureService()
 
 export function getCashClosureService(supabaseClient: SupabaseClient<Database>) {
   return new CashClosureService(supabaseClient)

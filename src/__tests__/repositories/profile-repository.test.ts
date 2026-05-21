@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -31,7 +37,7 @@ describe('ProfileRepository - getAllWithSector', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ProfileRepository()
+    repo = new ProfileRepository(mockSupabase)
   })
 
   it('debería obtener perfiles con sectores ordenados por nombre', async () => {
@@ -73,7 +79,7 @@ describe('ProfileRepository - getReaders', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ProfileRepository()
+    repo = new ProfileRepository(mockSupabase)
   })
 
   it('debería obtener lectores con role=meter_reader', async () => {
@@ -116,7 +122,7 @@ describe('ProfileRepository - updateRole', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ProfileRepository()
+    repo = new ProfileRepository(mockSupabase)
   })
 
   it('debería actualizar rol del usuario', async () => {
@@ -158,7 +164,7 @@ describe('ProfileRepository - updateAssignedSector', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ProfileRepository()
+    repo = new ProfileRepository(mockSupabase)
   })
 
   it('debería actualizar sector asignado del usuario', async () => {

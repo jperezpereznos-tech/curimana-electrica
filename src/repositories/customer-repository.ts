@@ -6,7 +6,7 @@ import type { CustomerWithRelations } from '@/types/views'
 type Customer = Database['public']['Tables']['customers']['Row']
 
 export class CustomerRepository extends BaseRepository<'customers'> {
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     super('customers', supabaseClient)
   }
 

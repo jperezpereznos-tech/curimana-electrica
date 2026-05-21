@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_logs: {
@@ -628,6 +653,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tariff_tier_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_kwh: number | null
+          min_kwh: number
+          order_index: number
+          price_per_kwh: number
+          tariff_id: string
+          tier_id: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_kwh?: number | null
+          min_kwh: number
+          order_index: number
+          price_per_kwh: number
+          tariff_id: string
+          tier_id: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_kwh?: number | null
+          min_kwh?: number
+          order_index?: number
+          price_per_kwh?: number
+          tariff_id?: string
+          tier_id?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       tariff_tiers: {
         Row: {
           created_at: string | null
@@ -741,7 +805,7 @@ export type Database = {
         Returns: number
       }
       void_payment: {
-        Args: { p_payment_id: string; p_user_id: string }
+        Args: { p_payment_id: string; p_user_id?: string }
         Returns: undefined
       }
     }
@@ -872,6 +936,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

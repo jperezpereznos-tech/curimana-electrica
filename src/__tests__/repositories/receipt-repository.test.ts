@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -32,7 +38,7 @@ describe('ReceiptRepository - getAllWithDetails', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReceiptRepository()
+    repo = new ReceiptRepository(mockSupabase)
   })
 
   it('debería obtener recibos ordenados por receipt_number DESC', async () => {
@@ -178,7 +184,7 @@ describe('ReceiptRepository - getByIdWithDetails', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReceiptRepository()
+    repo = new ReceiptRepository(mockSupabase)
   })
 
   it('debería obtener recibo con relaciones completas', async () => {
@@ -221,7 +227,7 @@ describe('ReceiptRepository - getByReceiptNumber', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReceiptRepository()
+    repo = new ReceiptRepository(mockSupabase)
   })
 
   it('debería obtener recibo por receipt_number con maybeSingle', async () => {

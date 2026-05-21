@@ -5,7 +5,7 @@ import { Database } from '@/types/database'
 export class SectorService {
   private sectorRepo: SectorRepository
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.sectorRepo = new SectorRepository(supabaseClient)
   }
 
@@ -37,8 +37,6 @@ export class SectorService {
     return await this.sectorRepo.getCustomerCount(sectorId)
   }
 }
-
-export const sectorService = new SectorService()
 
 export function getSectorService(supabaseClient: SupabaseClient<Database>) {
   return new SectorService(supabaseClient)

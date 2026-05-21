@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export class ProfileService {
   private profileRepo: ProfileRepository
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.profileRepo = new ProfileRepository(supabaseClient)
   }
 
@@ -43,8 +43,6 @@ export class ProfileService {
     if (error) throw new Error(error.message)
   }
 }
-
-export const profileService = new ProfileService()
 
 export function getProfileService(supabaseClient: SupabaseClient<Database>) {
   return new ProfileService(supabaseClient)

@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -35,7 +41,7 @@ describe('CashClosureRepository - getActiveClosure', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CashClosureRepository()
+    repo = new CashClosureRepository(mockSupabase)
   })
 
   it('debería obtener la caja abierta del cajero', async () => {
@@ -90,7 +96,7 @@ describe('CashClosureRepository - getSessionTotal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CashClosureRepository()
+    repo = new CashClosureRepository(mockSupabase)
   })
 
   it('debería calcular total y conteo de pagos no voided', async () => {
@@ -138,7 +144,7 @@ describe('CashClosureRepository - close', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new CashClosureRepository()
+    repo = new CashClosureRepository(mockSupabase)
   })
 
   it('debería actualizar el cierre con status closed', async () => {

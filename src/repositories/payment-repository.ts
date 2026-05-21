@@ -5,7 +5,7 @@ import { Database } from '@/types/database'
 type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 
 export class PaymentRepository extends BaseRepository<'payments'> {
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     super('payments', supabaseClient)
   }
 

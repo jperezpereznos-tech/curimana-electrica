@@ -5,7 +5,7 @@ import { Database } from '@/types/database'
 type Reading = Database['public']['Tables']['readings']['Row']
 
 export class ReadingRepository extends BaseRepository<'readings'> {
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     super('readings', supabaseClient)
   }
 

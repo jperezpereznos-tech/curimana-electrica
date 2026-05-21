@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -33,7 +39,7 @@ describe('PaymentRepository - getByIdWithDetails', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new PaymentRepository()
+    repo = new PaymentRepository(mockSupabase)
   })
 
   it('debería obtener pago con relaciones completas', async () => {
@@ -77,7 +83,7 @@ describe('PaymentRepository - getPaymentsByCashier', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new PaymentRepository()
+    repo = new PaymentRepository(mockSupabase)
   })
 
   it('debería obtener pagos filtrados por cashier_id ordenados por fecha DESC', async () => {
@@ -161,7 +167,7 @@ describe('PaymentRepository - getAllPayments', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new PaymentRepository()
+    repo = new PaymentRepository(mockSupabase)
   })
 
   it('debería obtener todos los pagos ordenados por fecha DESC', async () => {
@@ -237,7 +243,7 @@ describe('PaymentRepository - getPaymentsByCustomer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new PaymentRepository()
+    repo = new PaymentRepository(mockSupabase)
   })
 
   it('debería obtener pagos del cliente excluyendo los anulados', async () => {

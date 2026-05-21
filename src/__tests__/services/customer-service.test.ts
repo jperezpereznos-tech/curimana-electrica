@@ -5,18 +5,39 @@ import { AuditService } from '@/services/audit-service'
 
 vi.mock('@/repositories/customer-repository')
 vi.mock('@/services/audit-service')
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn().mockReturnValue({
+
+const mockSupabase = {
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+  }),
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: {
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
+  },
+  storage: {
     from: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnValue({ data: [], error: null })
-    })
-  })
-}))
+      upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.url' } }),
+    }),
+  },
+} as any
 
 describe('CustomerService - searchCustomers', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -48,7 +69,7 @@ describe('CustomerService - searchCustomers', () => {
 })
 
 describe('CustomerService - getBySupplyNumber', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -80,7 +101,7 @@ describe('CustomerService - getBySupplyNumber', () => {
 })
 
 describe('CustomerService - getCustomerDetails', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -96,7 +117,7 @@ describe('CustomerService - getCustomerDetails', () => {
 })
 
 describe('CustomerService - registerCustomer', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -149,7 +170,7 @@ describe('CustomerService - registerCustomer', () => {
 })
 
 describe('CustomerService - updateCustomer', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -204,7 +225,7 @@ describe('CustomerService - updateCustomer', () => {
 })
 
 describe('CustomerService - deleteCustomer', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -317,7 +338,7 @@ describe('CustomerService - deleteCustomer', () => {
 })
 
 describe('CustomerService - getTopDebtors', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -341,7 +362,7 @@ describe('CustomerService - getTopDebtors', () => {
 })
 
 describe('CustomerService - getCustomersWithDebt', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -355,7 +376,7 @@ describe('CustomerService - getCustomersWithDebt', () => {
 })
 
 describe('CustomerService - getActiveCustomersWithReadings', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -379,7 +400,7 @@ describe('CustomerService - getActiveCustomersWithReadings', () => {
 })
 
 describe('CustomerService - getAllForCache', () => {
-  const service = new CustomerService()
+  const service = new CustomerService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 

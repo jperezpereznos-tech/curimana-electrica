@@ -3,7 +3,6 @@ import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { CustomerRepository } from '@/repositories/customer-repository'
 import { CashClosureRepository } from '@/repositories/cash-closure-repository'
 import { AuditService } from '@/services/audit-service'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
@@ -15,13 +14,13 @@ export class PaymentService {
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.paymentRepo = new PaymentRepository(supabaseClient)
     this.receiptRepo = new ReceiptRepository(supabaseClient)
     this.customerRepo = new CustomerRepository(supabaseClient)
     this.cashClosureRepo = new CashClosureRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
+    this.supabase = supabaseClient
   }
 
   async processPayment(data: {
@@ -94,8 +93,8 @@ export class PaymentService {
     const completedPayments: { id: string; receiptId: string; amount: number }[] = []
 
     try {
-      for (const item of data.payments) {
       const batchTotal = Math.round(data.payments.reduce((s, p) => s + p.amount, 0) * 100) / 100
+      for (const item of data.payments) {
       const itemReceivedAmount = data.receivedAmount != null && data.receivedAmount >= batchTotal
         ? Math.round((item.amount / batchTotal) * data.receivedAmount * 100) / 100
         : item.amount
@@ -178,8 +177,6 @@ export class PaymentService {
     return await this.paymentRepo.getByIdWithDetails(paymentId)
   }
 }
-
-export const paymentService = new PaymentService()
 
 export function getPaymentService(supabaseClient: SupabaseClient<Database>) {
   return new PaymentService(supabaseClient)

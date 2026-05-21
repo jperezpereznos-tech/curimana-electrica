@@ -10,7 +10,7 @@ export class ReadingService {
   private readingRepo: ReadingRepository
   private auditSvc: AuditService
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.readingRepo = new ReadingRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
   }
@@ -118,8 +118,6 @@ export class ReadingService {
     return updated
   }
 }
-
-export const readingService = new ReadingService()
 
 export function getReadingService(supabaseClient: SupabaseClient<Database>) {
   return new ReadingService(supabaseClient)

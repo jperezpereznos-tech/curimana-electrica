@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS municipality_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   ruc TEXT NOT NULL,
+  om_number TEXT,
   address TEXT NOT NULL,
   logo_url TEXT,
   billing_cut_day INT DEFAULT 25,
@@ -252,7 +253,7 @@ CREATE TABLE IF NOT EXISTS payments (
   method TEXT DEFAULT 'cash' CHECK (method = 'cash'),
   reference TEXT,
   cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  cash_closure_id UUID NOT NULL REFERENCES cash_closures(id),
+  cash_closure_id UUID REFERENCES cash_closures(id),
   received_amount NUMERIC DEFAULT 0 CHECK (received_amount >= 0),
   change_amount NUMERIC DEFAULT 0 CHECK (change_amount >= 0),
   payment_date DATE DEFAULT CURRENT_DATE,
@@ -295,15 +296,15 @@ BEGIN
   WHERE tariff_id = p_tariff_id
   ORDER BY order_index ASC
   LOOP
-    IF p_consumption <= v_tier.min_kwh THEN
-      CONTINUE;
-    END IF;
+      IF p_consumption <= v_tier.min_kwh THEN
+        CONTINUE;
+      END IF;
 
-    IF v_tier.max_kwh IS NULL THEN
-      v_tier_consumption := p_consumption - v_tier.min_kwh;
-    ELSE
-      v_tier_consumption := LEAST(p_consumption, v_tier.max_kwh) - v_tier.min_kwh;
-    END IF;
+      IF v_tier.max_kwh IS NULL THEN
+        v_tier_consumption := p_consumption - v_tier.min_kwh;
+      ELSE
+        v_tier_consumption := LEAST(p_consumption, v_tier.max_kwh) - v_tier.min_kwh;
+      END IF;
 
     v_total := v_total + (v_tier_consumption * v_tier.price_per_kwh);
   END LOOP;
@@ -621,10 +622,10 @@ END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.void_payment(UUID) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.void_payment(UUID, UUID) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) FROM anon;
 GRANT EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.void_payment(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.void_payment(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) TO authenticated;
 
 REVOKE EXECUTE ON FUNCTION public.recalculate_customer_debt(UUID) FROM anon, public;
@@ -638,13 +639,19 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Cerrar la versión anterior del tramo correspondiente
+  IF TG_OP = 'DELETE' THEN
+    UPDATE tariff_tier_history
+    SET valid_until = now()
+    WHERE tier_id = OLD.id
+    AND valid_until IS NULL;
+    RETURN OLD;
+  END IF;
+
   UPDATE tariff_tier_history
   SET valid_until = now()
   WHERE tier_id = NEW.id
-    AND valid_until IS NULL;
+  AND valid_until IS NULL;
 
-  -- Insertar nueva versión
   INSERT INTO tariff_tier_history (
     tier_id, tariff_id, min_kwh, max_kwh, price_per_kwh, order_index, valid_from, valid_until
   ) VALUES (
@@ -657,8 +664,8 @@ $$;
 
 DROP TRIGGER IF EXISTS trg_log_tariff_tier_change ON tariff_tiers;
 CREATE TRIGGER trg_log_tariff_tier_change
-  AFTER INSERT OR UPDATE ON tariff_tiers
-  FOR EACH ROW EXECUTE FUNCTION public.log_tariff_tier_change();
+AFTER INSERT OR UPDATE OR DELETE ON tariff_tiers
+FOR EACH ROW EXECUTE FUNCTION public.log_tariff_tier_change();
 
 -- ============================================================================
 -- 4. TRIGGER: Auto-crear perfil cuando se registra un usuario
@@ -882,12 +889,21 @@ CREATE POLICY "Users read tariff_tiers" ON tariff_tiers
 
 -- ── tariff_tier_history ──
 CREATE POLICY "Admin read tariff_tier_history" ON tariff_tier_history
-FOR SELECT TO authenticated
-USING ((SELECT public.get_user_role()) = 'admin');
+  FOR SELECT TO authenticated
+  USING ((SELECT public.get_user_role()) IN ('admin', 'cashier'));
 
 CREATE POLICY "System insert tariff_tier_history" ON tariff_tier_history
-FOR INSERT TO authenticated
-WITH CHECK ((SELECT public.get_user_role()) IN ('admin'));
+  FOR INSERT TO authenticated
+  WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Admin update tariff_tier_history" ON tariff_tier_history
+  FOR UPDATE TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin')
+  WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Admin delete tariff_tier_history" ON tariff_tier_history
+  FOR DELETE TO authenticated
+  USING ((SELECT public.get_user_role()) = 'admin');
 
 -- ── billing_concepts ──
 CREATE POLICY "Admin CRUD billing_concepts" ON billing_concepts

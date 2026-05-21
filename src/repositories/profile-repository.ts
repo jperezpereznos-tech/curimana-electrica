@@ -5,7 +5,7 @@ import { Database } from '@/types/database'
 type Profile = Database['public']['Tables']['profiles']['Row']
 
 export class ProfileRepository extends BaseRepository<'profiles'> {
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     super('profiles', supabaseClient)
   }
 

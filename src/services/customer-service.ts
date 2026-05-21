@@ -2,7 +2,6 @@ import { CustomerRepository } from '@/repositories/customer-repository'
 import { AuditService } from '@/services/audit-service'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type CustomerInsert = Omit<Database['public']['Tables']['customers']['Insert'], 'id' | 'created_at' | 'updated_at'>
 
@@ -11,10 +10,10 @@ export class CustomerService {
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.customerRepo = new CustomerRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
+    this.supabase = supabaseClient
   }
 
   async searchCustomers(query: string, sectorId?: string) {
@@ -116,8 +115,6 @@ export class CustomerService {
     return await this.customerRepo.getAllForCache(sectorId)
   }
 }
-
-export const customerService = new CustomerService()
 
 export function getCustomerService(supabaseClient: SupabaseClient<Database>) {
   return new CustomerService(supabaseClient)

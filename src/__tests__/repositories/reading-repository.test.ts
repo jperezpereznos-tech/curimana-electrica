@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -35,7 +41,7 @@ describe('ReadingRepository - getLatestReadingByCustomer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReadingRepository()
+    repo = new ReadingRepository(mockSupabase)
   })
 
   it('debería obtener la lectura más reciente del cliente', async () => {
@@ -91,7 +97,7 @@ describe('ReadingRepository - getReadingsByPeriod', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReadingRepository()
+    repo = new ReadingRepository(mockSupabase)
   })
 
   it('debería obtener lecturas del periodo con datos de cliente', async () => {
@@ -112,7 +118,7 @@ describe('ReadingRepository - getAllForAdmin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReadingRepository()
+    repo = new ReadingRepository(mockSupabase)
   })
 
   it('debería obtener todas las lecturas sin filtros', async () => {
@@ -184,7 +190,7 @@ describe('ReadingRepository - getTodayReadingsCount', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReadingRepository()
+    repo = new ReadingRepository(mockSupabase)
   })
 
   it('debería retornar conteo de lecturas de hoy', async () => {
@@ -215,7 +221,7 @@ describe('ReadingRepository - getReviewCount', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReadingRepository()
+    repo = new ReadingRepository(mockSupabase)
   })
 
   it('debería retornar conteo de lecturas que necesitan revisión', async () => {
@@ -235,7 +241,7 @@ describe('ReadingRepository - getActiveCustomersCount', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new ReadingRepository()
+    repo = new ReadingRepository(mockSupabase)
   })
 
   it('debería retornar conteo de clientes activos sin sector', async () => {

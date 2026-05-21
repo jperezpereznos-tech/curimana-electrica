@@ -13,6 +13,12 @@ vi.mock('@/lib/supabase/client', () => ({
   })
 }))
 
+const mockSupabase = {
+  from: mockFrom,
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+} as any
+
 function createAwaitableChain(resolvedValue: any) {
   const promise = Promise.resolve(resolvedValue)
   const chain: any = {
@@ -30,7 +36,7 @@ describe('SectorRepository - getActiveSectors', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new SectorRepository()
+    repo = new SectorRepository(mockSupabase)
   })
 
   it('debería obtener sectores activos ordenados por code', async () => {
@@ -74,7 +80,7 @@ describe('SectorRepository - getSectorWithReaders', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new SectorRepository()
+    repo = new SectorRepository(mockSupabase)
   })
 
   it('debería obtener sector con lectores asignados', async () => {
@@ -104,7 +110,7 @@ describe('SectorRepository - getCustomerCount', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    repo = new SectorRepository()
+    repo = new SectorRepository(mockSupabase)
   })
 
   it('debería obtener conteo de clientes del sector', async () => {

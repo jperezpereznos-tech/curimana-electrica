@@ -7,7 +7,7 @@ type AuditLogInsert = Database['public']['Tables']['audit_logs']['Insert']
 export class AuditService {
   private auditRepo: AuditRepository
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.auditRepo = new AuditRepository(supabaseClient)
   }
 
@@ -37,8 +37,6 @@ export class AuditService {
     return await this.auditRepo.getAllLogs()
   }
 }
-
-export const auditService = new AuditService()
 
 export function getAuditService(supabaseClient: SupabaseClient<Database>) {
   return new AuditService(supabaseClient)

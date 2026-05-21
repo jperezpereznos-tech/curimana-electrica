@@ -10,7 +10,7 @@ export type TariffWithTiers = Tariff & {
 }
 
 export class TariffRepository extends BaseRepository<'tariffs'> {
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     super('tariffs', supabaseClient)
   }
 

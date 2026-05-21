@@ -2,7 +2,6 @@ import { ConceptRepository } from '@/repositories/concept-repository'
 import { AuditService } from '@/services/audit-service'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
 
 type ConceptInsert = Omit<Database['public']['Tables']['billing_concepts']['Insert'], 'id' | 'created_at'>
 
@@ -11,10 +10,10 @@ export class ConceptService {
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
-  constructor(supabaseClient?: SupabaseClient<Database>) {
+  constructor(supabaseClient: SupabaseClient<Database>) {
     this.conceptRepo = new ConceptRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
-    this.supabase = supabaseClient ?? createBrowserClient()
+    this.supabase = supabaseClient
   }
 
   async getAllConcepts() {
@@ -97,8 +96,6 @@ export class ConceptService {
     return result
   }
 }
-
-export const conceptService = new ConceptService()
 
 export function getConceptService(supabaseClient: SupabaseClient<Database>) {
   return new ConceptService(supabaseClient)

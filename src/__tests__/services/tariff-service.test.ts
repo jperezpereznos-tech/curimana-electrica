@@ -6,8 +6,38 @@ import { AuditService } from '@/services/audit-service'
 vi.mock('@/repositories/tariff-repository')
 vi.mock('@/services/audit-service')
 
+const mockSupabase = {
+  from: vi.fn().mockReturnValue({
+    select: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+  }),
+  rpc: vi.fn().mockReturnValue({ data: null, error: null }),
+  auth: {
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
+  },
+  storage: {
+    from: vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ data: null, error: null }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.url' } }),
+    }),
+  },
+} as any
+
 describe('TariffService - validateTiers', () => {
-  const service = new TariffService()
+  const service = new TariffService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -117,7 +147,7 @@ describe('TariffService - validateTiers', () => {
 })
 
 describe('TariffService - createTariffWithValidation', () => {
-  const service = new TariffService()
+  const service = new TariffService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -180,7 +210,7 @@ describe('TariffService - createTariffWithValidation', () => {
 })
 
 describe('TariffService - getAllTariffs', () => {
-  const service = new TariffService()
+  const service = new TariffService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -196,7 +226,7 @@ describe('TariffService - getAllTariffs', () => {
 })
 
 describe('TariffService - toggleTariffStatus', () => {
-  const service = new TariffService()
+  const service = new TariffService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -242,7 +272,7 @@ describe('TariffService - toggleTariffStatus', () => {
 })
 
 describe('TariffService - deleteTariff', () => {
-  const service = new TariffService()
+  const service = new TariffService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
@@ -287,7 +317,7 @@ describe('TariffService - deleteTariff', () => {
 })
 
 describe('TariffService - updateTariffWithTiers', () => {
-  const service = new TariffService()
+  const service = new TariffService(mockSupabase)
 
   beforeEach(() => { vi.clearAllMocks() })
 
