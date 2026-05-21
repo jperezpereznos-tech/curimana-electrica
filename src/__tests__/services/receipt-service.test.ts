@@ -280,7 +280,7 @@ describe('ReceiptService - cancelReceipt', () => {
 
     vi.spyOn(ReceiptRepository.prototype, 'getById').mockResolvedValue(mockReceipt as any)
 
-    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('No se puede anular un recibo con pagos registrados')
+    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('No se puede anular un recibo con pagos registrados. Anule los pagos primero.')
   })
 
   it('debería lanzar error si el recibo no existe', async () => {
@@ -320,7 +320,7 @@ describe('ReceiptService - cancelReceipt', () => {
     vi.spyOn(ReceiptRepository.prototype, 'update').mockResolvedValue({ id: 'r1', status: 'cancelled' } as any)
     ;(mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: { message: 'RPC connection failed' } })
 
-    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('Recibo anulado pero error al recalcular deuda del cliente: RPC connection failed')
+    await expect(service.cancelReceipt('r1', 'razón')).rejects.toThrow('Recibo anulado pero error al recalcular deuda del cliente: Error al recalcular deuda: RPC connection failed')
   })
 
   it('debería permitir anular recibo con paid_amount cercano a cero (tolerancia 0.005)', async () => {

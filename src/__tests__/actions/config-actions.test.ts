@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockFrom = vi.fn()
-
 const mockRequireAdminAuth = vi.fn()
 
 vi.mock('@/lib/auth/server-admin-auth', () => ({
@@ -13,18 +11,16 @@ vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args)
 }))
 
-function createAwaitableChain(resolvedValue: any) {
-  const promise = Promise.resolve(resolvedValue)
-  const chain: any = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn().mockReturnValue(promise),
-    then: promise.then.bind(promise),
-  }
-  return chain
-}
+const mockUpdateConfig = vi.fn()
+
+vi.mock('@/services/municipality-config-service', () => ({
+  MunicipalityConfigService: vi.fn().mockImplementation(() => ({
+    updateConfig: mockUpdateConfig,
+  })),
+  getMunicipalityConfigService: vi.fn().mockReturnValue({
+    updateConfig: mockUpdateConfig,
+  })
+}))
 
 const { updateMunicipalityConfigAction } = await import('@/app/admin/config/actions')
 
@@ -40,35 +36,11 @@ describe('updateMunicipalityConfigAction', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireAdminAuth.mockResolvedValue({ supabase: { from: mockFrom }, userId: '00000000-0000-4000-8100-000000000001', role: 'admin' })
+    mockRequireAdminAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8100-000000000001', role: 'admin' })
   })
 
   it('debería actualizar la configuración y revalidar las rutas', async () => {
-    let updatePayload: any = null
-
-    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-    const updateChain = (() => {
-      const promise = Promise.resolve({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-      const chain: any = {
-        eq: vi.fn().mockReturnThis(),
-        then: promise.then.bind(promise),
-      }
-      return chain
-    })()
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') {
-        const callCount = mockFrom.mock.calls.filter((c: any[]) => c[0] === 'municipality_config').length
-        if (callCount === 1) return fetchChain
-        return {
-          update: vi.fn((payload: any) => {
-            updatePayload = payload
-            return updateChain
-          })
-        }
-      }
-      return createAwaitableChain({ data: null, error: null })
-    })
+    mockUpdateConfig.mockResolvedValue({ id: '00000000-0000-4000-8900-000000000099' })
 
     const result = await updateMunicipalityConfigAction(validData)
 
@@ -76,7 +48,7 @@ describe('updateMunicipalityConfigAction', () => {
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/config')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/cashier')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/receipts')
-    expect(updatePayload).toEqual(expect.objectContaining({
+    expect(mockUpdateConfig).toHaveBeenCalledWith(expect.objectContaining({
       name: validData.name,
       ruc: validData.ruc,
       address: validData.address,
@@ -86,55 +58,8 @@ describe('updateMunicipalityConfigAction', () => {
     }))
   })
 
-  it('debería retornar error si no existe registro de configuración', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') {
-        return createAwaitableChain({ data: null, error: { message: 'No rows found' } })
-      }
-      return createAwaitableChain({ data: null, error: null })
-    })
-
-    const result = await updateMunicipalityConfigAction(validData)
-
-    expect(result).toEqual({ success: false, error: 'No existe registro de configuracion municipal' })
-    expect(mockRevalidatePath).not.toHaveBeenCalled()
-  })
-
-  it('debería retornar error si el fetch retorna data null sin error', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') {
-        return createAwaitableChain({ data: null, error: null })
-      }
-      return createAwaitableChain({ data: null, error: null })
-    })
-
-    const result = await updateMunicipalityConfigAction(validData)
-
-    expect(result).toEqual({ success: false, error: 'No existe registro de configuracion municipal' })
-  })
-
-  it('debería retornar error si el update falla', async () => {
-    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-    const updateChain = (() => {
-      const promise = Promise.resolve({ data: null, error: { message: 'Update failed' } })
-      const chain: any = {
-        eq: vi.fn().mockReturnThis(),
-        then: promise.then.bind(promise),
-      }
-      return chain
-    })()
-
-    let callCount = 0
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') {
-        callCount++
-        if (callCount === 1) return fetchChain
-        return {
-          update: vi.fn().mockReturnValue(updateChain)
-        }
-      }
-      return createAwaitableChain({ data: null, error: null })
-    })
+  it('debería retornar error si updateConfig falla', async () => {
+    mockUpdateConfig.mockRejectedValue(new Error('Update failed'))
 
     const result = await updateMunicipalityConfigAction(validData)
 
@@ -143,70 +68,40 @@ describe('updateMunicipalityConfigAction', () => {
   })
 
   it('debería usar logo_url null si se pasa string vacío', async () => {
-    let updatePayload: any = null
-
-    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-    const updateChain = (() => {
-      const promise = Promise.resolve({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-      const chain: any = {
-        eq: vi.fn().mockReturnThis(),
-        then: promise.then.bind(promise),
-      }
-      return chain
-    })()
-
-    let callCount = 0
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') {
-        callCount++
-        if (callCount === 1) return fetchChain
-        return {
-          update: vi.fn((payload: any) => {
-            updatePayload = payload
-            return updateChain
-          })
-        }
-      }
-      return createAwaitableChain({ data: null, error: null })
-    })
+    mockUpdateConfig.mockResolvedValue({ id: '00000000-0000-4000-8900-000000000099' })
 
     const result = await updateMunicipalityConfigAction({ ...validData, logo_url: '' })
 
     expect(result).toEqual({ success: true })
-    expect(updatePayload.logo_url).toBeNull()
+    expect(mockUpdateConfig).toHaveBeenCalledWith(expect.objectContaining({
+      logo_url: null
+    }))
   })
 
   it('debería usar logo_url proporcionado si no está vacío', async () => {
-    let updatePayload: any = null
-
-    const fetchChain = createAwaitableChain({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-    const updateChain = (() => {
-      const promise = Promise.resolve({ data: { id: '00000000-0000-4000-8900-000000000099' }, error: null })
-      const chain: any = {
-        eq: vi.fn().mockReturnThis(),
-        then: promise.then.bind(promise),
-      }
-      return chain
-    })()
-
-    let callCount = 0
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') {
-        callCount++
-        if (callCount === 1) return fetchChain
-        return {
-          update: vi.fn((payload: any) => {
-            updatePayload = payload
-            return updateChain
-          })
-        }
-      }
-      return createAwaitableChain({ data: null, error: null })
-    })
+    mockUpdateConfig.mockResolvedValue({ id: '00000000-0000-4000-8900-000000000099' })
 
     const result = await updateMunicipalityConfigAction({ ...validData, logo_url: 'https://example.com/logo.png' })
 
     expect(result).toEqual({ success: true })
-    expect(updatePayload.logo_url).toBe('https://example.com/logo.png')
+    expect(mockUpdateConfig).toHaveBeenCalledWith(expect.objectContaining({
+      logo_url: 'https://example.com/logo.png'
+    }))
+  })
+
+  it('debería retornar error si auth falla', async () => {
+    mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
+
+    const result = await updateMunicipalityConfigAction(validData)
+
+    expect(result).toEqual({ success: false, error: 'No autenticado' })
+  })
+
+  it('debería manejar errores que no son instancias de Error', async () => {
+    mockUpdateConfig.mockRejectedValue('string error')
+
+    const result = await updateMunicipalityConfigAction(validData)
+
+    expect(result).toEqual({ success: false, error: 'Error al actualizar configuracion' })
   })
 })

@@ -11,6 +11,7 @@ const mockGetReceiptByNumber = vi.fn()
 const mockGetPaymentsByCustomer = vi.fn()
 const mockGetPaymentDetails = vi.fn()
 const mockGetPaymentsByCashier = vi.fn()
+const mockRecalculateCustomerDebt = vi.fn()
 
 vi.mock('@/services/payment-service', () => ({
   PaymentService: vi.fn().mockImplementation(() => ({
@@ -55,10 +56,23 @@ vi.mock('@/services/receipt-service', () => ({
   ReceiptService: vi.fn().mockImplementation(() => ({
     getOpenReceiptsByCustomer: mockGetOpenReceiptsByCustomer,
     getReceiptByNumber: mockGetReceiptByNumber,
+    recalculateCustomerDebt: mockRecalculateCustomerDebt,
   })),
   getReceiptService: vi.fn().mockReturnValue({
     getOpenReceiptsByCustomer: mockGetOpenReceiptsByCustomer,
     getReceiptByNumber: mockGetReceiptByNumber,
+    recalculateCustomerDebt: mockRecalculateCustomerDebt,
+  })
+}))
+
+const mockGetConfig = vi.fn()
+
+vi.mock('@/services/municipality-config-service', () => ({
+  MunicipalityConfigService: vi.fn().mockImplementation(() => ({
+    getConfig: mockGetConfig,
+  })),
+  getMunicipalityConfigService: vi.fn().mockReturnValue({
+    getConfig: mockGetConfig,
   })
 }))
 
@@ -254,6 +268,7 @@ describe('searchCashierCustomerAction', () => {
     vi.clearAllMocks()
     const mockRpc = vi.fn().mockResolvedValue({ data: 0, error: null })
     mockRequireCashierAuth.mockResolvedValue({ supabase: { rpc: mockRpc }, userId: '00000000-0000-4000-8200-000000000002' })
+    mockRecalculateCustomerDebt.mockResolvedValue(0)
   })
 
   it('debería buscar cliente por supply_number exacto y sus recibos abiertos', async () => {

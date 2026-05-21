@@ -1,13 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
+import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { ConfigForm } from './config-form'
 
 export default async function ConfigPage() {
   const supabase = await createClient()
-  const { data: config, error } = await supabase
-    .from('municipality_config')
-    .select('*')
-    .limit(1)
-    .single()
+  const configService = getMunicipalityConfigService(supabase)
+  let config = null
+  let errorMsg: string | null = null
+
+  try {
+    config = await configService.getConfig()
+  } catch (e) {
+    errorMsg = e instanceof Error ? e.message : 'Error al cargar configuración'
+  }
 
   return (
     <>
@@ -16,11 +21,11 @@ export default async function ConfigPage() {
         <p className="text-muted-foreground">Datos de la municipalidad y parametros de facturacion.</p>
       </div>
 
-      {error && (
-        <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg mb-4">
-          Error al cargar configuracion: {error.message}
-        </div>
-      )}
+    {errorMsg && (
+      <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg mb-4">
+        Error al cargar configuracion: {errorMsg}
+      </div>
+    )}
 
       <ConfigForm config={config} />
     </>

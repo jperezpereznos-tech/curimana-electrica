@@ -1,12 +1,10 @@
 import { getReceiptService } from '@/services/receipt-service'
 import { getCustomerService } from '@/services/customer-service'
 import { getPeriodService } from '@/services/period-service'
+import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { createClient } from '@/lib/supabase/server'
 import { ReceiptsList } from './receipts-list'
 import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
-import type { Database } from '@/types/database'
-
-type MunicipalityConfig = Database['public']['Tables']['municipality_config']['Row']
 
 export default async function ReceiptsPage({
   searchParams,
@@ -38,11 +36,9 @@ export default async function ReceiptsPage({
 
   try { periods = await periodService.getAllPeriods() } catch (e) { errorMsg += (errorMsg ? ' | ' : '') + (e instanceof Error ? e.message : String(e)) }
 
-  let municipalityConfig: MunicipalityConfig | null = null
-  try {
-    const { data } = await supabase.from('municipality_config').select('*').limit(1).single()
-    municipalityConfig = data
-  } catch (e) { console.error('Error fetching municipality_config:', e) }
+  const configService = getMunicipalityConfigService(supabase)
+  let municipalityConfig = null
+  try { municipalityConfig = await configService.getConfig() } catch (e) { console.error('Error fetching municipality_config:', e) }
 
   return (
     <>

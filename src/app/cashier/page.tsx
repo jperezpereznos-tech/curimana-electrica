@@ -1,4 +1,5 @@
 import { getCashClosureService } from '@/services/cash-closure-service'
+import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { createClient } from '@/lib/supabase/server'
 import { CashierSearch } from './cashier-search'
 import Link from 'next/link'
@@ -14,11 +15,9 @@ export default async function CashierDashboard() {
   const svc = getCashClosureService(supabase)
   const activeClosure = await svc.getActiveClosure(userId)
 
-  const { data: muniConfig } = await supabase
-    .from('municipality_config')
-    .select('ruc, name')
-    .limit(1)
-    .single()
+  const configService = getMunicipalityConfigService(supabase)
+  let muniConfig = null
+  try { muniConfig = await configService.getBasicInfo() } catch (e) { console.error('Error fetching municipality_config:', e) }
 
   return (
     <div className="flex flex-col gap-6">

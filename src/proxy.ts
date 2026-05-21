@@ -61,12 +61,12 @@ export async function proxy(request: NextRequest) {
  }
  const role = data as string | null
  if (role) {
-    supabaseResponse.cookies.set(ROLE_COOKIE, role, {
-      path: '/',
-      maxAge: ROLE_COOKIE_MAX_AGE,
-      httpOnly: false,
-      sameSite: 'lax',
-    })
+        supabaseResponse.cookies.set(ROLE_COOKIE, role, {
+          path: '/',
+          maxAge: ROLE_COOKIE_MAX_AGE,
+          httpOnly: true,
+          sameSite: 'lax',
+        })
  }
  return role
  }

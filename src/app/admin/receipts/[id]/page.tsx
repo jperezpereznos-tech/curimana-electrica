@@ -1,5 +1,6 @@
 import { getReceiptService } from '@/services/receipt-service'
 import { getConceptService } from '@/services/concept-service'
+import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -35,11 +36,9 @@ export default async function ReceiptDetailsPage({
   const conceptService = getConceptService(supabase)
   const concepts = await conceptService.getActiveConcepts()
 
-  const { data: municipalityConfig } = await supabase
-    .from('municipality_config')
-    .select('*')
-    .limit(1)
-    .single()
+  const configService = getMunicipalityConfigService(supabase)
+  let municipalityConfig = null
+  try { municipalityConfig = await configService.getConfig() } catch (e) { console.error('Error fetching municipality_config:', e) }
 
   const tariffTiers = receipt.customers?.tariffs?.tariff_tiers ?? []
   const sortedTiers = [...tariffTiers].sort((a, b) => a.min_kwh - b.min_kwh)

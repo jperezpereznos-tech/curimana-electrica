@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { db } from '@/lib/db/dexie'
-import { ROLE_COOKIE } from '@/lib/auth/constants'
 
 type AuthContextType = {
   user: User | null
@@ -13,17 +12,6 @@ type AuthContextType = {
   isLoading: boolean
   profileError: string | null
   signOut: () => Promise<void>
-}
-
-const getRoleFromCookie = (): string | null => {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.split('; ').find(c => c.startsWith(`${ROLE_COOKIE}=`))
-  return match ? decodeURIComponent(match.split('=')[1]) : null
-}
-
-const deleteRoleCookie = () => {
-  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0`
-  document.cookie = `${ROLE_COOKIE}=; path=/; max-age=0; domain=${window.location.hostname}`
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -87,22 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser)
 
       if (currentUser) {
-        const cookieRole = getRoleFromCookie()
-        if (cookieRole) {
-          setRole(cookieRole)
-          setProfileError(null)
-          loadingDoneRef.current = true
-          setIsLoading(false)
-
-          if (!rpcAttemptedRef.current) {
-            rpcAttemptedRef.current = true
-            fetchRoleViaRPC().then(rpcRole => {
-              if (mounted && rpcRole && rpcRole !== cookieRole) {
-                setRole(rpcRole)
-              }
-            })
-          }
-        } else if (!rpcAttemptedRef.current) {
+        if (!rpcAttemptedRef.current) {
           rpcAttemptedRef.current = true
           fetchRoleViaRPC().then(userRole => {
             if (mounted) {
@@ -132,19 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
-          const cookieRole = getRoleFromCookie()
-          if (cookieRole && !rpcAttemptedRef.current) {
-            setRole(cookieRole)
-            setProfileError(null)
-            loadingDoneRef.current = true
-            setIsLoading(false)
-
-            rpcAttemptedRef.current = true
-            const rpcRole = await fetchRoleViaRPC()
-            if (mounted && rpcRole && rpcRole !== cookieRole) {
-              setRole(rpcRole)
-            }
-          } else if (!rpcAttemptedRef.current) {
+          if (!rpcAttemptedRef.current) {
             const userRole = await fetchRoleViaRPC()
             if (mounted) {
               setRole(userRole)
@@ -167,7 +128,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             rpcAttemptedRef.current = false
             setUser(null)
             setRole(null)
-            deleteRoleCookie()
             router.replace('/login')
           }
         }
@@ -207,7 +167,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRole(null)
     setProfileError(null)
     rpcAttemptedRef.current = false
-    deleteRoleCookie()
 
     try {
       await supabase.auth.signOut({ scope: 'global' })

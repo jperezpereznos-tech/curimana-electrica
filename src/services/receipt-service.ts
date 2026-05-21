@@ -66,6 +66,14 @@ export class ReceiptService {
     }
   }
 
+  async recalculateCustomerDebt(customerId: string): Promise<number> {
+    const { data, error } = await this.supabase.rpc('recalculate_customer_debt', {
+      p_customer_id: customerId,
+    })
+    if (error) throw new Error('Error al recalcular deuda: ' + error.message)
+    return (data as number) ?? 0
+  }
+
   async cancelReceipt(id: string, reason: string, userId?: string) {
     const receipt = await this.receiptRepo.getById(id)
     if (!receipt) throw new Error('Recibo no encontrado')
@@ -77,10 +85,11 @@ export class ReceiptService {
 
     const updatedReceipt = await this.receiptRepo.update(id, { status: 'cancelled' })
 
-    const { error: debtErr } = await this.supabase.rpc('recalculate_customer_debt', {
-      p_customer_id: customerId
-    })
-    if (debtErr) throw new Error('Recibo anulado pero error al recalcular deuda del cliente: ' + debtErr.message)
+    try {
+      await this.recalculateCustomerDebt(customerId)
+    } catch (e) {
+      throw new Error('Recibo anulado pero error al recalcular deuda del cliente: ' + (e instanceof Error ? e.message : String(e)))
+    }
 
     if (userId) {
       try {

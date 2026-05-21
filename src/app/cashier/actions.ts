@@ -5,6 +5,7 @@ import { getPaymentService } from '@/services/payment-service'
 import { getCashClosureService } from '@/services/cash-closure-service'
 import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
+import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { revalidatePath } from 'next/cache'
 import { paymentActionSchema, batchPaymentActionSchema, openClosureSchema, uuidSchema, querySchema } from '@/lib/validations/schemas'
 
@@ -77,35 +78,35 @@ export async function searchCashierCustomerAction(query: string) {
     const receiptService = getReceiptService(supabase)
     const customerService = getCustomerService(supabase)
 
-    const customer = await customerService.getBySupplyNumber(parsed.trim())
+      const customer = await customerService.getBySupplyNumber(parsed.trim())
 
-    if (customer) {
-      const { data: debtResult } = await supabase.rpc('recalculate_customer_debt', { p_customer_id: customer.id })
-      if (debtResult != null) customer.current_debt = debtResult
+      if (customer) {
+        const debtResult = await receiptService.recalculateCustomerDebt(customer.id)
+        if (debtResult != null) customer.current_debt = debtResult
 
-      const receipts = await receiptService.getOpenReceiptsByCustomer(customer.id)
-      return { success: true as const, data: { customer, receipts } }
-    }
+        const receipts = await receiptService.getOpenReceiptsByCustomer(customer.id)
+        return { success: true as const, data: { customer, receipts } }
+      }
 
-    const results = await customerService.searchCustomers(parsed)
-    if (results && results.length > 0) {
-      const matchedCustomer = results.find(c => c.supply_number === parsed.trim()) || results[0]
+      const results = await customerService.searchCustomers(parsed)
+      if (results && results.length > 0) {
+        const matchedCustomer = results.find(c => c.supply_number === parsed.trim()) || results[0]
 
-      const { data: debtResult } = await supabase.rpc('recalculate_customer_debt', { p_customer_id: matchedCustomer.id })
-      if (debtResult != null) matchedCustomer.current_debt = debtResult
+        const debtResult = await receiptService.recalculateCustomerDebt(matchedCustomer.id)
+        if (debtResult != null) matchedCustomer.current_debt = debtResult
 
-      const receipts = await receiptService.getOpenReceiptsByCustomer(matchedCustomer.id)
-      return { success: true as const, data: { customer: matchedCustomer, receipts } }
-    }
+        const receipts = await receiptService.getOpenReceiptsByCustomer(matchedCustomer.id)
+        return { success: true as const, data: { customer: matchedCustomer, receipts } }
+      }
 
-    const receiptNumber = Number(parsed)
-    if (!isNaN(receiptNumber) && receiptNumber > 0 && parsed.trim() === String(receiptNumber)) {
-      const receipt = await receiptService.getReceiptByNumber(receiptNumber)
-      if (receipt && receipt.status !== 'cancelled') {
-        const receiptCustomer = await customerService.getBySupplyNumber(receipt.customers?.supply_number || '')
-        if (receiptCustomer) {
-          const { data: debtResult } = await supabase.rpc('recalculate_customer_debt', { p_customer_id: receiptCustomer.id })
-          if (debtResult != null) receiptCustomer.current_debt = debtResult
+      const receiptNumber = Number(parsed)
+      if (!isNaN(receiptNumber) && receiptNumber > 0 && parsed.trim() === String(receiptNumber)) {
+        const receipt = await receiptService.getReceiptByNumber(receiptNumber)
+        if (receipt && receipt.status !== 'cancelled') {
+          const receiptCustomer = await customerService.getBySupplyNumber(receipt.customers?.supply_number || '')
+          if (receiptCustomer) {
+            const debtResult = await receiptService.recalculateCustomerDebt(receiptCustomer.id)
+            if (debtResult != null) receiptCustomer.current_debt = debtResult
 
           return { success: true as const, data: { customer: receiptCustomer, receipts: [receipt] } }
         }
@@ -173,15 +174,13 @@ export async function getReceiptPrintDataAction(receiptId: string) {
     const receipt = await receiptService.getReceiptDetails(receiptId)
     if (!receipt) return { success: false as const, error: 'Recibo no encontrado.' }
 
-    const { getConceptService } = await import('@/services/concept-service')
-    const conceptService = getConceptService(supabase)
-    const concepts = await conceptService.getActiveConcepts()
+  const { getConceptService } = await import('@/services/concept-service')
+  const conceptService = getConceptService(supabase)
+  const concepts = await conceptService.getActiveConcepts()
 
-    const { data: municipalityConfig } = await supabase
-      .from('municipality_config')
-      .select('*')
-      .limit(1)
-      .single()
+  const configService = getMunicipalityConfigService(supabase)
+  let municipalityConfig = null
+  try { municipalityConfig = await configService.getConfig() } catch (e) { console.error('Error fetching municipality_config:', e) }
 
     const tariffTiers = receipt.customers?.tariffs?.tariff_tiers ?? []
     const sortedTiers = [...tariffTiers].sort((a, b) => a.min_kwh - b.min_kwh)

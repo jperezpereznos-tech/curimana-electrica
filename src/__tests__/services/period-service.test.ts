@@ -3,6 +3,7 @@ import { PeriodService } from '@/services/period-service'
 import { PeriodRepository } from '@/repositories/period-repository'
 import { ReadingRepository } from '@/repositories/reading-repository'
 import { ConceptRepository } from '@/repositories/concept-repository'
+import { MunicipalityConfigRepository } from '@/repositories/municipality-config-repository'
 import { AuditService } from '@/services/audit-service'
 
 const { mockRpc, mockFrom } = vi.hoisted(() => {
@@ -23,6 +24,7 @@ vi.mock('@/repositories/customer-repository')
 vi.mock('@/repositories/reading-repository')
 vi.mock('@/repositories/receipt-repository')
 vi.mock('@/repositories/concept-repository')
+vi.mock('@/repositories/municipality-config-repository')
 vi.mock('@/services/audit-service')
 
 function createAwaitableChain(resolvedValue: any) {
@@ -147,20 +149,21 @@ describe('PeriodService - closePeriod', () => {
 
   it('debería lanzar error si falla la obtención de configuración municipal', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockRejectedValue(new Error('Config error'))
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: null, error: { message: 'RPC error', code: '42501' } })
+      if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
 
-    await expect(service.closePeriod('p1')).rejects.toThrow('Error al obtener configuración municipal (payment_grace_days)')
+    await expect(service.closePeriod('p1')).rejects.toThrow('Config error')
   })
 
   it('debería lanzar error si falla la consulta de clientes activos', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: null, error: { message: 'Customer query failed' } })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -182,12 +185,12 @@ describe('PeriodService - closePeriod', () => {
     }
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain(mockCustomers)
       return createAwaitableChain({ data: null, error: null })
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue(mockReadings as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
@@ -214,7 +217,6 @@ describe('PeriodService - closePeriod', () => {
     }
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain(mockCustomers)
       return createAwaitableChain({ data: null, error: null })
     })
@@ -227,6 +229,7 @@ describe('PeriodService - closePeriod', () => {
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue(mockReadings as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
@@ -238,9 +241,9 @@ describe('PeriodService - closePeriod', () => {
 
   it('debería lanzar error si generate_period_receipts RPC falla', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -260,9 +263,9 @@ describe('PeriodService - closePeriod', () => {
 
   it('debería lanzar error si close_billing_period RPC falla', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -285,9 +288,9 @@ describe('PeriodService - closePeriod', () => {
 
   it('debería lanzar error si close_billing_period retorna success=false', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -310,9 +313,9 @@ describe('PeriodService - closePeriod', () => {
 
   it('debería lanzar error si close_billing_period retorna array vacío', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -335,9 +338,9 @@ describe('PeriodService - closePeriod', () => {
 
   it('no debería registrar auditoría si no se pasa userId', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -355,12 +358,12 @@ describe('PeriodService - closePeriod', () => {
     const mockPeriod = { id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' }
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
     vi.spyOn(AuditService.prototype, 'log').mockRejectedValue(new Error('Audit service down'))
@@ -374,12 +377,12 @@ describe('PeriodService - closePeriod', () => {
     const mockPeriod = { id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' }
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: {}, error: null })
       if (table === 'customers') return createAwaitableChain({ data: [], error: null })
       return createAwaitableChain({ data: null, error: null })
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
@@ -400,7 +403,6 @@ describe('PeriodService - closePeriod', () => {
     }
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { payment_grace_days: 20 }, error: null })
       if (table === 'customers') return createAwaitableChain(mockCustomers)
       return createAwaitableChain({ data: null, error: null })
     })
@@ -413,6 +415,7 @@ describe('PeriodService - closePeriod', () => {
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue(mockReadings as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
@@ -439,9 +442,9 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería crear periodo siguiente al último existente', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p2' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p1', year: 2025, month: 5, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -455,9 +458,9 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería incrementar el año al pasar de diciembre a enero', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p12', year: 2025, month: 12, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -470,9 +473,9 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería usar la fecha actual si no existe ningún periodo previo', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: null, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -484,9 +487,9 @@ describe('PeriodService - createNextPeriod', () => {
 
   it('debería lanzar error si falla la consulta de configuración municipal', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockRejectedValue(new Error('Error al obtener configuración municipal (billing_cut_day)'))
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: null, error: { message: 'Config error' } })
       if (table === 'billing_periods') return createAwaitableChain({ data: null, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -497,9 +500,9 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería usar billing_cut_day por defecto 26 si config no lo tiene', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: {}, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p1', year: 2025, month: 5, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -512,10 +515,10 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería registrar auditoría si se pasa userId', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p1', year: 2025, month: 5, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -532,9 +535,9 @@ describe('PeriodService - createNextPeriod', () => {
   it('no debería registrar auditoría si no se pasa userId', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p1', year: 2025, month: 5, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -547,10 +550,10 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería continuar si la auditoría falla', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
     vi.spyOn(AuditService.prototype, 'log').mockRejectedValue(new Error('Audit down'))
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p1', year: 2025, month: 5, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })
@@ -563,9 +566,9 @@ describe('PeriodService - createNextPeriod', () => {
   it('debería permitir crear periodo si el último periodo está cerrado', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getCurrentPeriod').mockResolvedValue(null)
     vi.spyOn(PeriodRepository.prototype, 'create').mockResolvedValue({ id: 'p-new' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getBillingCutDay').mockResolvedValue(26)
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'municipality_config') return createAwaitableChain({ data: { billing_cut_day: 26 }, error: null })
       if (table === 'billing_periods') return createAwaitableChain({ data: { id: 'p1', year: 2025, month: 5, is_closed: true }, error: null })
       return createAwaitableChain({ data: null, error: null })
     })

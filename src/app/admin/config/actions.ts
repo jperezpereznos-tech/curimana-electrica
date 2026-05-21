@@ -1,6 +1,7 @@
 'use server'
 
 import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
+import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { revalidatePath } from 'next/cache'
 import { municipalityConfigSchema } from '@/lib/validations/schemas'
 
@@ -8,32 +9,16 @@ export async function updateMunicipalityConfigAction(data: unknown): Promise<{ s
   try {
     const parsed = municipalityConfigSchema.parse(data)
     const { supabase } = await requireAdminAuth()
+    const configService = getMunicipalityConfigService(supabase)
 
-    const { data: existing, error: fetchError } = await supabase
-      .from('municipality_config')
-      .select('id')
-      .limit(1)
-      .single()
-
-    if (fetchError || !existing) {
-      return { success: false, error: 'No existe registro de configuracion municipal' }
-    }
-
-    const { error } = await supabase
-      .from('municipality_config')
-      .update({
-        name: parsed.name,
-        ruc: parsed.ruc,
-        address: parsed.address,
-        billing_cut_day: parsed.billing_cut_day,
-        payment_grace_days: parsed.payment_grace_days,
-        logo_url: parsed.logo_url || null,
-      })
-      .eq('id', existing.id)
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
+    await configService.updateConfig({
+      name: parsed.name,
+      ruc: parsed.ruc,
+      address: parsed.address,
+      billing_cut_day: parsed.billing_cut_day,
+      payment_grace_days: parsed.payment_grace_days,
+      logo_url: parsed.logo_url || null,
+    })
 
     revalidatePath('/admin/config')
     revalidatePath('/cashier')

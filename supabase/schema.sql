@@ -283,6 +283,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE OR REPLACE FUNCTION public.calculate_energy_amount(p_consumption NUMERIC, p_tariff_id UUID)
 RETURNS NUMERIC
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
@@ -678,26 +679,31 @@ BEGIN
     WHERE status IN ('pending', 'partial', 'overdue');
   END IF;
 
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('name', sub.rw->>'name', 'total', sub.rw->>'total') ORDER BY sub.rw->>'year' ASC, sub.rw->>'month' ASC), '[]'::jsonb)
+  INTO v_revenue
+  FROM (
+    SELECT jsonb_build_object(
       'name', bp.name,
-      'total', COALESCE(SUM(r.paid_amount), 0)
-    )
+      'total', COALESCE(SUM(r.paid_amount), 0),
+      'year', bp.year,
+      'month', bp.month
+    ) AS rw
+    FROM billing_periods bp
+    LEFT JOIN receipts r ON r.billing_period_id = bp.id AND r.status = 'paid'
+    GROUP BY bp.id, bp.name, bp.year, bp.month
     ORDER BY bp.year ASC, bp.month ASC
-  ), '[]'::jsonb) INTO v_revenue
-  FROM billing_periods bp
-  LEFT JOIN receipts r ON r.billing_period_id = bp.id AND r.status = 'paid'
-  GROUP BY bp.id, bp.name, bp.year, bp.month
-  ORDER BY bp.year ASC, bp.month ASC
-  LIMIT 6;
+    LIMIT 6
+  ) sub;
 
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object('name', s.name, 'value', COALESCE(SUM(rd.consumption), 0))
-  ), '[]'::jsonb) INTO v_sectors
-  FROM readings rd
-  JOIN customers c ON c.id = rd.customer_id
-  JOIN sectors s ON s.id = c.sector_id
-  GROUP BY s.id, s.name;
+  SELECT COALESCE(jsonb_agg(sw), '[]'::jsonb)
+  INTO v_sectors
+  FROM (
+    SELECT jsonb_build_object('name', s.name, 'value', COALESCE(SUM(rd.consumption), 0)) AS sw
+    FROM readings rd
+    JOIN customers c ON c.id = rd.customer_id
+    JOIN sectors s ON s.id = c.sector_id
+    GROUP BY s.id, s.name
+  ) sub;
 
   RETURN jsonb_build_object(
     'total_collected', v_total_collected,
@@ -854,6 +860,7 @@ CREATE INDEX IF NOT EXISTS idx_readings_needs_review ON readings(needs_review) W
 CREATE INDEX IF NOT EXISTS idx_customers_active_sector_name ON customers(is_active, sector_id, full_name);
 CREATE INDEX IF NOT EXISTS idx_payments_closure_status ON payments(cash_closure_id, status);
 CREATE INDEX IF NOT EXISTS idx_receipts_due_date_status ON receipts(due_date, status) WHERE status IN ('pending', 'partial');
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at);
 
 -- ============================================================================
 -- 6. RLS (Row Level Security) - Activar en todas las tablas

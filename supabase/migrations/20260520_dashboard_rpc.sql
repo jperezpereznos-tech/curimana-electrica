@@ -46,26 +46,31 @@ BEGIN
     WHERE status IN ('pending', 'partial', 'overdue');
   END IF;
 
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
+  SELECT COALESCE(jsonb_agg(rw ORDER BY rw->>'year' ASC, rw->>'month' ASC), '[]'::jsonb)
+  INTO v_revenue
+  FROM (
+    SELECT jsonb_build_object(
       'name', bp.name,
-      'total', COALESCE(SUM(r.paid_amount), 0)
-    )
+      'total', COALESCE(SUM(r.paid_amount), 0),
+      'year', bp.year,
+      'month', bp.month
+    ) AS rw
+    FROM billing_periods bp
+    LEFT JOIN receipts r ON r.billing_period_id = bp.id AND r.status = 'paid'
+    GROUP BY bp.id, bp.name, bp.year, bp.month
     ORDER BY bp.year ASC, bp.month ASC
-  ), '[]'::jsonb) INTO v_revenue
-  FROM billing_periods bp
-  LEFT JOIN receipts r ON r.billing_period_id = bp.id AND r.status = 'paid'
-  GROUP BY bp.id, bp.name, bp.year, bp.month
-  ORDER BY bp.year ASC, bp.month ASC
-  LIMIT 6;
+    LIMIT 6
+  ) sub;
 
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object('name', s.name, 'value', COALESCE(SUM(rd.consumption), 0))
-  ), '[]'::jsonb) INTO v_sectors
-  FROM readings rd
-  JOIN customers c ON c.id = rd.customer_id
-  JOIN sectors s ON s.id = c.sector_id
-  GROUP BY s.id, s.name;
+  SELECT COALESCE(jsonb_agg(sw), '[]'::jsonb)
+  INTO v_sectors
+  FROM (
+    SELECT jsonb_build_object('name', s.name, 'value', COALESCE(SUM(rd.consumption), 0)) AS sw
+    FROM readings rd
+    JOIN customers c ON c.id = rd.customer_id
+    JOIN sectors s ON s.id = c.sector_id
+    GROUP BY s.id, s.name
+  ) sub;
 
   RETURN jsonb_build_object(
     'total_collected', v_total_collected,

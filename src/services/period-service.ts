@@ -3,6 +3,7 @@ import { CustomerRepository } from '@/repositories/customer-repository'
 import { ReadingRepository } from '@/repositories/reading-repository'
 import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { ConceptRepository } from '@/repositories/concept-repository'
+import { MunicipalityConfigRepository } from '@/repositories/municipality-config-repository'
 import { AuditService } from '@/services/audit-service'
 import { calculateEnergyAmount, calculateTotalReceipt } from '@/lib/billing-utils'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -16,6 +17,7 @@ export class PeriodService {
   private readingRepo: ReadingRepository
   private receiptRepo: ReceiptRepository
   private conceptRepo: ConceptRepository
+  private configRepo: MunicipalityConfigRepository
   private auditSvc: AuditService
   private supabase: SupabaseClient<Database>
 
@@ -25,6 +27,7 @@ export class PeriodService {
     this.readingRepo = new ReadingRepository(supabaseClient)
     this.receiptRepo = new ReceiptRepository(supabaseClient)
     this.conceptRepo = new ConceptRepository(supabaseClient)
+    this.configRepo = new MunicipalityConfigRepository(supabaseClient)
     this.auditSvc = new AuditService(supabaseClient)
     this.supabase = supabaseClient
   }
@@ -72,14 +75,7 @@ export class PeriodService {
       nextMonth = now.getMonth() + 1
     }
 
-    const { data: config, error: configErr } = await this.supabase
-      .from('municipality_config')
-      .select('billing_cut_day')
-      .limit(1)
-      .single()
-      if (configErr) throw new Error('Error al obtener configuración municipal (billing_cut_day): ' + configErr.message)
-
-    const cutDay = config?.billing_cut_day || 26
+    const cutDay = await this.configRepo.getBillingCutDay()
     const periodData = this.calculatePeriodDates(nextYear, nextMonth, cutDay)
     const result = await this.periodRepo.create(periodData)
 
@@ -126,17 +122,8 @@ export class PeriodService {
     if (!period) throw new Error('Periodo no encontrado')
     if (period.is_closed) throw new Error('El periodo ya está cerrado')
 
-    const [
-      { data: config, error: configErr },
-      activeCustomersResult,
-      activeConcepts,
-      allReadings,
-    ] = await Promise.all([
-      this.supabase
-        .from('municipality_config')
-        .select('payment_grace_days')
-        .limit(1)
-        .single(),
+    const [graceDays, activeCustomersResult, activeConcepts, allReadings] = await Promise.all([
+      this.configRepo.getPaymentGraceDays(),
       this.supabase
         .from('customers')
         .select('*, tariffs(*, tariff_tiers(*))')
@@ -145,11 +132,9 @@ export class PeriodService {
       this.readingRepo.getReadingsByPeriod(id),
     ])
 
-    if (configErr) throw new Error('Error al obtener configuración municipal (payment_grace_days): ' + configErr.message)
-
-    const graceDays = config?.payment_grace_days || 20
-    const activeCustomers = activeCustomersResult.data || []
     if (activeCustomersResult.error) throw activeCustomersResult.error
+
+    const activeCustomers = activeCustomersResult.data || []
 
   const receiptPayloads: {
     customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
