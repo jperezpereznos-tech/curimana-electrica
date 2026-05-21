@@ -23,12 +23,12 @@ For focused work, load the relevant agent file from `.cursor/rules/`:
 ## Commands
 
 ```bash
-npm run dev          # Dev server (Turbopack)
-npm run build        # Production build
-npm run lint         # ESLint 9 flat config (core-web-vitals + typescript)
-npx tsc --noEmit     # TypeScript strict check
-npm run test         # Vitest unit tests (jsdom, @ alias, globals: true)
-npx playwright test  # E2E (auto-starts `npm run start`, not dev)
+npm run dev # Dev server (Turbopack)
+npm run build # Production build
+npm run lint # ESLint 9 flat config (core-web-vitals + typescript)
+npx tsc --noEmit # TypeScript strict check
+npm run test # Vitest unit tests (jsdom, @ alias, globals: true)
+npx playwright test # E2E (auto-starts `npm run start`, not dev)
 ```
 
 ### Verification order
@@ -44,8 +44,16 @@ npx playwright test  # E2E (auto-starts `npm run start`, not dev)
 
 ### Data flow
 
-- **Online**: App Router page/component → `src/services/` (business logic, 12 services) → `src/repositories/` (Supabase queries, 10 repos extending `base.ts`) → Supabase PostgreSQL + RLS
+- **Online**: App Router page/component → `src/services/` (13 services) → `src/repositories/` (12 repos extending `base.ts`) → Supabase PostgreSQL + RLS
 - **Offline (reader role)**: Dexie.js (`src/lib/db/dexie.ts`) ↔ `use-offline-sync.ts` (background sync every 30s, exponential backoff on failure)
+
+### Services (13)
+
+`audit-service`, `cash-closure-service`, `concept-service`, `customer-service`, `dashboard-service`, `municipality-config-service`, `payment-service`, `pdf-service`, `period-service`, `profile-service`, `reading-service`, `receipt-service`, `sector-service`, `storage-service`, `tariff-service`
+
+### Repositories (12)
+
+`audit-repository`, `base`, `cash-closure-repository`, `concept-repository`, `customer-repository`, `municipality-config-repository`, `payment-repository`, `period-repository`, `profile-repository`, `reading-repository`, `receipt-repository`, `sector-repository`, `tariff-repository`
 
 ### Role-based routing
 
@@ -96,13 +104,119 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 
 ## Database
 
-- **Schema**: `supabase/schema.sql` — 13 tables, 3 functions, 1 trigger, full RLS
-- **Seed**: `supabase/seed.sql` — roles, municipal config, BTSB tariff (3 tiers), 4 billing concepts, 5 test customers, 1 period
-- **Key SQL functions**:
-  - `get_user_role()` — SECURITY DEFINER, returns role for authenticated user (used by proxy.ts)
-  - `calculate_energy_amount(consumption, tariff_id)` — progressive tier calculation
-  - `handle_new_user()` — trigger: auto-creates profile on auth user creation
-- **Admin user setup**: After creating auth user, manually run `UPDATE profiles SET role = 'admin' WHERE email = '...'`
+### Tables (15)
+
+`audit_logs`, `billing_concepts`, `billing_periods`, `cash_closures`, `customers`, `municipality_config`, `payments`, `profiles`, `readings`, `receipts`, `roles`, `sectors`, `tariff_tier_history`, `tariff_tiers`, `tariffs`
+
+### SQL Functions (15)
+
+| Function | Type | Purpose |
+|----------|------|---------|
+| `get_user_role()` | STABLE SECURITY DEFINER | Returns role for auth user (used by proxy.ts) |
+| `get_dashboard_kpis()` | STABLE SECURITY DEFINER | Single-call dashboard data (replaces 5 round-trips) |
+| `calculate_energy_amount(consumption, tariff_id)` | SECURITY DEFINER | Progressive tier energy calculation |
+| `generate_period_receipts(period_id, receipts)` | SECURITY DEFINER | Atomic receipt batch insert |
+| `close_billing_period(period_id)` | SECURITY DEFINER | Marks period as closed |
+| `process_payment(receipt_id, ...)` | SECURITY DEFINER | Atomic payment processing |
+| `void_payment(payment_id)` | SECURITY DEFINER | Void a payment |
+| `adjust_customer_debt(customer_id, amount)` | SECURITY DEFINER | Adjusts customer.current_debt |
+| `recalculate_customer_debt(customer_id)` | SECURITY DEFINER | Recalculates debt from open receipts |
+| `get_user_sector_id(user_id)` | SECURITY DEFINER | Returns sector for reader role |
+| `handle_new_user()` | SECURITY DEFINER trigger | Auto-creates profile on auth user creation |
+| `log_tariff_tier_change()` | SECURITY DEFINER trigger | Logs tier changes to tariff_tier_history |
+| `current_role()` | SECURITY DEFINER | Returns current user role text |
+| `update_updated_at()` | SECURITY DEFINER trigger | Auto-sets updated_at on row update |
+| `rls_auto_enable()` | SECURITY DEFINER event trigger | Auto-enables RLS on new tables |
+
+### Performance optimizations applied
+
+- `get_user_role()` is `STABLE` — PostgreSQL caches result within a statement, eliminates per-row re-evaluation in RLS
+- RLS policies split into separate INSERT/UPDATE/DELETE (no redundant `get_user_role()` on SELECT)
+- 7 composite indexes: `idx_receipts_period_status`, `idx_readings_needs_review` (partial), `idx_customers_active_sector_name`, `idx_payments_closure_status`, `idx_receipts_due_date_status` (partial), `idx_payments_created_at`, `billing_periods_year_month_key` (UNIQUE)
+- `get_dashboard_kpis()` RPC replaces 5 sequential HTTP round-trips with 1 DB call
+
+### Migrations (17)
+
+Located in `supabase/migrations/`. Most recent: `20260521_audit_fixes.sql`. Schema source of truth: `supabase/schema.sql`.
+
+### Admin user setup
+
+After creating auth user, manually run: `UPDATE profiles SET role = 'admin' WHERE email = '...'`
+
+## Billing Calculation
+
+### Tariff tier algorithm (progressive/escalonado)
+
+Each tier defines a kWh range. Only kWh consumed **within** that range are billed at that tier's rate. Tiers are sorted by `order_index` (or `min_kwh`).
+
+**Algorithm** (`calculateEnergyAmount` in `src/lib/billing-utils.ts`):
+
+```
+for each tier (sorted by min_kwh ascending):
+  if consumption <= tier.min_kwh → skip (no kWh in this tier)
+  if tier.max_kwh is null → tierConsumption = consumption - tier.min_kwh
+  else → tierConsumption = min(consumption, tier.max_kwh) - tier.min_kwh
+  total += tierConsumption × tier.price_per_kwh
+return round(total, 2)
+```
+
+**Critical**: `min_kwh` is an **exclusive lower bound** in the algorithm. Tier ranges must be **contiguous** (no gaps). Example correct setup: Tier 1 `(0, 30)`, Tier 2 `(30, 100)`, Tier 3 `(100, NULL)`. If Tier 2 starts at `31` instead of `30`, the kWh between 30-31 is never billed.
+
+### Receipt formula
+
+```
+energy_amount = Σ(tierConsumption × price_per_kwh)     -- progressive
+fixed_charges  = Σ(fixed concepts + per_kwh concepts)   -- pass 1
+               + Σ(percentage concepts)                  -- pass 2 (base = energy + fixed from pass 1)
+subtotal       = energy_amount + fixed_charges
+total_amount   = subtotal + previous_debt
+```
+
+**Subtlety**: `closePeriod` (period-service.ts) calculates all percentage concepts against the **same** base (`energy + fixed from pass 1`). `ReceiptService.calculateBreakdown` uses **cascading** percentages (each builds on running total including previous percentage concepts). Currently identical because only 1 percentage concept exists (IGV, inactive). Will diverge if multiple percentage concepts are activated.
+
+## Production DB — Known Data Issues
+
+The following issues exist in the **live Supabase database** (not in the code). The billing algorithm code is correct; the problems are configuration data.
+
+### CRITICAL — Affects billing accuracy
+
+| # | Issue | Current BD value | Correct value (per real receipt) | Impact |
+|---|-------|-----------------|----------------------------------|--------|
+| 1 | Tier 2 `min_kwh` gap | `31` | `30` | kWh 30-31 not billed. 31 kWh charged as 30 kWh. |
+| 2 | Missing tier 3 | Does not exist | `(100, NULL, 0.64)` | All consumption >100 kWh is FREE. 150 kWh pays same as 100 kWh. |
+| 3 | Tier 2 price | `0.63` | `0.62` | S/0.01/kWh overcharge on 30-100 kWh range. |
+| 4 | Alumbrado Público amount | `S/ 3.00` | `S/ 1.68` | S/1.32 overcharge per receipt. |
+| 5 | Missing Cargo Fijo concept | Does not exist | `S/ 4.37, fixed` | S/4.37 undercharge per receipt. |
+
+### IMPORTANT — Incomplete configuration
+
+| # | Issue | Detail |
+|---|-------|--------|
+| 6 | Missing billing concepts | Recolección Residuos Sólidos, Serenazgo, Barrido de Calles, Parques y Jardines (all at S/0 but must exist for receipt display) |
+| 7 | Missing trifásica tariff | Only "residencial" (monofásico) exists. No trifásica tariff or tiers. |
+| 8 | Tariff name wrong | "residencial" → should be "BT5B-RESIDENCIAL - MONOFÁSICO" |
+| 9 | Missing sectors | Only "BARRIO LAS LOMAS" exists. Real receipt shows "PLAZA MAYOR". All real sectors needed. |
+| 10 | Municipality name has extra "2026" | "Municipalidad Distrital de Curimana **2026**" → should not have "2026" |
+
+### OPERATIONAL — No data loaded
+
+| Table | Records |
+|-------|---------|
+| customers | 0 |
+| billing_periods | 0 |
+| readings | 0 |
+| receipts | 0 |
+| payments | 0 |
+
+### Verified calculation discrepancies (live RPC)
+
+| Consumption | Current BD result | Expected result | Delta |
+|-------------|------------------|-----------------|-------|
+| 30 kWh | S/ 9.30 | S/ 9.30 | 0 |
+| 31 kWh | S/ 9.30 | S/ 9.92 | **-S/ 0.62** |
+| 50 kWh | S/ 21.27 | S/ 21.70 | **-S/ 0.43** |
+| 100 kWh | S/ 52.77 | S/ 52.70 | +S/ 0.07 |
+| 150 kWh | S/ 52.77 | S/ 84.70 | **-S/ 32.00** |
 
 ## Deployment
 
