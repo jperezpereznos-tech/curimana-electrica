@@ -28,11 +28,11 @@ Sistema integral para la gestión de facturación, recaudación y lectura de med
 │  ├── /reader   → Lecturas (mobile-first, PWA)   │
 │  └── /login    → Autenticación                  │
 ├─────────────────────────────────────────────────┤
-│  Services (12)  →  Repositories (10)            │
+│  Services (13)  →  Repositories (12)            │
 ├─────────────────────────────────────────────────┤
 │                   BACKEND                        │
 │  Supabase: PostgreSQL + Auth + RLS + Storage    │
-│  13 tablas, 3 funciones, 1 trigger              │
+│  15 tablas, 15 funciones/triggers               │
 ├─────────────────────────────────────────────────┤
 │  OFFLINE: Dexie.js (IndexedDB) + Background Sync│
 └─────────────────────────────────────────────────┘
@@ -126,8 +126,8 @@ src/
 │   │   ├── sync/               # Sincronización
 │   │   └── list/               # Lista de lecturas
 │   └── login/                  # Página de login
-├── services/                   # 12 servicios de negocio
-├── repositories/               # 10 repositorios (acceso a Supabase)
+├── services/                   # 13 servicios de negocio
+├── repositories/               # 12 repositorios (acceso a Supabase)
 ├── hooks/                      # useAuth, useOfflineSync
 ├── components/
 │   ├── ui/                     # 13 componentes shadcn/ui
@@ -162,7 +162,7 @@ npm run build
 
 ## 🗄️ Base de Datos
 
-### Tablas principales (13)
+### Tablas principales (15)
 
 | Tabla | Descripción |
 |-------|-------------|
@@ -171,7 +171,9 @@ npm run build
 | `municipality_config` | Configuración municipal (RUC, nombre, etc.) |
 | `tariffs` | Tarifas eléctricas |
 | `tariff_tiers` | Tramos progresivos por tarifa |
+| `tariff_tier_history` | Historial de cambios en tramos |
 | `billing_concepts` | Conceptos de cobro (cargo fijo, alumbrado, etc.) |
+| `sectors` | Sectores del distrito |
 | `customers` | Clientes/suministros |
 | `billing_periods` | Periodos de facturación mensual |
 | `readings` | Lecturas de medidor (consumo calculado automáticamente) |
@@ -180,9 +182,11 @@ npm run build
 | `cash_closures` | Cierres de caja diarios |
 | `audit_logs` | Registro de auditoría |
 
-### Funciones SQL
+### Funciones SQL (15 en total)
+- **`get_dashboard_kpis()`** — KPIs en una sola llamada, optimizando rendimiento
+- **`generate_period_receipts(...)`**, **`process_payment(...)`**, **`void_payment(...)`** — Operaciones transaccionales atómicas
 - **`calculate_energy_amount(consumption, tariff_id)`** — Calcula el monto por tramos progresivos
-- **`get_user_role()`** — Obtiene el rol del usuario autenticado (para RLS)
+- **`get_user_role()`** — Obtiene el rol del usuario autenticado (STABLE, para RLS)
 - **`handle_new_user()`** — Trigger que auto-crea perfil al registrar usuario
 
 ### Tarifa BTSB (ejemplo)
@@ -202,9 +206,9 @@ npm run build
 
 ## 📱 PWA / Offline
 
-- PWA instalable en dispositivos móviles
+- **Nota:** Service worker actualmente deshabilitado en Next.js por conflictos con Turbopack.
 - Lecturas funcionan sin conexión a internet (IndexedDB via Dexie.js)
-- Sincronización automática al recuperar red (cada 30s)
+- Sincronización automática al recuperar red (cada 30s) con backoff exponencial
 - Cache de clientes para búsqueda offline
 
 ## 🚢 Deployment

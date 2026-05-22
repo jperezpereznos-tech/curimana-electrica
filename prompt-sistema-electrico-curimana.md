@@ -13,7 +13,7 @@ MODO DE USO:
 
 ### ✅ Completado
 - [x] FASE 0: Setup inicial (Next.js 16, Supabase, PWA, Tailwind v4)
-- [x] FASE 1: Schema SQL y Supabase (13 tablas, funciones, trigger, RLS)
+- [x] FASE 1: Schema SQL y Supabase (15 tablas, 15 funciones/triggers, RLS)
 - [x] FASE 2: Autenticación y roles (proxy.ts, useAuth, layouts)
 - [x] FASE 3: Gestión de clientes y tarifas (CRUD completo)
 - [x] FASE 4: Periodos y lecturas (mobile-first, offline)
@@ -50,7 +50,9 @@ MODO DE USO:
 
 ### ⚠️ Next.js 16 — Breaking Changes
 
-1. **`middleware.ts` ya NO existe**. Fue renombrado a `proxy.ts`:
+1. **PWA Deshabilitado:** `@serwist/next` está deshabilitado en `next.config.mjs` temporalmente por conflictos con Turbopack.
+
+2. **`middleware.ts` ya NO existe**. Fue renombrado a `proxy.ts`:
    ```typescript
    // src/proxy.ts — CORRECTO
    export function proxy(request: NextRequest) { ... }
@@ -106,7 +108,7 @@ src/
 │       ├── pending/page.tsx      # Lecturas pendientes
 │       ├── sync/page.tsx         # Sincronización
 │       └── list/page.tsx         # Lista de lecturas
-├── services/                     # 12 servicios
+├── services/                     # 13 servicios (15 implementados)
 │   ├── dashboard-service.ts      # getSummaryKPIs, getRevenueHistory, etc.
 │   ├── payment-service.ts        # processPayment, processPartialPayment
 │   ├── receipt-service.ts        # generateReceipt, getReceiptDetail
@@ -119,7 +121,7 @@ src/
 │   ├── audit-service.ts          # logAction, getAuditLogs
 │   ├── pdf-service.ts            # generateReceiptPDF
 │   └── storage-service.ts        # uploadPhoto, getPhotoUrl
-├── repositories/                 # 10 repositorios
+├── repositories/                 # 12 repositorios
 │   ├── base.ts                   # BaseRepository<T> con CRUD genérico
 │   ├── customer-repository.ts
 │   ├── tariff-repository.ts
@@ -156,7 +158,7 @@ src/
 
 ### Base de Datos — Estado Actual
 
-**13 tablas** con RLS habilitado en todas:
+**15 tablas** con RLS habilitado en todas:
 
 | # | Tabla | Registros | Estado |
 |---|-------|-----------|--------|
@@ -165,22 +167,23 @@ src/
 | 3 | `municipality_config` | 0 | ⚠️ Ejecutar seed.sql |
 | 4 | `tariffs` | 0 | ⚠️ Ejecutar seed.sql |
 | 5 | `tariff_tiers` | 0 | ⚠️ Ejecutar seed.sql |
-| 6 | `billing_concepts` | 0 | ⚠️ Ejecutar seed.sql |
-| 7 | `customers` | 0 | ⚠️ Ejecutar seed.sql |
-| 8 | `billing_periods` | 0 | ⚠️ Ejecutar seed.sql |
-| 9 | `readings` | 0 | Normal (vacía) |
-| 10 | `receipts` | 0 | Normal (vacía) |
-| 11 | `payments` | 0 | Normal (vacía) |
-| 12 | `cash_closures` | 0 | Normal (vacía) |
-| 13 | `audit_logs` | 0 | Normal (vacía) |
+| 6 | `tariff_tier_history` | 0 | Normal (vacía) |
+| 7 | `billing_concepts` | 0 | ⚠️ Ejecutar seed.sql |
+| 8 | `sectors` | 0 | ⚠️ Ejecutar seed.sql |
+| 9 | `customers` | 0 | ⚠️ Ejecutar seed.sql |
+| 10 | `billing_periods` | 0 | ⚠️ Ejecutar seed.sql |
+| 11 | `readings` | 0 | Normal (vacía) |
+| 12 | `receipts` | 0 | Normal (vacía) |
+| 13 | `payments` | 0 | Normal (vacía) |
+| 14 | `cash_closures` | 0 | Normal (vacía) |
+| 15 | `audit_logs` | 0 | Normal (vacía) |
 
-**3 funciones PL/pgSQL**:
-- `get_user_role()` — SECURITY DEFINER, retorna rol del usuario autenticado
-- `current_role()` — Alias compatible
+**15 funciones y triggers PL/pgSQL**:
+- `get_user_role()` — SECURITY DEFINER STABLE
+- `get_dashboard_kpis()` — Optimizador de dashboard
+- `process_payment()`, `generate_period_receipts()`, etc. (Operaciones atómicas)
 - `calculate_energy_amount(consumption, tariff_id)` — Cálculo escalonado
-
-**1 trigger**:
-- `on_auth_user_created` → `handle_new_user()` — Auto-crea perfil
+- Triggers: `handle_new_user()`, `log_tariff_tier_change()`, `update_updated_at()`
 
 ---
 
@@ -246,28 +249,30 @@ NO generes UI todavía. Solo estructura, config y utilidades."
 "Genera el schema SQL completo para Supabase PostgreSQL del Sistema Eléctrico
 Municipal de Curimana, basado en este diseño:
 
-TABLAS REQUERIDAS:
+TABLAS REQUERIDAS (15):
 
 1. roles (seed data: admin, cashier, meter_reader)
 2. profiles (vinculada a auth.users via trigger)
-   - id UUID PK REFERENCES auth.users, email, full_name, role FK→roles, created_at, updated_at
 3. municipality_config (ruc, name, address, billing_cut_day, payment_grace_days)
 4. tariffs (name, connection_type, is_active)
 5. tariff_tiers (tariff_id FK, min_kwh, max_kwh, price_per_kwh, order_index)
-6. billing_concepts (code UNIQUE, name, amount, type, applies_to_tariff_id)
-7. customers (supply_number UNIQUE, full_name, address, sector, tariff_id FK, current_debt)
-8. billing_periods (name, year, month, start_date, end_date, is_closed, UNIQUE year+month)
-9. readings (customer_id FK, billing_period_id FK, previous/current_reading, consumption GENERATED)
-10. receipts (receipt_number BIGINT UNIQUE, customer_id, reading_id, billing_period_id, amounts, status CHECK)
-11. payments (receipt_id FK, customer_id FK, amount, method, cashier_id)
-12. cash_closures (cashier_id, opening_amount, total_collected, status CHECK)
-13. audit_logs (table_name, record_id, action, old_data JSONB, new_data JSONB)
+6. tariff_tier_history (historial de cambios)
+7. billing_concepts (code UNIQUE, name, amount, type, applies_to_tariff_id)
+8. sectors (name, description)
+9. customers (supply_number UNIQUE, full_name, address, sector_id FK, tariff_id FK, current_debt)
+10. billing_periods (name, year, month, start_date, end_date, is_closed, UNIQUE year+month)
+11. readings (customer_id FK, billing_period_id FK, previous/current_reading, consumption GENERATED)
+12. receipts (receipt_number BIGINT UNIQUE, customer_id, reading_id, billing_period_id, amounts, status CHECK)
+13. payments (receipt_id FK, customer_id FK, amount, method, cashier_id)
+14. cash_closures (cashier_id, opening_amount, total_collected, status CHECK)
+15. audit_logs (table_name, record_id, action, old_data JSONB, new_data JSONB)
 
-FUNCIONES SQL:
-- get_user_role() — SECURITY DEFINER, SET search_path = public
-- current_role() — Alias compatible
-- calculate_energy_amount(consumption, tariff_id) — Tramos progresivos
-- handle_new_user() — Trigger para auto-crear perfil en profiles
+FUNCIONES SQL Y TRIGGERS (15 en total):
+- get_user_role() (STABLE), current_role()
+- get_dashboard_kpis()
+- process_payment(), void_payment(), generate_period_receipts() (Transaccionales)
+- calculate_energy_amount(consumption, tariff_id)
+- handle_new_user(), log_tariff_tier_change(), update_updated_at()
 
 TRIGGER:
 - on_auth_user_created AFTER INSERT ON auth.users → handle_new_user()
