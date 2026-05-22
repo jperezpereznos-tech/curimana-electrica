@@ -76,23 +76,27 @@ export function useOfflineSync() {
   }
   }, [user?.id])
 
-  const refreshSession = useCallback(async () => {
+  const refreshSession = useCallback(async (): Promise<{ ok: boolean, message?: string }> => {
     try {
-      return await withTimeout((async () => {
+      return await withTimeout(async () => {
         const supabase = createClient()
         const { data, error } = await supabase.auth.getSession()
         if (error || !data.session) {
           const { error: refreshError } = await supabase.auth.refreshSession()
           if (refreshError) {
             console.error('Session refresh failed:', refreshError)
-            return false
+            return { ok: false, message: 'La sesión ha expirado o es inválida. Inicia sesión de nuevo.' }
           }
         }
-        return true
-      })(), 8000)
-    } catch (error) {
-      console.error('Session refresh timed out or failed:', error)
-      return false
+        return { ok: true }
+      }(), 15000)
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      console.error('Session refresh timed out or failed:', errMsg)
+      if (errMsg.includes('timed out')) {
+        return { ok: false, message: 'Tiempo de espera agotado al verificar la sesión. Revisa tu conexión.' }
+      }
+      return { ok: false, message: `Error al verificar sesión: ${errMsg}` }
     }
   }, [])
 
@@ -103,12 +107,12 @@ export function useOfflineSync() {
     setSyncStatus('syncing')
 
     try {
-      const sessionOk = await refreshSession()
-      if (!sessionOk) {
+      const sessionStatus = await refreshSession()
+      if (!sessionStatus.ok) {
         setSyncStatus('error')
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
-        toast.error('Error de sincronización: sesión expirada. Inicia sesión de nuevo.')
+        toast.error(`Error de sincronización: ${sessionStatus.message}`)
         return
       }
 
