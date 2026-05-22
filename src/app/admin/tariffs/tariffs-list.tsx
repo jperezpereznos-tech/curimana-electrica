@@ -36,6 +36,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
   const [tariffs, setTariffs] = useState(initialTariffs)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [editTargetId, setEditTargetId] = useState<string | null>(null)
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
@@ -115,6 +116,14 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
+                  <EditTariffDialog
+                    tariff={tariff}
+                    hideTrigger
+                    open={editTargetId === tariff.id}
+                    onOpenChange={(isOpen) => {
+                      if (!isOpen) setEditTargetId(null)
+                    }}
+                  />
                   <DropdownMenu>
               <DropdownMenuTrigger render={
                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -123,14 +132,9 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
               } />
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                <EditTariffDialog
-                  tariff={tariff}
-                  trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      Editar
-                    </DropdownMenuItem>
-                  }
-                />
+                <DropdownMenuItem onClick={() => setEditTargetId(tariff.id)}>
+                  Editar
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleToggleStatus(tariff.id, tariff.is_active ?? false)}>
                   {tariff.is_active ? 'Desactivar' : 'Activar'}
                 </DropdownMenuItem>

@@ -38,6 +38,7 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [editTargetId, setEditTargetId] = useState<string | null>(null)
 
   const handleToggleStatus = async (id: string, currentStatus: boolean) => {
     setActionError(null)
@@ -110,6 +111,15 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
+                  <EditConceptDialog
+                    concept={concept}
+                    tariffs={tariffs}
+                    hideTrigger
+                    open={editTargetId === concept.id}
+                    onOpenChange={(isOpen) => {
+                      if (!isOpen) setEditTargetId(null)
+                    }}
+                  />
                   <DropdownMenu>
                     <DropdownMenuTrigger render={
                       <Button variant="ghost" className="h-8 w-8 p-0">
@@ -118,15 +128,9 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
                     } />
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                      <EditConceptDialog
-                        concept={concept}
-                        tariffs={tariffs}
-          trigger={
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              Editar
-            </DropdownMenuItem>
-          }
-        />
+                      <DropdownMenuItem onClick={() => setEditTargetId(concept.id)}>
+                        Editar
+                      </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleToggle(concept.id, concept.is_active)}>
                         {concept.is_active ? 'Desactivar' : 'Activar'}
                       </DropdownMenuItem>

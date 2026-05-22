@@ -42,10 +42,16 @@ interface EditConceptDialogProps {
   concept: ConceptRow
   tariffs?: TariffRow[]
   trigger?: React.ReactNode
+  hideTrigger?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConceptDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditConceptDialog({ concept, tariffs = [], trigger, hideTrigger, open: externalOpen, onOpenChange: externalOnOpenChange }: EditConceptDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = externalOpen !== undefined
+  const open = isControlled ? externalOpen : internalOpen
+  const setOpen = isControlled ? externalOnOpenChange! : setInternalOpen
   const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm<ConceptFormValues>({
@@ -89,13 +95,15 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger nativeButton={!trigger} render={
-        (trigger || (
-          <Button variant="ghost" size="sm" className="gap-1">
-            <Pencil className="h-3 w-3" /> Editar
-          </Button>
-        )) as React.ReactElement
-      } />
+      {!hideTrigger && (
+        <DialogTrigger nativeButton={!trigger} render={
+          (trigger || (
+            <Button variant="ghost" size="sm" className="gap-1">
+              <Pencil className="h-3 w-3" /> Editar
+            </Button>
+          )) as React.ReactElement
+        } />
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar Concepto de Cobro</DialogTitle>
