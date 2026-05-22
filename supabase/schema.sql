@@ -809,17 +809,8 @@ FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER receipts_updated_at BEFORE UPDATE ON receipts
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
-CREATE TRIGGER sectors_updated_at BEFORE UPDATE ON sectors
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
 CREATE TRIGGER tariffs_updated_at BEFORE UPDATE ON tariffs
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-CREATE TRIGGER tariff_tier_history_updated_at BEFORE UPDATE ON tariff_tier_history
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-CREATE TRIGGER billing_concepts_updated_at BEFORE UPDATE ON billing_concepts
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 CREATE TRIGGER municipality_config_updated_at BEFORE UPDATE ON municipality_config
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
