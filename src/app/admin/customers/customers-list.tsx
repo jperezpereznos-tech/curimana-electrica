@@ -29,6 +29,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
   const [page, setPage] = useState(1)
   const [toggleTarget, setToggleTarget] = useState<{ id: string; isActive: boolean } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [editTargetId, setEditTargetId] = useState<string | null>(null)
   const router = useRouter()
 
   const customers = useMemo(() => initialCustomers, [initialCustomers])
@@ -132,6 +133,16 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
+                    <EditCustomerDialog
+                      customer={customer}
+                      tariffs={tariffs}
+                      sectors={sectors}
+                      hideTrigger
+                      open={editTargetId === customer.id}
+                      onOpenChange={(isOpen) => {
+                        if (!isOpen) setEditTargetId(null)
+                      }}
+                    />
                     <DropdownMenu>
               <DropdownMenuTrigger render={
                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -143,16 +154,9 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                 <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${customer.id}`}>
                   Ver Detalle
                 </DropdownMenuItem>
-                    <EditCustomerDialog
-                      customer={customer}
-                      tariffs={tariffs}
-                      sectors={sectors}
-                      trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      Editar
-                    </DropdownMenuItem>
-                  }
-                />
+                <DropdownMenuItem onClick={() => setEditTargetId(customer.id)}>
+                  Editar
+                </DropdownMenuItem>
           <DropdownMenuSeparator />
                 {customer.is_active ? (
                   <DropdownMenuItem className="text-destructive" onClick={() => setToggleTarget({ id: customer.id, isActive: false })}>

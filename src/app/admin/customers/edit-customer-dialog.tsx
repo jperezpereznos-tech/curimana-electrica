@@ -44,10 +44,16 @@ interface EditCustomerDialogProps {
   tariffs: TariffRow[]
   sectors: SectorRow[]
   trigger?: React.ReactNode
+  hideTrigger?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function EditCustomerDialog({ customer, tariffs, sectors, trigger }: EditCustomerDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditCustomerDialog({ customer, tariffs, sectors, trigger, hideTrigger, open: externalOpen, onOpenChange: externalOnOpenChange }: EditCustomerDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = externalOpen !== undefined
+  const open = isControlled ? externalOpen : internalOpen
+  const setOpen = isControlled ? externalOnOpenChange! : setInternalOpen
   const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm<CustomerFormValues>({
@@ -90,13 +96,15 @@ useEffect(() => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger nativeButton={!trigger} render={
-      (trigger || (
-        <Button variant="ghost" size="sm" className="gap-1">
-          <Pencil className="h-3 w-3" /> Editar
-        </Button>
-      )) as React.ReactElement
-    } />
+    {!hideTrigger && (
+      <DialogTrigger nativeButton={!trigger} render={
+        (trigger || (
+          <Button variant="ghost" size="sm" className="gap-1">
+            <Pencil className="h-3 w-3" /> Editar
+          </Button>
+        )) as React.ReactElement
+      } />
+    )}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar Cliente</DialogTitle>
