@@ -78,7 +78,7 @@ export function useOfflineSync() {
 
   const refreshSession = useCallback(async (): Promise<{ ok: boolean, message?: string }> => {
     try {
-      return await withTimeout(async () => {
+      return await withTimeout((async () => {
         const supabase = createClient()
         const { data, error } = await supabase.auth.getSession()
         if (error || !data.session) {
@@ -89,7 +89,7 @@ export function useOfflineSync() {
           }
         }
         return { ok: true }
-      }(), 15000)
+      })(), 15000)
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error)
       console.error('Session refresh timed out or failed:', errMsg)
