@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -31,7 +30,6 @@ type SectorFormValues = z.infer<typeof sectorSchema>
 export function CreateSectorDialog() {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const router = useRouter()
 
   const form = useForm<SectorFormValues>({
     resolver: zodResolver(sectorSchema),
@@ -44,7 +42,6 @@ export function CreateSectorDialog() {
     if (result.success) {
       setOpen(false)
       form.reset()
-      router.refresh()
     } else {
       setServerError(result.error || 'Error al crear sector')
     }

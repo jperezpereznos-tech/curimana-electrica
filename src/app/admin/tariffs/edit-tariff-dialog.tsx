@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -61,7 +60,6 @@ interface EditTariffDialogProps {
 export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
   const [open, setOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const router = useRouter()
 
   const form = useForm<TariffFormValues>({
     resolver: zodResolver(tariffSchema),
@@ -121,7 +119,6 @@ export function EditTariffDialog({ tariff, trigger }: EditTariffDialogProps) {
     )
     if (result.success) {
       setOpen(false)
-      router.refresh()
     } else {
       const msg = result.error || 'Error al actualizar la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {

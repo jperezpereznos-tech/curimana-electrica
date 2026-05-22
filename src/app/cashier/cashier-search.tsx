@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,11 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Search, User, MapPin, AlertCircle, Receipt, Printer, FileText } from 'lucide-react'
 import { searchCashierCustomerAction, getCustomerPaymentsAction, getReceiptPrintDataAction } from './actions'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { PaymentModal } from './payment-modal'
-import { BatchPaymentModal } from './batch-payment-modal'
 import { ReceiptPrintLayout } from '@/components/receipt-print-layout'
 import type { ReceiptPrintLayoutProps } from '@/components/receipt-print-layout'
 import type { CustomerWithRelations, ReceiptWithPeriod } from '@/types/views'
+
+const PaymentModal = dynamic(() => import('./payment-modal').then(m => ({ default: m.PaymentModal })))
+const BatchPaymentModal = dynamic(() => import('./batch-payment-modal').then(m => ({ default: m.BatchPaymentModal })))
 
 type Customer = CustomerWithRelations
 type ReceiptItem = ReceiptWithPeriod

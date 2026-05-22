@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,7 +22,6 @@ export function ClosureActions({ action, closureId }: { action: 'open' | 'close'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
-  const router = useRouter()
 
   const handleOpen = async () => {
     setError(null)
@@ -36,10 +34,7 @@ export function ClosureActions({ action, closureId }: { action: 'open' | 'close'
     setLoading(true)
     const result = await openClosureAction(amount)
     if (result.success) {
-      setOpen(false)
-      router.refresh()
-    } else {
-      setError(result.error || 'Error al abrir caja')
+    setOpen(false)
     }
     setLoading(false)
   }
@@ -50,9 +45,8 @@ export function ClosureActions({ action, closureId }: { action: 'open' | 'close'
     setLoading(true)
     const result = await closeClosureAction(closureId)
     if (result.success) {
-      setShowCloseConfirm(false)
-      router.refresh()
-    } else {
+    setShowCloseConfirm(false)
+  } else {
       setError(result.error || 'Error al cerrar caja')
     }
     setLoading(false)

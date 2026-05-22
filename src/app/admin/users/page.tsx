@@ -1,7 +1,9 @@
 import { getUsersWithRolesAction } from './actions'
+import dynamic from 'next/dynamic'
 import { UsersList } from './users-list'
-import { InviteUserDialog } from './invite-user-dialog'
 import type { ProfileWithSector, SectorRow } from '@/types/views'
+
+const InviteUserDialog = dynamic(() => import('./invite-user-dialog').then(m => ({ default: m.InviteUserDialog })))
 
 export default async function UsersPage() {
  let users: ProfileWithSector[] = []

@@ -14,9 +14,13 @@ export default async function ReadingsPage() {
   let reviewCount = 0
   let errorMsg = ''
 
-  try { readings = await readingService.getAllForAdmin() } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
-  if (!errorMsg) { try { periods = await periodService.getAllPeriods() } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) } }
-  if (!errorMsg) { try { reviewCount = await readingService.getReviewCount() } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) } }
+  try {
+    [readings, periods, reviewCount] = await Promise.all([
+      readingService.getAllForAdmin(),
+      periodService.getAllPeriods(),
+      readingService.getReviewCount(),
+    ])
+  } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
  return (
  <div className="flex flex-col gap-6">

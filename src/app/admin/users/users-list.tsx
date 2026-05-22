@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -22,15 +21,13 @@ const ROLES = [
 export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sectors: SectorRow[] }) {
  const [error, setError] = useState<string | null>(null)
  const [deleteTarget, setDeleteTarget] = useState<ProfileWithSector | null>(null)
- const [deleting, setDeleting] = useState(false)
- const router = useRouter()
+  const [deleting, setDeleting] = useState(false)
 
   const handleRoleChange = async (userId: string, role: string) => {
     setError(null)
     try {
       const result = await updateUserRoleAction(userId, role)
       if (result.error) setError(result.error)
-      else router.refresh()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al cambiar rol')
     }
@@ -41,7 +38,6 @@ export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sect
     try {
       const result = await assignSectorToUserAction(userId, sectorId)
       if (result.error) setError(result.error)
-      else router.refresh()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al asignar sector')
     }
@@ -56,9 +52,8 @@ export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sect
       if (result.error) {
         setError(result.error)
       } else {
-        setDeleteTarget(null)
-        router.refresh()
-      }
+      setDeleteTarget(null)
+    }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al eliminar usuario')
     } finally {

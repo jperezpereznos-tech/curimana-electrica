@@ -1,8 +1,10 @@
 import { getTariffService } from '@/services/tariff-service'
 import { createClient } from '@/lib/supabase/server'
+import dynamic from 'next/dynamic'
 import { TariffsList } from './tariffs-list'
-import { CreateTariffDialog } from './create-tariff-dialog'
 import type { TariffWithTiers } from '@/types/views'
+
+const CreateTariffDialog = dynamic(() => import('./create-tariff-dialog').then(m => ({ default: m.CreateTariffDialog })))
 
 export default async function TariffsPage() {
   const supabase = await createClient()

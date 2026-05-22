@@ -2,31 +2,24 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
 import { updateCustomerAction, deleteCustomerAction } from './actions'
-import { EditCustomerDialog } from './edit-customer-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { CustomerWithRelations, TariffRow, SectorRow } from '@/types/views'
+
+const EditCustomerDialog = dynamic(() => import('./edit-customer-dialog').then(m => ({ default: m.EditCustomerDialog })))
 
 const PAGE_SIZE = 25
 
@@ -47,7 +40,6 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
     const result = await updateCustomerAction(id, { is_active: isActive })
     if (result.success) {
       setToggleTarget(null)
-      router.refresh()
     } else {
       setActionError(result.error || (isActive ? 'Error al reactivar el cliente.' : 'Error al dar de baja el cliente.'))
     }
@@ -58,7 +50,6 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
     const result = await deleteCustomerAction(id)
     if (result.success) {
       setDeleteTarget(null)
-      router.refresh()
     } else {
       setDeleteTarget(null)
       setActionError(result.error || 'Error al eliminar el cliente.')

@@ -1,31 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal } from 'lucide-react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
-import { EditConceptDialog } from './edit-concept-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { ConceptRow, TariffRow } from '@/types/views'
+
+const EditConceptDialog = dynamic(() => import('./edit-concept-dialog').then(m => ({ default: m.EditConceptDialog })))
 
 function formatAmount(concept: ConceptRow) {
   if (concept.type === 'percentage') return `${concept.amount}%`
@@ -43,7 +35,6 @@ function formatType(type: string) {
 }
 
 export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcepts: ConceptRow[]; tariffs?: TariffRow[] }) {
-  const router = useRouter()
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -53,7 +44,6 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
     const result = await toggleConceptStatusAction(id, !currentStatus)
     if (result.success) {
       setConcepts(prev => prev.map(c => c.id === id ? { ...c, is_active: !currentStatus } : c))
-      router.refresh()
     } else {
       setActionError(result.error || 'Error al cambiar estado del concepto.')
     }
@@ -65,7 +55,6 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
     if (result.success) {
       setDeleteTargetId(null)
       setConcepts(prev => prev.filter(c => c.id !== id))
-      router.refresh()
     } else {
       setActionError(result.error || 'Error al eliminar el concepto.')
     }

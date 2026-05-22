@@ -21,29 +21,23 @@ export default async function CustomerDetailsPage({
   const { id } = await params
   const supabase = await createClient()
   const customerService = getCustomerService(supabase)
+  const paymentService = getPaymentService(supabase)
 
-  let data
-  try {
-    data = await customerService.getCustomerDetails(id)
-  } catch {
-    return notFound()
-  }
+  const [customerDetailsResult, paymentsResult] = await Promise.all([
+    customerService.getCustomerDetails(id).catch(() => null),
+    paymentService.getPaymentsByCustomer(id).catch((e: unknown) => ({
+      _error: e instanceof Error ? e.message : 'Error al cargar pagos',
+    })),
+  ])
 
-  if (!data.customer) {
+  const data = customerDetailsResult
+  if (!data?.customer) {
     return notFound()
   }
 
   const { customer, readings, receipts } = data
-
-  let payments: PaymentForCustomer[] = []
-  let paymentsError: string | null = null
-  try {
-    const paymentService = getPaymentService(supabase)
-    const allPayments = await paymentService.getPaymentsByCustomer(customer.id)
-    payments = allPayments || []
-  } catch (e: unknown) {
-    paymentsError = e instanceof Error ? e.message : 'Error al cargar pagos'
-  }
+  const paymentsErrorMsg = paymentsResult && '_error' in paymentsResult ? paymentsResult._error : null
+  const payments = paymentsResult && '_error' in paymentsResult ? [] : (paymentsResult as PaymentForCustomer[] || [])
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,9 +103,9 @@ export default async function CustomerDetailsPage({
         </Card>
       </div>
 
-      {paymentsError && (
-        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
-          {paymentsError}
+{paymentsErrorMsg && (
+      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+        {paymentsErrorMsg}
         </div>
       )}
 

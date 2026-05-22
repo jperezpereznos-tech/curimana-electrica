@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, Printer, XCircle } from 'lucide-react'
 import { cancelReceiptAction } from '../actions'
-import { useRouter } from 'next/navigation'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import type { ReceiptWithFullDetails } from '@/types/views'
 import type { Database } from '@/types/database'
@@ -17,7 +16,6 @@ interface ConceptBreakdownItem {
 }
 
 export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBreakdown }: { receipt: ReceiptWithFullDetails; municipalityConfig?: MunicipalityConfig | null; conceptsBreakdown?: ConceptBreakdownItem[] }) {
-  const router = useRouter()
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
@@ -43,9 +41,8 @@ export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBrea
     setCancelError(null)
     const result = await cancelReceiptAction(receipt.id, 'Anulación administrativa')
     if (result.success) {
-      setShowCancelConfirm(false)
-      router.refresh()
-    } else {
+    setShowCancelConfirm(false)
+  } else {
       setCancelError(result.error || 'Error al anular el recibo')
     }
   }

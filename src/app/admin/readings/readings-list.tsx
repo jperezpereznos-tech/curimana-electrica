@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import dynamic from 'next/dynamic'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,8 +17,9 @@ import {
   AlertCircle, CheckCircle2, User,
 } from 'lucide-react'
 import { getReadingsAdminAction } from './actions'
-import { ReadingEditDialog } from './reading-edit-dialog'
 import type { ReadingWithCustomer as ReadingWithCustomerType, PeriodRow } from '@/types/views'
+
+const ReadingEditDialog = dynamic(() => import('./reading-edit-dialog').then(m => ({ default: m.ReadingEditDialog })))
 
 const PAGE_SIZE = 25
 

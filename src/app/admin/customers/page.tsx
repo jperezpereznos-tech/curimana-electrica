@@ -2,9 +2,11 @@ import { getCustomerService } from '@/services/customer-service'
 import { getTariffService } from '@/services/tariff-service'
 import { getSectorService } from '@/services/sector-service'
 import { createClient } from '@/lib/supabase/server'
+import dynamic from 'next/dynamic'
 import { CustomersList } from './customers-list'
-import { CreateCustomerDialog } from './create-customer-dialog'
 import type { CustomerWithRelations, TariffRow, SectorRow } from '@/types/views'
+
+const CreateCustomerDialog = dynamic(() => import('./create-customer-dialog').then(m => ({ default: m.CreateCustomerDialog })))
 
 export default async function CustomersPage({
   searchParams,

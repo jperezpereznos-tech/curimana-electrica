@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
 import { openNextPeriodAction } from './actions'
@@ -9,18 +8,15 @@ import { openNextPeriodAction } from './actions'
 export function CreatePeriodButton() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
 
   const handleCreate = async () => {
     setError(null)
     setLoading(true)
-    const result = await openNextPeriodAction()
-    if (result.success) {
-      router.refresh()
-    } else {
-      setError(result.error || 'Error al crear el siguiente periodo.')
-    }
-    setLoading(false)
+  const result = await openNextPeriodAction()
+  if (!result.success) {
+    setError(result.error || 'Error al crear el siguiente periodo.')
+  }
+  setLoading(false)
   }
 
   return (

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -54,7 +53,6 @@ function getNextMinKwh(tiers: { min_kwh: number; max_kwh?: number | null | undef
 
 export function CreateTariffDialog() {
   const [open, setOpen] = useState(false)
-  const router = useRouter()
 
   const form = useForm<TariffFormValues>({
     resolver: zodResolver(tariffSchema),
@@ -91,7 +89,6 @@ export function CreateTariffDialog() {
       setOpen(false)
       form.reset()
       setFormError(null)
-      router.refresh()
     } else {
       const msg = result.error || 'Error al crear la tarifa'
       if (msg.includes('Lock') || msg.includes('lock')) {

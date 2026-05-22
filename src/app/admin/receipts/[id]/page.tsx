@@ -27,18 +27,18 @@ export default async function ReceiptDetailsPage({
   const { id } = await params
   const supabase = await createClient()
   const receiptService = getReceiptService(supabase)
-  const receipt = await receiptService.getReceiptDetails(id)
+  const conceptService = getConceptService(supabase)
+  const configService = getMunicipalityConfigService(supabase)
+
+  const [receipt, concepts, municipalityConfig] = await Promise.all([
+    receiptService.getReceiptDetails(id),
+    conceptService.getActiveConcepts().catch(e => { console.error('Error fetching concepts:', e); return [] as import('@/types/views').ConceptRow[] }),
+    configService.getConfig().catch(e => { console.error('Error fetching municipality_config:', e); return null }),
+  ])
 
   if (!receipt) {
     return notFound()
   }
-
-  const conceptService = getConceptService(supabase)
-  const concepts = await conceptService.getActiveConcepts()
-
-  const configService = getMunicipalityConfigService(supabase)
-  let municipalityConfig = null
-  try { municipalityConfig = await configService.getConfig() } catch (e) { console.error('Error fetching municipality_config:', e) }
 
   const tariffTiers = receipt.customers?.tariffs?.tariff_tiers ?? []
   const sortedTiers = [...tariffTiers].sort((a, b) => a.min_kwh - b.min_kwh)

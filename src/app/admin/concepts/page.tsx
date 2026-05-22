@@ -1,9 +1,11 @@
 import { getConceptService } from '@/services/concept-service'
 import { getTariffService } from '@/services/tariff-service'
 import { createClient } from '@/lib/supabase/server'
+import dynamic from 'next/dynamic'
 import { ConceptsList } from './concepts-list'
-import { CreateConceptDialog } from './create-concept-dialog'
 import type { ConceptRow, TariffRow } from '@/types/views'
+
+const CreateConceptDialog = dynamic(() => import('./create-concept-dialog').then(m => ({ default: m.CreateConceptDialog })))
 
 export default async function ConceptsPage() {
   const supabase = await createClient()

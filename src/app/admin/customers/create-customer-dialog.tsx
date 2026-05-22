@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -44,7 +43,6 @@ type CustomerFormValues = z.infer<typeof customerSchema>
 export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: TariffRow[]; sectors: SectorRow[] }) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const router = useRouter()
   
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -70,7 +68,6 @@ export function CreateCustomerDialog({ tariffs, sectors }: { tariffs: TariffRow[
     if (result.success) {
       setOpen(false)
       form.reset()
-      router.refresh()
     } else {
       setServerError(result.error || 'Error al registrar cliente')
     }

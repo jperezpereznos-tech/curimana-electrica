@@ -1,14 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +11,7 @@ import { Download, Ban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { voidPaymentAction } from './actions'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useRouter } from 'next/navigation'
 import type { PaymentWithDetails } from '@/types/views'
 
 const PAGE_SIZE = 25
@@ -59,9 +54,8 @@ const totalAmount = initialPayments
     setVoidError(null)
     const result = await voidPaymentAction(paymentId)
     if (result.success) {
-      setVoidTargetId(null)
-      router.refresh()
-    } else {
+    setVoidTargetId(null)
+  } else {
       setVoidError(result.error || 'Error al anular el pago.')
     }
   }

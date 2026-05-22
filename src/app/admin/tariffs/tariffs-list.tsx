@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { TariffWithTiers } from '@/types/views'
 import {
   Table,
@@ -24,15 +24,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toggleTariffStatusAction, deleteTariffAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
-import { EditTariffDialog } from './edit-tariff-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+
+const EditTariffDialog = dynamic(() => import('./edit-tariff-dialog').then(m => ({ default: m.EditTariffDialog })))
 
 interface TariffsListProps {
   initialTariffs: TariffWithTiers[]
 }
 
 export function TariffsList({ initialTariffs }: TariffsListProps) {
-  const router = useRouter()
   const [tariffs, setTariffs] = useState(initialTariffs)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -42,7 +42,6 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
     const result = await toggleTariffStatusAction(id, !currentStatus)
     if (result.success) {
       setTariffs(prev => prev.map(t => t.id === id ? { ...t, is_active: !currentStatus } : t))
-      router.refresh()
     } else {
       setActionError(result.error || 'Error al cambiar estado de la tarifa.')
     }
@@ -54,7 +53,6 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
     if (result.success) {
       setDeleteTargetId(null)
       setTariffs(prev => prev.filter(t => t.id !== id))
-      router.refresh()
     } else {
       setActionError(result.error || 'Error al eliminar la tarifa. Puede tener clientes asociados.')
     }

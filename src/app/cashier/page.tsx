@@ -13,11 +13,12 @@ export default async function CashierDashboard() {
 
   const userId = claimsData.claims.sub
   const svc = getCashClosureService(supabase)
-  const activeClosure = await svc.getActiveClosure(userId)
-
   const configService = getMunicipalityConfigService(supabase)
-  let muniConfig = null
-  try { muniConfig = await configService.getBasicInfo() } catch (e) { console.error('Error fetching municipality_config:', e) }
+
+  const [activeClosure, muniConfig] = await Promise.all([
+    svc.getActiveClosure(userId),
+    configService.getBasicInfo().catch(e => { console.error('Error fetching municipality_config:', e); return null }),
+  ])
 
   return (
     <div className="flex flex-col gap-6">

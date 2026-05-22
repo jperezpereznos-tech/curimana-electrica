@@ -112,54 +112,51 @@ export function useOfflineSync() {
         return
       }
 
-      const stuckSyncing = await db.pending_readings
-        .where('status').equals('syncing')
-        .toArray()
+      const [stuckSyncing, failedReadings] = await Promise.all([
+        db.pending_readings.where('status').equals('syncing').toArray(),
+        db.pending_readings.where('status').equals('failed').toArray(),
+      ])
       if (stuckSyncing.length > 0) {
         await db.pending_readings
           .where('id').anyOf(stuckSyncing.map(r => r.id!))
           .modify({ status: 'pending' })
       }
-
-      const failedReadings = await db.pending_readings
-        .where('status').equals('failed')
-        .toArray()
       if (failedReadings.length > 0) {
         await db.pending_readings
           .where('id').anyOf(failedReadings.map(r => r.id!))
           .modify({ status: 'pending', retry_count: 0 })
       }
 
-      await syncCustomerCache()
-
-      const pending = await db.pending_readings
-        .where('status').equals('pending')
-        .toArray()
-
-      let periodId: string | null = null
-      try {
-        const freshSupabase = createClient()
-        const freshPeriodService = getPeriodService(freshSupabase)
-        const currentPeriod = await withTimeout(
-          freshPeriodService.getCurrentPeriod(),
-          PERIOD_FETCH_TIMEOUT_MS
-        )
-        if (currentPeriod) {
-          periodId = currentPeriod.id
-        }
-      } catch (error: unknown) {
-        console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
-      }
+      const [, currentPeriod] = await Promise.all([
+        syncCustomerCache(),
+        (async () => {
+          try {
+            const freshSupabase = createClient()
+            const freshPeriodService = getPeriodService(freshSupabase)
+            return await withTimeout(
+              freshPeriodService.getCurrentPeriod(),
+              PERIOD_FETCH_TIMEOUT_MS
+            )
+          } catch (error: unknown) {
+            console.error('Error getting current period:', error instanceof Error ? error.message : String(error))
+            return null
+          }
+        })(),
+      ])
+      const periodId = currentPeriod?.id ?? null
 
       if (!periodId) {
-        const errMsg = 'No hay un periodo de facturación abierto. Contacta al administrador para abrir el periodo actual.'
         console.error('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
         setSyncStatus('error')
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
-        toast.error(errMsg)
+        toast.error('No hay un periodo de facturación abierto. Contacta al administrador para abrir el periodo actual.')
         return
       }
+
+      const pending = await db.pending_readings
+        .where('status').equals('pending')
+        .toArray()
 
       let hasError = false
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -48,7 +47,6 @@ interface EditConceptDialogProps {
 export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConceptDialogProps) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const router = useRouter()
 
   const form = useForm<ConceptFormValues>({
   resolver: zodResolver(conceptSchema),
@@ -84,7 +82,6 @@ export function EditConceptDialog({ concept, tariffs = [], trigger }: EditConcep
     })
     if (result.success) {
       setOpen(false)
-      router.refresh()
     } else {
       setServerError(result.error || 'Error al actualizar el concepto')
     }

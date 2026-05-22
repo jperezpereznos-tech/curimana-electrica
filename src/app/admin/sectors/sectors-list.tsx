@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,7 +18,6 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
   const [sectors] = useState(initialSectors)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [toggleTarget, setToggleTarget] = useState<Sector | null>(null)
-  const router = useRouter()
 
   const readersForSector = (sectorId: string) =>
     readers.filter(r => r.assigned_sector_id === sectorId)
@@ -30,7 +28,6 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
     const result = await updateSectorAction(sector.id, { is_active: !sector.is_active })
     if (result.success) {
       toast.success(sector.is_active ? 'Sector desactivado' : 'Sector activado')
-      router.refresh()
     } else {
       toast.error(result.error || 'Error al cambiar estado del sector')
     }
@@ -41,7 +38,6 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
     if (result.success) {
       setDeleteTargetId(null)
       toast.success('Sector eliminado')
-      router.refresh()
     } else {
       toast.error(result.error || 'Error al eliminar sector')
     }
@@ -51,7 +47,6 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
     const result = await assignReaderToSectorAction(readerId, sectorId)
     if (result.success) {
       toast.success(sectorId ? 'Lecturador asignado' : 'Lecturador desasignado')
-      router.refresh()
     } else {
       toast.error(result.error || 'Error al asignar lecturador')
     }

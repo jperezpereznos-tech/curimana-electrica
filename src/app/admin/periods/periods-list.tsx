@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
 Table,
 TableBody,
@@ -20,7 +19,6 @@ import { toast } from 'sonner'
 import type { PeriodRow } from '@/types/views'
 
 export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] }) {
-  const router = useRouter()
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -38,9 +36,8 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
       setPeriods(prev =>
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
       )
-      setCloseTargetId(null)
-      router.refresh()
-      let msg = `Periodo cerrado. Se generaron ${generated} recibos.`
+    setCloseTargetId(null)
+    let msg = `Periodo cerrado. Se generaron ${generated} recibos.`
       if (skipped > 0) msg += ` ${skipped} clientes sin lectura.`
       if (perCustomerErrors.length > 0) msg += ` Errores: ${perCustomerErrors.join('; ')}`
       toast.success(msg)

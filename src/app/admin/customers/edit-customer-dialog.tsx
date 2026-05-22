@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -50,7 +49,6 @@ interface EditCustomerDialogProps {
 export function EditCustomerDialog({ customer, tariffs, sectors, trigger }: EditCustomerDialogProps) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const router = useRouter()
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -85,7 +83,6 @@ useEffect(() => {
     const result = await updateCustomerAction(customer.id, values)
     if (result.success) {
       setOpen(false)
-      router.refresh()
     } else {
       setServerError(result.error || 'Error al actualizar cliente')
     }
