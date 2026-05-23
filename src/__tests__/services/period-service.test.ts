@@ -255,7 +255,7 @@ describe('PeriodService - closePeriod', () => {
       return Promise.resolve({ data: [{ success: true }], error: null })
     })
 
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
     await expect(service.closePeriod('p1')).rejects.toEqual(expect.objectContaining({ message: 'RPC failed' }))
@@ -280,7 +280,7 @@ describe('PeriodService - closePeriod', () => {
       return Promise.resolve({ data: null, error: null })
     })
 
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
     await expect(service.closePeriod('p1')).rejects.toEqual(expect.objectContaining({ message: 'Close failed' }))
@@ -305,7 +305,7 @@ describe('PeriodService - closePeriod', () => {
       return Promise.resolve({ data: null, error: null })
     })
 
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
     await expect(service.closePeriod('p1')).rejects.toThrow('El periodo ya está cerrado o no existe')
@@ -330,10 +330,25 @@ describe('PeriodService - closePeriod', () => {
       return Promise.resolve({ data: null, error: null })
     })
 
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
     await expect(service.closePeriod('p1')).rejects.toThrow('El periodo ya está cerrado o no existe')
+  })
+
+  it('debería lanzar error si no hay lecturas registradas', async () => {
+    vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
+    vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'customers') return createAwaitableChain({ data: [], error: null })
+      return createAwaitableChain({ data: null, error: null })
+    })
+
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
+
+    await expect(service.closePeriod('p1')).rejects.toThrow('No se puede cerrar el periodo sin lecturas registradas')
   })
 
   it('no debería registrar auditoría si no se pasa userId', async () => {
@@ -345,7 +360,7 @@ describe('PeriodService - closePeriod', () => {
       return createAwaitableChain({ data: null, error: null })
     })
 
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
     vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
@@ -364,7 +379,7 @@ describe('PeriodService - closePeriod', () => {
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
     vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
     vi.spyOn(AuditService.prototype, 'log').mockRejectedValue(new Error('Audit service down'))
 
@@ -383,7 +398,7 @@ describe('PeriodService - closePeriod', () => {
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
     vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
-    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([] as any)
+    vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
     const result = await service.closePeriod('p1') as any
@@ -393,7 +408,9 @@ describe('PeriodService - closePeriod', () => {
 
   it('debería incluir clientes sin lectura en skipped', async () => {
     const mockPeriod = { id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' }
-    const mockReadings: any[] = []
+    const mockReadings: any[] = [
+      { id: 'rd-other', customer_id: 'c-other', consumption: 10, previous_reading: 50, current_reading: 60, reading_date: '2026-04-15' },
+    ]
 
     const mockCustomers = {
       data: [

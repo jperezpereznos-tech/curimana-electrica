@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Zap, ChevronRight, WifiOff } from 'lucide-react'
@@ -10,6 +11,7 @@ import { searchReaderCustomersAction, getReaderAssignedSectorIdAction } from '..
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
+import { EmptyState } from '@/components/empty-state'
 import type { CustomerWithRelations } from '@/types/views'
 import type { CustomerCache } from '@/lib/db/dexie'
 
@@ -113,9 +115,7 @@ export default function SearchPage() {
         </form>
 
         {searched && results.length === 0 && !loading && (
-          <div className="text-center py-8 text-muted-foreground">
-            No se encontraron resultados
-          </div>
+      <EmptyState message="No se encontraron resultados" />
         )}
 
         {results.length > 0 && (
@@ -130,11 +130,9 @@ export default function SearchPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="font-medium">{customer.full_name}</p>
-                        {'is_active' in customer && customer.is_active ? (
-                          <Badge variant="default" className="text-[10px]">Activo</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px]">Inactivo</Badge>
-                        )}
+                {'is_active' in customer && (
+                  <StatusBadge status={customer.is_active ? 'active' : 'inactive'} type="active" className="text-[10px]" />
+                )}
                       </div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                         <Zap className="h-3 w-3" />
@@ -150,7 +148,7 @@ export default function SearchPage() {
                       </div>
                     </div>
                     <Link href={`/reader/new?supply=${customer.supply_number}`}>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" aria-label="Registrar lectura">
                         <ChevronRight className="h-5 w-5" />
                       </Button>
                     </Link>

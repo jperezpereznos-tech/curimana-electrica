@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import dynamic from 'next/dynamic'
 import { TariffWithTiers } from '@/types/views'
 import {
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal } from 'lucide-react'
 import {
@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toggleTariffStatusAction, deleteTariffAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 
 const EditTariffDialog = dynamic(() => import('./edit-tariff-dialog').then(m => ({ default: m.EditTariffDialog })))
 
@@ -32,7 +32,7 @@ interface TariffsListProps {
   initialTariffs: TariffWithTiers[]
 }
 
-export function TariffsList({ initialTariffs }: TariffsListProps) {
+function TariffsListInner({ initialTariffs }: TariffsListProps) {
   const [tariffs, setTariffs] = useState(initialTariffs)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -111,9 +111,7 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
               </table>
             </TableCell>
                 <TableCell>
-                  <Badge variant={tariff.is_active ? 'default' : 'secondary'}>
-                    {tariff.is_active ? 'Activa' : 'Inactiva'}
-                  </Badge>
+              <StatusBadge status={tariff.is_active ? 'active' : 'inactive'} type="active" />
                 </TableCell>
                 <TableCell className="text-right">
                   <EditTariffDialog
@@ -160,3 +158,4 @@ export function TariffsList({ initialTariffs }: TariffsListProps) {
   </div>
   )
 }
+export const TariffsList = memo(TariffsListInner)

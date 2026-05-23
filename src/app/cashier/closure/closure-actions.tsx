@@ -14,7 +14,9 @@ import {
 } from '@/components/ui/dialog'
 import { Lock, Unlock, PlayCircle, Loader2 } from 'lucide-react'
 import { openClosureAction, closeClosureAction } from '../actions'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 
 export function ClosureActions({ action, closureId }: { action: 'open' | 'close', closureId?: string }) {
   const [open, setOpen] = useState(false)

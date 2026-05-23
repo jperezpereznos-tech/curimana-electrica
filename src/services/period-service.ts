@@ -136,24 +136,34 @@ export class PeriodService {
 
     const activeCustomers = activeCustomersResult.data || []
 
-  const receiptPayloads: {
-    customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
-    consumption_kwh: number; period_start: string; period_end: string; energy_amount: number;
-    fixed_charges: number; subtotal: number; previous_debt: number;
-    total_amount: number; issue_date: string; due_date: string
-  }[] = []
+    if (allReadings.length === 0) {
+      throw new Error('No se puede cerrar el periodo sin lecturas registradas. Registre lecturas antes de cerrar.')
+    }
+
+    const needsReviewReadings = allReadings.filter(r => r.needs_review)
+    const needsReviewWarnings: string[] = needsReviewReadings.map(r => {
+      const customer = activeCustomers.find(c => c.id === r.customer_id)
+      return customer?.supply_number || r.customer_id || ''
+    })
+
+    const receiptPayloads: {
+      customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
+      consumption_kwh: number; period_start: string; period_end: string; energy_amount: number;
+      fixed_charges: number; subtotal: number; previous_debt: number;
+      total_amount: number; issue_date: string; due_date: string
+    }[] = []
     const skippedCustomers: string[] = []
     const errors: string[] = []
 
     for (const customer of activeCustomers) {
       try {
-      const customerReadings = allReadings.filter(r => r.customer_id === customer.id)
-      if (customerReadings.length === 0) {
-        skippedCustomers.push(customer.supply_number || customer.id)
-        continue
-      }
-      const customerReading = customerReadings.sort((a, b) =>
-        new Date(b.reading_date || 0).getTime() - new Date(a.reading_date || 0).getTime()
+        const customerReadings = allReadings.filter(r => r.customer_id === customer.id)
+        if (customerReadings.length === 0) {
+          skippedCustomers.push(customer.supply_number || customer.id)
+          continue
+        }
+        const customerReading = customerReadings.sort((a, b) =>
+          new Date(b.reading_date || 0).getTime() - new Date(a.reading_date || 0).getTime()
         )[0]
 
         const consumption = customerReading.consumption || 0
@@ -168,15 +178,15 @@ export class PeriodService {
             continue
           }
 
-        if (concept.type === 'fixed') {
-          fixedCharges = Math.round((fixedCharges + concept.amount) * 100) / 100
-        } else if (concept.type === 'per_kwh') {
-          fixedCharges = Math.round((fixedCharges + consumption * concept.amount) * 100) / 100
-        }
+          if (concept.type === 'fixed') {
+            fixedCharges = Math.round((fixedCharges + concept.amount) * 100) / 100
+          } else if (concept.type === 'per_kwh') {
+            fixedCharges = Math.round((fixedCharges + consumption * concept.amount) * 100) / 100
+          }
         }
 
-      const sortedTiers = tiers.length > 0
-        ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
+        const sortedTiers = tiers.length > 0
+          ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
           : []
 
         percentageBase = Math.round(((sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges) * 100) / 100
@@ -186,9 +196,9 @@ export class PeriodService {
             continue
           }
 
-        if (concept.type === 'percentage') {
-          fixedCharges = Math.round((fixedCharges + (percentageBase * concept.amount) / 100) * 100) / 100
-        }
+          if (concept.type === 'percentage') {
+            fixedCharges = Math.round((fixedCharges + (percentageBase * concept.amount) / 100) * 100) / 100
+          }
         }
 
         fixedCharges = Math.round(fixedCharges * 100) / 100
@@ -199,22 +209,22 @@ export class PeriodService {
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + graceDays)
 
-    receiptPayloads.push({
-      customer_id: customer.id,
-      reading_id: customerReading.id,
-      previous_reading: customerReading.previous_reading || 0,
-      current_reading: customerReading.current_reading || 0,
-      consumption_kwh: consumption,
-      period_start: period.start_date,
-      period_end: period.end_date,
-      energy_amount: receipt.energy_amount,
-      fixed_charges: receipt.fixed_charges,
-      subtotal: receipt.subtotal,
-      previous_debt: previousDebt,
-      total_amount: receipt.total_amount,
-      issue_date: new Date().toISOString().split('T')[0],
-      due_date: dueDate.toISOString().split('T')[0],
-    })
+        receiptPayloads.push({
+          customer_id: customer.id,
+          reading_id: customerReading.id,
+          previous_reading: customerReading.previous_reading || 0,
+          current_reading: customerReading.current_reading || 0,
+          consumption_kwh: consumption,
+          period_start: period.start_date,
+          period_end: period.end_date,
+          energy_amount: receipt.energy_amount,
+          fixed_charges: receipt.fixed_charges,
+          subtotal: receipt.subtotal,
+          previous_debt: previousDebt,
+          total_amount: receipt.total_amount,
+          issue_date: new Date().toISOString().split('T')[0],
+          due_date: dueDate.toISOString().split('T')[0],
+        })
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         errors.push(`Cliente ${customer.id}: ${msg}`)
@@ -232,11 +242,24 @@ export class PeriodService {
     const generatedCount = rpcResult?.[0]?.generated_count ?? 0
     const skippedCount = (rpcResult?.[0]?.skipped_count ?? 0) + skippedCustomers.length
 
-    const { data: closeResult, error: closeError } = await this.supabase
-      .rpc('close_billing_period', { p_period_id: id })
+  const { data: closeResult, error: closeError } = await this.supabase
+    .rpc('close_billing_period', { p_period_id: id })
 
+  if (closeError || !closeResult || closeResult.length === 0 || !closeResult[0].success) {
+    try {
+      const { error: rollbackError } = await this.supabase
+        .from('receipts')
+        .delete()
+        .eq('billing_period_id', id)
+      if (rollbackError) {
+        console.error('Rollback failed: could not delete receipts for period', id, rollbackError)
+      }
+    } catch (rollbackErr) {
+      console.error('Rollback exception: could not delete receipts for period', id, rollbackErr)
+    }
     if (closeError) throw closeError
-    if (!closeResult || closeResult.length === 0 || !closeResult[0].success) throw new Error('El periodo ya está cerrado o no existe')
+    throw new Error('El periodo ya está cerrado o no existe')
+  }
 
     if (userId) {
       try {
@@ -252,7 +275,13 @@ export class PeriodService {
       }
     }
 
-    return { period_id: id, receiptsGenerated: generatedCount, skipped: skippedCount, errors }
+    return {
+      period_id: id,
+      receiptsGenerated: generatedCount,
+      skipped: skippedCount,
+      errors,
+      needsReviewWarnings,
+    }
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { MapPin, Users, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -80,9 +81,7 @@ export function ReadingRouteClient({ assignedSector, customers }: ReadingRouteCl
       </div>
 
       {customers.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No hay suministros en su sector asignado
-        </div>
+      <EmptyState message="No hay suministros en su sector asignado" />
       ) : (
         <div className="space-y-3">
           {customers.map((customer, index) => (
@@ -114,7 +113,7 @@ export function ReadingRouteClient({ assignedSector, customers }: ReadingRouteCl
                     </div>
                   </div>
                   <Link href={`/reader/new?supply=${customer.supply_number}`}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Registrar lectura">
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </Link>

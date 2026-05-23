@@ -53,7 +53,7 @@ export function PWAInstallPrompt() {
           <Button variant="ghost" size="sm" className="font-bold hover:bg-white/10" onClick={handleInstall}>
             INSTALAR
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10" onClick={() => setShowPrompt(false)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10" onClick={() => setShowPrompt(false)} aria-label="Cerrar">
             <X className="h-4 w-4" />
           </Button>
         </div>

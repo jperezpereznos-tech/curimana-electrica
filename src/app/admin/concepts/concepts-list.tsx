@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal } from 'lucide-react'
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toggleConceptStatusAction, deleteConceptAction } from './actions'
 import { formatCurrency } from '@/lib/utils'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import type { ConceptRow, TariffRow } from '@/types/views'
 
 const EditConceptDialog = dynamic(() => import('./edit-concept-dialog').then(m => ({ default: m.EditConceptDialog })))
@@ -34,7 +34,7 @@ function formatType(type: string) {
   return map[type] || type
 }
 
-export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcepts: ConceptRow[]; tariffs?: TariffRow[] }) {
+function ConceptsListInner({ initialConcepts, tariffs = [] }: { initialConcepts: ConceptRow[]; tariffs?: TariffRow[] }) {
   const [concepts, setConcepts] = useState(initialConcepts)
   const [actionError, setActionError] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -106,9 +106,7 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
                 <TableCell>{formatAmount(concept)}</TableCell>
                 <TableCell className="text-sm">{getTariffName(concept.applies_to_tariff_id)}</TableCell>
                 <TableCell>
-                  <Badge variant={concept.is_active ? 'default' : 'secondary'}>
-                    {concept.is_active ? 'Activo' : 'Inactivo'}
-                  </Badge>
+              <StatusBadge status={concept.is_active ? 'active' : 'inactive'} type="active" />
                 </TableCell>
                 <TableCell className="text-right">
                   <EditConceptDialog
@@ -154,5 +152,6 @@ export function ConceptsList({ initialConcepts, tariffs = [] }: { initialConcept
       onConfirm={() => deleteTargetId && handleDelete(deleteTargetId)}
     />
   </div>
-  )
+)
 }
+export const ConceptsList = memo(ConceptsListInner)

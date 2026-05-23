@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -38,7 +38,7 @@ const PAGE_SIZE = 25
 
 type ReceiptFilters = { q?: string; period?: string; status?: string }
 
-export function ReceiptsList({ initialReceipts, periods, currentFilters, municipalityConfig }: { initialReceipts: ReceiptWithPeriod[]; periods: PeriodRow[]; currentFilters: ReceiptFilters; municipalityConfig?: MunicipalityConfig | null }) {
+function ReceiptsListInner({ initialReceipts, periods, currentFilters, municipalityConfig }: { initialReceipts: ReceiptWithPeriod[]; periods: PeriodRow[]; currentFilters: ReceiptFilters; municipalityConfig?: MunicipalityConfig | null }) {
   const router = useRouter()
   const [q, setQ] = useState(currentFilters.q || '')
   const [page, setPage] = useState(1)
@@ -152,23 +152,11 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters, municip
       <TableCell>{receipt.billing_periods?.name}</TableCell>
       <TableCell className="font-bold">{formatCurrency(receipt.total_amount)}</TableCell>
       <TableCell>
-        <Badge variant={
-          receipt.status === 'paid' ? 'default' :
-          receipt.status === 'pending' ? 'outline' :
-          receipt.status === 'partial' ? 'secondary' :
-          'destructive'
-        }>
-          {receipt.status === 'paid' ? 'Pagado' :
-          receipt.status === 'pending' ? 'Pendiente' :
-          receipt.status === 'partial' ? 'Parcial' :
-          receipt.status === 'overdue' ? 'Vencido' :
-          receipt.status === 'cancelled' ? 'Anulado' :
-          receipt.status}
- </Badge>
+                <StatusBadge status={receipt.status ?? ''} type="receipt" />
  </TableCell>
  <TableCell className="text-right flex justify-end gap-2">
-        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
-        <Button variant="ghost" size="icon" onClick={() => handleDownload(receipt)}>
+        <Button variant="ghost" size="icon" aria-label="Ver recibo" nativeButton={false} render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
+        <Button variant="ghost" size="icon" aria-label="Descargar recibo" onClick={() => handleDownload(receipt)}>
           <Download className="h-4 w-4" />
         </Button>
       </TableCell>
@@ -197,3 +185,4 @@ export function ReceiptsList({ initialReceipts, periods, currentFilters, municip
 </div>
 )
 }
+export const ReceiptsList = memo(ReceiptsListInner)

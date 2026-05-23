@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, ChevronRight, Eye } from 'lucide-react'
 import { getTopDebtorsAction } from './actions'
@@ -81,9 +82,7 @@ export function TopDebtors() {
       </CardHeader>
       <CardContent className="space-y-3">
         {debtors.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground text-sm">
-            No hay clientes con deuda
-          </div>
+    <EmptyState message="No hay clientes con deuda" />
         ) : (
           debtors.map((debtor, index) => (
             <div
@@ -106,7 +105,7 @@ export function TopDebtors() {
                 <span className="font-bold text-destructive">
                   {formatCurrency(debtor.current_debt || 0)}
                 </span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" nativeButton={false} render={<Link href={`/admin/customers/${debtor.id}`} />}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Ver detalle del cliente" nativeButton={false} render={<Link href={`/admin/customers/${debtor.id}`} />}>
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>

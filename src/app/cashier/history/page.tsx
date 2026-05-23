@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -196,16 +197,17 @@ export default function CashierHistoryPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <select 
-                  className="border rounded-md px-3 py-2 text-sm"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                >
-                  <option value="today">Hoy</option>
-                  <option value="week">Esta semana</option>
-                  <option value="month">Este mes</option>
-                </select>
+  <Calendar className="h-4 w-4 text-muted-foreground" />
+  <Select value={dateFilter} onValueChange={(v) => { if (v) setDateFilter(v) }}>
+    <SelectTrigger className="w-36 h-10">
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="today">Hoy</SelectItem>
+      <SelectItem value="week">Esta semana</SelectItem>
+      <SelectItem value="month">Este mes</SelectItem>
+    </SelectContent>
+  </Select>
               </div>
             </div>
           </CardContent>
@@ -259,9 +261,7 @@ export default function CashierHistoryPage() {
                         {payment.reference}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
-                          {payment.status === 'completed' ? 'Completado' : 'Pendiente'}
-                        </Badge>
+                  <StatusBadge status={payment.status === 'completed' ? 'completed' : 'voided'} type="payment" />
                       </TableCell>
                     </TableRow>
                   ))

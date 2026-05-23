@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, Printer, XCircle } from 'lucide-react'
 import { cancelReceiptAction } from '../actions'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import type { ReceiptWithFullDetails } from '@/types/views'
 import type { Database } from '@/types/database'
 

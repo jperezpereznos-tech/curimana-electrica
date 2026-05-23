@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}))
+
 const mockRegisterReading = vi.fn()
 const mockGetLatestReading = vi.fn()
 const mockGetTodayReadingsCount = vi.fn()
@@ -69,6 +73,7 @@ describe('registerReadingAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireReaderAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8200-000000000002' })
+    mockGetCurrentPeriod.mockResolvedValue({ id: '00000000-0000-4000-8600-000000000060', is_closed: false })
   })
 
   it('debería registrar lectura si el cliente pertenece al sector del lecturador', async () => {

@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import {
  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import { Shield, MapPin, Trash2 } from 'lucide-react'
 import { updateUserRoleAction, assignSectorToUserAction, deleteUserAction } from './actions'
 import type { ProfileWithSector, SectorRow } from '@/types/views'
@@ -18,7 +20,7 @@ const ROLES = [
  { id: 'meter_reader', label: 'Lecturador', color: 'bg-green-100 text-green-800' },
 ] as const
 
-export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sectors: SectorRow[] }) {
+function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sectors: SectorRow[] }) {
  const [error, setError] = useState<string | null>(null)
  const [deleteTarget, setDeleteTarget] = useState<ProfileWithSector | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -153,12 +155,13 @@ export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sect
  )}
  </TableCell>
  <TableCell>
- <Button
- variant="ghost"
- size="icon"
- className="h-8 w-8 text-destructive hover:text-destructive"
- onClick={() => setDeleteTarget(user)}
- >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-destructive hover:text-destructive"
+          onClick={() => setDeleteTarget(user)}
+          aria-label="Eliminar usuario"
+        >
  <Trash2 className="h-4 w-4" />
  </Button>
  </TableCell>
@@ -182,3 +185,4 @@ export function UsersList({ users, sectors }: { users: ProfileWithSector[]; sect
  </div>
  )
 }
+export const UsersList = memo(UsersListInner)

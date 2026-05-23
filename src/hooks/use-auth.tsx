@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { db } from '@/lib/db/dexie'
+import { toast } from 'sonner'
 
 type AuthContextType = {
   user: User | null
@@ -12,6 +13,7 @@ type AuthContextType = {
   isLoading: boolean
   profileError: string | null
   signOut: () => Promise<void>
+  syncAndSignOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -152,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (pendingCount > 0) {
           const confirmed = window.confirm(
-            `Tienes ${pendingCount} lectura(s) pendiente(s) de sincronizar. Si cierras sesión se perderán. ¿Deseas continuar?`
+            `Tienes ${pendingCount} lectura(s) pendiente(s) de sincronizar. Si cierras sesión se perderán.\n\nPresiona "Cancelar" para volver e intentar sincronizar, o "Aceptar" para cerrar sesión de todas formas.`
           )
           if (!confirmed) return
         }
@@ -191,8 +193,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace('/login')
   }, [router, supabase.auth])
 
+  const syncAndSignOut = useCallback(async () => {
+    if (signingOutRef.current) return
+
+    if (typeof window !== 'undefined') {
+      try {
+        const pendingCount = await db.pending_readings
+          .where('status')
+          .anyOf(['pending', 'failed'])
+          .count()
+
+        if (pendingCount > 0 && navigator.onLine) {
+          toast.info(`Sincronizando ${pendingCount} lectura(s) antes de cerrar sesión...`)
+          const supa = createClient()
+          const { data: sessionData } = await supa.auth.getSession()
+          if (!sessionData.session) {
+            toast.error('Sesión expirada. No se pudieron sincronizar las lecturas.')
+            return
+          }
+
+          const { registerReadingAction } = await import('@/app/reader/actions')
+          const { getPeriodService } = await import('@/services/period-service')
+          const periodService = getPeriodService(supa)
+          const currentPeriod = await periodService.getCurrentPeriod()
+
+          if (!currentPeriod || currentPeriod.is_closed) {
+            toast.error('No hay periodo abierto. No se pudieron sincronizar las lecturas.')
+            return
+          }
+
+          const pending = await db.pending_readings
+            .where('status')
+            .anyOf(['pending', 'failed'])
+            .toArray()
+
+          let synced = 0
+          let failed = 0
+          for (const reading of pending) {
+            try {
+              const result = await registerReadingAction({
+                customer_id: reading.customer_id,
+                billing_period_id: currentPeriod.id,
+                previous_reading: reading.previous_reading,
+                current_reading: reading.current_reading,
+                reading_date: reading.reading_date,
+                notes: reading.notes,
+              })
+              if (result.success) {
+                await db.pending_readings.delete(reading.id!)
+                synced++
+              } else if (result.error !== 'DUPLICATE_READING') {
+                failed++
+              } else {
+                await db.pending_readings.delete(reading.id!)
+              }
+            } catch {
+              failed++
+            }
+          }
+
+          if (synced > 0) toast.success(`${synced} lectura(s) sincronizada(s).`)
+          if (failed > 0) toast.error(`${failed} lectura(s) no pudieron sincronizarse.`)
+        }
+      } catch (e) {
+        console.error('[useAuth] sync before signOut failed:', e)
+        toast.error('Error al sincronizar. Intenta cerrar sesión de todas formas.')
+      }
+    }
+
+    signingOutRef.current = true
+    setUser(null)
+    setRole(null)
+    setProfileError(null)
+    rpcAttemptedRef.current = false
+
+    try {
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch (e) {
+      console.error('[useAuth] signOut error:', e)
+    }
+
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // Server-side cookie cleanup — best effort
+    }
+
+    if (typeof window !== 'undefined' && 'indexedDB' in window) {
+      try {
+        await indexedDB.deleteDatabase('CurimanaDB')
+      } catch {
+        // IndexedDB cleanup — best effort
+      }
+    }
+
+    router.replace('/login')
+  }, [router, supabase.auth])
+
   return (
-    <AuthContext.Provider value={{ user, role, isLoading, profileError, signOut }}>
+    <AuthContext.Provider value={{ user, role, isLoading, profileError, signOut, syncAndSignOut }}>
       {children}
     </AuthContext.Provider>
   )

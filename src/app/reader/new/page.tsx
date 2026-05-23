@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Search, ArrowLeft, Save, AlertTriangle, Loader2 } from 'lucide-react'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import { db } from '@/lib/db/dexie'
 import { getCustomerService } from '@/services/customer-service'
 import { createClient } from '@/lib/supabase/client'
@@ -81,7 +83,7 @@ function NewReadingContent() {
             id: cachedCustomer.id,
             full_name: cachedCustomer.full_name,
             address: cachedCustomer.address,
-            sectorName: cachedCustomer.sectorName || cachedCustomer.sector || null,
+            sectorName: cachedCustomer.sectorName || null,
             sector_id: cachedCustomer.sector_id,
             supply_number: cachedCustomer.supply_number,
             previous_reading: cachedCustomer.previous_reading,
@@ -109,7 +111,7 @@ function NewReadingContent() {
               supply_number: found.supply_number,
               full_name: found.full_name,
               address: found.address || '',
-              sector: found.sector || '',
+              sector: found.sectors?.name || '',
               sectorName: found.sectors?.name || '',
               sector_id: found.sector_id || '',
               tariff_id: found.tariff_id || '',
@@ -121,7 +123,7 @@ function NewReadingContent() {
               id: found.id,
               full_name: found.full_name,
               address: found.address,
-              sectorName: found.sectors?.name || found.sector || null,
+              sectorName: found.sectors?.name || null,
               sector_id: found.sector_id,
               supply_number: found.supply_number,
               previous_reading: previousReading,
@@ -156,6 +158,17 @@ function NewReadingContent() {
     const previous = customer.previous_reading
 
     try {
+      const existing = await db.pending_readings
+        .where('customer_id')
+        .equals(customer.id)
+        .toArray()
+      const today = new Date().toISOString().split('T')[0]
+      const duplicate = existing.find(r => r.reading_date === today && r.status !== 'syncing')
+      if (duplicate) {
+        setSaveError('Ya existe una lectura guardada hoy para este suministro. Elimine la anterior si desea reemplazarla.')
+        return
+      }
+
       await db.pending_readings.add({
         customer_id: customer.id,
         supply_number: supplyNumber,
@@ -174,7 +187,7 @@ function NewReadingContent() {
       })
 
       toast.success('Lectura guardada localmente')
-      router.push('/reader')
+      router.replace('/reader')
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : 'Error al guardar la lectura')
     }
@@ -206,7 +219,7 @@ function NewReadingContent() {
   return (
     <div className="flex flex-col gap-6 pb-20">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/reader"><ArrowLeft className="h-5 w-5" /></Link>} />
+        <Button variant="ghost" size="icon" aria-label="Volver a lecturas" nativeButton={false} render={<Link href="/reader"><ArrowLeft className="h-5 w-5" /></Link>} />
         <h2 className="text-xl font-bold">Nueva Lectura</h2>
       </div>
 

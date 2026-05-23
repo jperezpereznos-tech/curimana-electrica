@@ -1,18 +1,15 @@
-'use client'
-
 import { ReceiptWithPeriod } from '@/types/views'
 
 type ReceiptRowPaymentProps = {
- receipt: ReceiptWithPeriod
- onPaymentSuccess: () => void
+  receipt: ReceiptWithPeriod
 }
 
-export function ReceiptRowPayment({ receipt, onPaymentSuccess: _onPaymentSuccess }: ReceiptRowPaymentProps) {
- const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status ?? '')
+export function ReceiptRowPayment({ receipt }: ReceiptRowPaymentProps) {
+  const isPayable = ['pending', 'partial', 'overdue'].includes(receipt.status ?? '')
 
- if (!isPayable) return null
+  if (!isPayable) return null
 
- return (
- <span className="text-xs text-muted-foreground">Cobro en Caja</span>
- )
+  return (
+    <span className="text-xs text-muted-foreground">Cobro en Caja</span>
+  )
 }

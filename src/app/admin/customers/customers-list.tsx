@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -16,14 +17,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatCurrency } from '@/lib/utils'
 import { updateCustomerAction, deleteCustomerAction } from './actions'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import type { CustomerWithRelations, TariffRow, SectorRow } from '@/types/views'
 
 const EditCustomerDialog = dynamic(() => import('./edit-customer-dialog').then(m => ({ default: m.EditCustomerDialog })))
 
 const PAGE_SIZE = 25
 
-export function CustomersList({ initialCustomers, query, tariffs, sectors }: { initialCustomers: CustomerWithRelations[], query: string, tariffs: TariffRow[], sectors: SectorRow[] }) {
+function CustomersListInner({ initialCustomers, query, tariffs, sectors }: { initialCustomers: CustomerWithRelations[], query: string, tariffs: TariffRow[], sectors: SectorRow[] }) {
   const [searchTerm, setSearchTerm] = useState(query)
   const [actionError, setActionError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -128,9 +129,7 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={customer.is_active ? 'default' : 'secondary'}>
-                      {customer.is_active ? 'Activo' : 'Inactivo'}
-                    </Badge>
+              <StatusBadge status={customer.is_active ? 'active' : 'inactive'} type="active" />
                   </TableCell>
                   <TableCell className="text-right">
                     <EditCustomerDialog
@@ -217,3 +216,4 @@ export function CustomersList({ initialCustomers, query, tariffs, sectors }: { i
     </div>
   )
 }
+export const CustomersList = memo(CustomersListInner)

@@ -1,16 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Download, Ban, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { voidPaymentAction } from './actions'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import { useRouter } from 'next/navigation'
 import type { PaymentWithDetails } from '@/types/views'
 
@@ -26,7 +28,7 @@ function escapeCsvField(value: string | number): string {
 
 type PaymentFilters = { from?: string; to?: string; cashierId?: string }
 
-export function PaymentsList({ initialPayments, currentFilters }: { initialPayments: PaymentWithDetails[]; currentFilters: PaymentFilters }) {
+function PaymentsListInner({ initialPayments, currentFilters }: { initialPayments: PaymentWithDetails[]; currentFilters: PaymentFilters }) {
   const router = useRouter()
   const [dateFrom, setDateFrom] = useState(currentFilters.from || '')
   const [dateTo, setDateTo] = useState(currentFilters.to || '')
@@ -154,9 +156,7 @@ const rows = initialPayments.map((p: PaymentWithDetails) => [
                   <TableCell className="text-sm text-muted-foreground" suppressHydrationWarning>{formatDate(payment.payment_date, { includeTime: true })}</TableCell>
                   <TableCell>{payment.cashier?.full_name || 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge variant={payment.status === 'voided' ? 'destructive' : 'default'}>
-                      {payment.status === 'voided' ? 'Anulado' : 'Completado'}
-                    </Badge>
+                <StatusBadge status={payment.status ?? 'completed'} type="payment" />
                   </TableCell>
                   <TableCell className="text-right">
                     {payment.status !== 'voided' && (
@@ -197,5 +197,6 @@ const rows = initialPayments.map((p: PaymentWithDetails) => [
         onConfirm={() => voidTargetId && handleVoid(voidTargetId)}
       />
     </div>
-  )
+)
 }
+export const PaymentsList = memo(PaymentsListInner)

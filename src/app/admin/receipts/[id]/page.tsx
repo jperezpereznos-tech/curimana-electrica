@@ -3,6 +3,7 @@ import { getConceptService } from '@/services/concept-service'
 import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -111,7 +112,7 @@ export default async function ReceiptDetailsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4 no-print">
-        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
+        <Button variant="ghost" size="icon" aria-label="Volver a recibos" nativeButton={false} render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
           <h2 className="text-3xl font-bold tracking-tight">Recibo</h2>
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -119,9 +120,7 @@ export default async function ReceiptDetailsPage({
             <span>Emitido el {formatDate(receipt.issue_date)}</span>
           </div>
         </div>
-        <Badge className="text-lg px-4 py-1" variant={receipt.status === 'paid' ? 'default' : 'outline'}>
-          {(receipt.status ?? 'pending').toUpperCase()}
-        </Badge>
+        <StatusBadge status={receipt.status ?? 'pending'} type="receipt" className="text-lg px-4 py-1" />
       </div>
 
       <div id="receipt-printable" className="grid grid-cols-1 md:grid-cols-3 gap-6">

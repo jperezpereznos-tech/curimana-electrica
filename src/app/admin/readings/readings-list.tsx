@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, memo } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
@@ -45,7 +46,7 @@ interface ReadingRow {
   profiles: { id: string; full_name: string | null } | null
 }
 
-export function ReadingsList({
+function ReadingsListInner({
   initialReadings,
   periods,
   initialReviewCount,
@@ -56,7 +57,7 @@ export function ReadingsList({
 }) {
   const [readings, setReadings] = useState<ReadingRow[]>(initialReadings)
   const [filter, setFilter] = useState('')
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('')
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('all')
   const [showReviewOnly, setShowReviewOnly] = useState(false)
   const [page, setPage] = useState(1)
   const [reviewCount, setReviewCount] = useState(initialReviewCount)
@@ -67,7 +68,7 @@ export function ReadingsList({
   const refreshReadings = (periodId?: string, reviewOnly?: boolean) => {
     startTransition(async () => {
       const result = await getReadingsAdminAction(
-        periodId || undefined,
+        periodId === 'all' ? undefined : periodId,
         reviewOnly || undefined
       )
       if (result.success && result.data) {
@@ -76,22 +77,22 @@ export function ReadingsList({
     })
   }
 
-  const handlePeriodChange = (value: string) => {
-    setSelectedPeriod(value)
-    setPage(1)
-    refreshReadings(value, showReviewOnly)
-  }
+const handlePeriodChange = (value: string) => {
+  setSelectedPeriod(value)
+  setPage(1)
+  refreshReadings(value === 'all' ? undefined : value, showReviewOnly)
+}
 
   const handleReviewFilterToggle = () => {
     const newVal = !showReviewOnly
     setShowReviewOnly(newVal)
     setPage(1)
-    refreshReadings(selectedPeriod, newVal)
-  }
+  refreshReadings(selectedPeriod === 'all' ? undefined : selectedPeriod, newVal)
+}
 
-  const handleReadingUpdated = () => {
-    setEditReading(null)
-    refreshReadings(selectedPeriod, showReviewOnly)
+const handleReadingUpdated = () => {
+  setEditReading(null)
+  refreshReadings(selectedPeriod === 'all' ? undefined : selectedPeriod, showReviewOnly)
     setReviewCount(prev => Math.max(0, prev - 1))
   }
 
@@ -141,18 +142,19 @@ export function ReadingsList({
           />
         </div>
 
-        <select
-          className="h-8 rounded-md border bg-background px-3 text-sm"
-          value={selectedPeriod}
-          onChange={(e) => handlePeriodChange(e.target.value)}
-        >
-          <option value="">Todos los periodos</option>
-          {periods.map((p: PeriodRow) => (
-            <option key={p.id} value={p.id}>
-              {p.month}/{p.year} {p.is_closed ? '(Cerrado)' : '(Activo)'}
-            </option>
-          ))}
-        </select>
+<Select value={selectedPeriod} onValueChange={(v) => { if (v) handlePeriodChange(v) }}>
+  <SelectTrigger className="w-56 h-8">
+    <SelectValue placeholder="Todos los periodos" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">Todos los periodos</SelectItem>
+    {periods.map((p: PeriodRow) => (
+      <SelectItem key={p.id} value={p.id}>
+        {p.month}/{p.year} {p.is_closed ? '(Cerrado)' : '(Activo)'}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
       </div>
 
       <Card>
@@ -322,5 +324,6 @@ export function ReadingsList({
         />
       )}
     </div>
-  )
+)
 }
+export const ReadingsList = memo(ReadingsListInner)

@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 export function ReaderLayout({ children }: { children: React.ReactNode }) {
-  const { signOut } = useAuth()
+  const { signOut, syncAndSignOut } = useAuth()
   const pathname = usePathname()
   const { pendingSyncCount } = useOfflineSync()
 
@@ -23,7 +23,7 @@ export function ReaderLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-muted/40 flex flex-col pb-16">
       <header className="h-14 bg-background border-b flex items-center justify-between px-4 sticky top-0 z-10 shadow-sm">
         <h1 className="font-bold text-muni-blue">Lector Curimana</h1>
-        <Button variant="ghost" size="icon" onClick={() => signOut()} className="text-muted-foreground" aria-label="Cerrar sesión">
+        <Button variant="ghost" size="icon" onClick={() => pendingSyncCount > 0 ? syncAndSignOut() : signOut()} className="text-muted-foreground" aria-label="Cerrar sesión">
           <LogOut size={20} />
         </Button>
       </header>

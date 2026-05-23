@@ -1,6 +1,7 @@
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, DollarSign, User, FileText, Calendar } from 'lucide-react'
@@ -35,7 +36,7 @@ export default async function PaymentDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" nativeButton={false} render={<Link href="/admin/payments"><ArrowLeft className="h-5 w-5" /></Link>} />
+        <Button variant="ghost" size="icon" aria-label="Volver a pagos" nativeButton={false} render={<Link href="/admin/payments"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
           <h2 className="text-3xl font-bold tracking-tight">Detalle de Pago</h2>
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -43,9 +44,7 @@ export default async function PaymentDetailPage({
             <span suppressHydrationWarning>{formatDate(payment.payment_date, { includeTime: true })}</span>
           </div>
         </div>
-        <Badge className="text-lg px-4 py-1" variant={payment.status === 'voided' ? 'destructive' : 'default'}>
-          {payment.status === 'voided' ? 'ANULADO' : 'COMPLETADO'}
-        </Badge>
+      <StatusBadge status={payment.status ?? 'completed'} type="payment" className="text-lg px-4 py-1" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

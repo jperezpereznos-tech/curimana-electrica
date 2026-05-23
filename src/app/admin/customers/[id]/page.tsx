@@ -2,6 +2,7 @@
 import { getPaymentService } from '@/services/payment-service'
 import { createClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -55,9 +56,7 @@ export default async function CustomerDetailsPage({
             </div>
           </div>
         </div>
-        <Badge className="text-lg px-4 py-1" variant={customer.is_active ? 'default' : 'secondary'}>
-          {customer.is_active ? 'Suministro Activo' : 'Suministro Inactivo'}
-        </Badge>
+      <StatusBadge status={customer.is_active ? 'active' : 'inactive'} type="active" className="text-lg px-4 py-1" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -181,9 +180,7 @@ export default async function CustomerDetailsPage({
                       <TableCell className="font-bold">{formatCurrency(p.amount)}</TableCell>
                       <TableCell className="capitalize">{p.method}</TableCell>
                       <TableCell>
-                        <Badge variant={p.status === 'completed' ? 'default' : 'destructive'}>
-                          {p.status === 'completed' ? 'Completado' : p.status}
-                        </Badge>
+                  <StatusBadge status={p.status === 'completed' ? 'completed' : 'voided'} type="payment" />
                       </TableCell>
                     </TableRow>
                   ))

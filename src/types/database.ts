@@ -212,10 +212,9 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean | null
-          phone: string | null
-          sector: string | null
-          sector_id: string | null
-          supply_number: string
+  phone: string | null
+  sector_id: string | null
+  supply_number: string
           tariff_id: string | null
           updated_at: string | null
         }
@@ -228,10 +227,9 @@ export type Database = {
           full_name: string
           id?: string
           is_active?: boolean | null
-          phone?: string | null
-          sector?: string | null
-          sector_id?: string | null
-          supply_number: string
+  phone?: string | null
+  sector_id?: string | null
+  supply_number: string
           tariff_id?: string | null
           updated_at?: string | null
         }
@@ -244,10 +242,9 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean | null
-          phone?: string | null
-          sector?: string | null
-          sector_id?: string | null
-          supply_number?: string
+  phone?: string | null
+  sector_id?: string | null
+  supply_number?: string
           tariff_id?: string | null
           updated_at?: string | null
         }

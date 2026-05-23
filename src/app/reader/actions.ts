@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { requireReaderAuth } from '@/lib/auth/server-reader-auth'
 import { getReadingService } from '@/services/reading-service'
 import { getPeriodService } from '@/services/period-service'
@@ -122,15 +123,15 @@ export async function registerReadingAction(data: unknown) {
     const { supabase, userId } = await requireReaderAuth()
     const sectorId = await getAssignedSectorId(userId, supabase)
 
-    const { data: customer, error: customerError } = await supabase
-      .from('customers')
-      .select('sector_id, is_active')
-      .eq('id', parsed.customer_id)
-      .single()
+    const [customerResult, periodResult] = await Promise.all([
+      supabase.from('customers').select('sector_id, is_active').eq('id', parsed.customer_id).single(),
+      getPeriodService(supabase).getCurrentPeriod(),
+    ])
 
-    if (customerError || !customer) {
+    if (customerResult.error || !customerResult.data) {
       return { success: false as const, error: 'Suministro no encontrado.' }
     }
+    const customer = customerResult.data
     if (!sectorId) return { success: false as const, error: 'No tiene un sector asignado. Contacte al administrador.' }
     if (!customer.is_active) {
       return { success: false as const, error: 'No puede registrar lecturas de un suministro inactivo.' }
@@ -141,10 +142,20 @@ export async function registerReadingAction(data: unknown) {
     if (customer.sector_id !== sectorId) {
       return { success: false as const, error: 'No puede registrar lecturas de suministros fuera de su sector asignado' }
     }
+    if (!periodResult || periodResult.is_closed) {
+      return { success: false as const, error: 'No hay un periodo de facturación abierto. Contacte al administrador.' }
+    }
+    if (parsed.billing_period_id && parsed.billing_period_id !== periodResult.id) {
+      return { success: false as const, error: 'El periodo de facturación no corresponde al periodo abierto actual.' }
+    }
 
     const readingService = getReadingService(supabase)
     try {
-      const result = await readingService.registerReading(parsed, userId)
+      const result = await readingService.registerReading(
+        { ...parsed, billing_period_id: periodResult.id },
+        userId
+      )
+      revalidatePath('/reader')
       return { success: true as const, data: result }
     } catch (insertError: unknown) {
       const errMsg = insertError instanceof Error ? insertError.message : String(insertError)

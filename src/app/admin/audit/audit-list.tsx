@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,7 @@ import type { AuditLogRow } from '@/types/views'
 
 const PAGE_SIZE = 25
 
-export function AuditList({ initialLogs }: { initialLogs: AuditLogRow[] }) {
+function AuditListInner({ initialLogs }: { initialLogs: AuditLogRow[] }) {
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(1)
 
@@ -129,3 +129,4 @@ export function AuditList({ initialLogs }: { initialLogs: AuditLogRow[] }) {
     </Card>
   )
 }
+export const AuditList = memo(AuditListInner)

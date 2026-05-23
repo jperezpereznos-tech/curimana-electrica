@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import {
 Table,
 TableBody,
@@ -9,16 +9,18 @@ TableHead,
 TableHeader,
 TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Lock, Unlock, PlayCircle } from 'lucide-react'
+import { Calendar, PlayCircle } from 'lucide-react'
 import { closePeriodAction } from './actions'
 import { formatDate } from '@/lib/utils'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import { toast } from 'sonner'
 import type { PeriodRow } from '@/types/views'
 
-export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] }) {
+function PeriodsListInner({ initialPeriods }: { initialPeriods: PeriodRow[] }) {
   const [periods, setPeriods] = useState(initialPeriods)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -29,17 +31,19 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
     setLoading(id)
     const result = await closePeriodAction(id)
     if (result.success) {
-      const data = result.data as { receiptsGenerated?: number; skipped?: number; errors?: string[] } | undefined
+      const data = result.data as { receiptsGenerated?: number; skipped?: number; errors?: string[]; needsReviewWarnings?: string[] } | undefined
       const generated = data?.receiptsGenerated ?? 0
       const skipped = data?.skipped ?? 0
       const perCustomerErrors: string[] = data?.errors ?? []
+      const needsReviewWarnings: string[] = data?.needsReviewWarnings ?? []
       setPeriods(prev =>
         prev.map(p => p.id === id ? { ...p, is_closed: true, closed_at: new Date().toISOString() } : p)
       )
-    setCloseTargetId(null)
-    let msg = `Periodo cerrado. Se generaron ${generated} recibos.`
+      setCloseTargetId(null)
+      let msg = `Periodo cerrado. Se generaron ${generated} recibos.`
       if (skipped > 0) msg += ` ${skipped} clientes sin lectura.`
-      if (perCustomerErrors.length > 0) msg += ` Errores: ${perCustomerErrors.join('; ')}`
+      if (perCustomerErrors.length > 0) msg += ` Errores: ${perCustomerErrors.join('; ')}.`
+      if (needsReviewWarnings.length > 0) msg += ` ⚠ ${needsReviewWarnings.length} lectura(s) con reinicio de medidor (consumo=0): suministros ${needsReviewWarnings.join(', ')}.`
       toast.success(msg)
     } else {
       setError(result.error || 'Error al cerrar el periodo.')
@@ -82,13 +86,7 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
                 <TableCell>{formatDate(period.start_date)}</TableCell>
                 <TableCell>{formatDate(period.end_date)}</TableCell>
                 <TableCell>
-                  <Badge variant={period.is_closed ? 'secondary' : 'default'} className="gap-1">
-                    {period.is_closed ? (
-                      <><Lock className="h-3 w-3" /> Cerrado</>
-                    ) : (
-                      <><Unlock className="h-3 w-3" /> Abierto</>
-                    )}
-                  </Badge>
+              <StatusBadge status={period.is_closed ? 'closed' : 'open'} type="period" />
                 </TableCell>
                 <TableCell className="text-right">
                   {!period.is_closed && (
@@ -126,3 +124,4 @@ export function PeriodsList({ initialPeriods }: { initialPeriods: PeriodRow[] })
     </div>
   )
 }
+export const PeriodsList = memo(PeriodsListInner)

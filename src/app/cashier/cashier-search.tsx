@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, User, MapPin, AlertCircle, Receipt, Printer, FileText } from 'lucide-react'
+import { Search, User, MapPin, Receipt, Printer, FileText } from 'lucide-react'
 import { searchCashierCustomerAction, getCustomerPaymentsAction, getReceiptPrintDataAction } from './actions'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { ReceiptPrintLayout } from '@/components/receipt-print-layout'
+import { StatusBadge } from '@/components/status-badge'
+import { EmptyState } from '@/components/empty-state'
 import type { ReceiptPrintLayoutProps } from '@/components/receipt-print-layout'
 import type { CustomerWithRelations, ReceiptWithPeriod } from '@/types/views'
 
@@ -18,14 +20,6 @@ const BatchPaymentModal = dynamic(() => import('./batch-payment-modal').then(m =
 
 type Customer = CustomerWithRelations
 type ReceiptItem = ReceiptWithPeriod
-
-const statusLabel: Record<string, { text: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pending: { text: 'Pendiente', variant: 'outline' },
-  partial: { text: 'Parcial', variant: 'secondary' },
-  overdue: { text: 'Vencido', variant: 'destructive' },
-  paid: { text: 'Pagado', variant: 'default' },
-  cancelled: { text: 'Anulado', variant: 'outline' },
-}
 
 export function CashierSearch({ closureId, municipalityConfig }: { closureId: string; municipalityConfig?: { ruc?: string; name?: string } | null }) {
   const [q, setQ] = useState('')
@@ -196,28 +190,26 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {receipts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed">
-                  <AlertCircle className="h-8 w-8 mb-2" />
-                  <p>No hay recibos pendientes para este suministro.</p>
-                  {totalDebt > 0 && (
-                    <p className="text-sm mt-2 text-destructive font-medium">
-                      Deuda registrada: {formatCurrency(totalDebt)}
-                    </p>
-                  )}
-                </div>
-              ) : (
+{receipts.length === 0 ? (
+  <>
+    <EmptyState message="No hay recibos pendientes para este suministro." />
+    {totalDebt > 0 && (
+      <p className="text-sm text-center mt-2 text-destructive font-medium">
+        Deuda registrada: {formatCurrency(totalDebt)}
+      </p>
+    )}
+  </>
+) : (
                 <div className="space-y-3">
-                  {receipts.map((receipt) => {
-                    const pending = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
-                    const st = statusLabel[receipt.status || 'pending'] || statusLabel.pending
-                    return (
-                      <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold font-mono">RECIBO {receipt.receipt_number}</p>
-                              <Badge variant={st.variant}>{st.text}</Badge>
+  {receipts.map((receipt) => {
+    const pending = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
+    return (
+    <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+      <div className="flex items-center gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-bold font-mono">RECIBO {receipt.receipt_number}</p>
+            <StatusBadge status={receipt.status || 'pending'} type="receipt" />
                             </div>
                             <p className="text-sm text-muted-foreground">{receipt.billing_periods?.name ?? 'Periodo no disponible'}</p>
                           </div>

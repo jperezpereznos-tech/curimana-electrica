@@ -183,14 +183,15 @@ export function CreateTariffDialog() {
                     {...form.register(`tiers.${index}.price_per_kwh`, { valueAsNumber: true })}
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  onClick={() => remove(index)}
-                  disabled={fields.length === 1}
-                >
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="text-destructive"
+      onClick={() => remove(index)}
+      disabled={fields.length === 1}
+      aria-label="Eliminar tramo"
+    >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>

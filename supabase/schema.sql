@@ -113,9 +113,10 @@ CREATE TABLE IF NOT EXISTS tariff_tiers (
   tariff_id UUID REFERENCES tariffs(id) ON DELETE CASCADE,
   min_kwh NUMERIC NOT NULL,
   max_kwh NUMERIC,
-  price_per_kwh NUMERIC NOT NULL,
+  price_per_kwh NUMERIC NOT NULL CHECK (price_per_kwh >= 0),
   order_index INT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  CHECK (min_kwh < max_kwh OR max_kwh IS NULL)
 );
 
 -- Historial de versiones de tramos tarifarios (para facturación histórica)
@@ -141,7 +142,7 @@ CREATE TABLE IF NOT EXISTS billing_concepts (
   code TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   description TEXT,
-  amount NUMERIC NOT NULL,
+  amount NUMERIC NOT NULL CHECK (amount >= 0),
   type TEXT DEFAULT 'fixed' CHECK (type IN ('fixed', 'percentage', 'per_kwh')),
   applies_to_tariff_id UUID REFERENCES tariffs(id),
   is_active BOOLEAN DEFAULT true,
@@ -155,13 +156,12 @@ CREATE TABLE IF NOT EXISTS customers (
   full_name TEXT NOT NULL,
   document_number TEXT,
   address TEXT NOT NULL,
-  sector TEXT,
   sector_id UUID REFERENCES sectors(id),
   phone TEXT,
   tariff_id UUID REFERENCES tariffs(id),
   connection_type TEXT DEFAULT 'monofásico' CHECK (connection_type IN ('monofásico', 'trifásico')),
   is_active BOOLEAN DEFAULT true,
-  current_debt NUMERIC DEFAULT 0,
+  current_debt NUMERIC DEFAULT 0 CHECK (current_debt >= 0),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -171,12 +171,13 @@ CREATE TABLE IF NOT EXISTS billing_periods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   year INT NOT NULL,
-  month INT NOT NULL,
+  month INT NOT NULL CHECK (month >= 1 AND month <= 12),
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   is_closed BOOLEAN DEFAULT false,
   closed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
+  CHECK (start_date < end_date),
   UNIQUE(year, month)
 );
 
@@ -237,7 +238,7 @@ CREATE TABLE IF NOT EXISTS cash_closures (
   cashier_id UUID REFERENCES profiles(id) ON DELETE SET NULL DEFAULT auth.uid(),
   closure_date DATE DEFAULT CURRENT_DATE,
   opening_amount NUMERIC NOT NULL CHECK (opening_amount >= 0),
-  total_collected NUMERIC DEFAULT 0,
+  total_collected NUMERIC DEFAULT 0 CHECK (total_collected >= 0),
   total_receipts INT DEFAULT 0,
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
   closed_at TIMESTAMPTZ,
@@ -831,7 +832,6 @@ CREATE INDEX IF NOT EXISTS idx_billing_concepts_applies_to_tariff_id ON billing_
 CREATE INDEX IF NOT EXISTS idx_tariff_tiers_tariff_id ON tariff_tiers(tariff_id);
 CREATE INDEX IF NOT EXISTS idx_cash_closures_cashier_status ON cash_closures(cashier_id, status);
 CREATE INDEX IF NOT EXISTS idx_payments_cashier_id ON payments(cashier_id);
-CREATE INDEX IF NOT EXISTS idx_customers_sector ON customers(sector);
 CREATE INDEX IF NOT EXISTS idx_customers_sector_id ON customers(sector_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_assigned_sector_id ON profiles(assigned_sector_id);
 CREATE INDEX IF NOT EXISTS idx_customers_is_active ON customers(is_active);

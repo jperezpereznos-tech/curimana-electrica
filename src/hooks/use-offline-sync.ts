@@ -13,6 +13,9 @@ const MAX_RETRIES = 5
 const READING_INSERT_TIMEOUT_MS = 15_000
 const CACHE_SYNC_TIMEOUT_MS = 10_000
 const PERIOD_FETCH_TIMEOUT_MS = 10_000
+const AUTO_SYNC_BASE_MS = 30_000
+const AUTO_SYNC_MAX_MS = 300_000
+const BACKOFF_MULTIPLIER = 2
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -33,6 +36,9 @@ export function useOfflineSync() {
   const { user } = useAuth()
   const syncingRef = useRef(false)
   const assignedSectorIdRef = useRef<string | null>(null)
+  const consecutiveErrorsRef = useRef(0)
+  const autoSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const syncNowRef = useRef<() => Promise<number>>(() => Promise.resolve(0))
 
   const updateCounter = useCallback(async () => {
     const pending = await db.pending_readings
@@ -100,11 +106,35 @@ export function useOfflineSync() {
     }
   }, [])
 
+  const getAutoSyncDelay = useCallback((consecutiveErrors: number) => {
+    if (consecutiveErrors === 0) return AUTO_SYNC_BASE_MS
+    const delay = Math.min(AUTO_SYNC_BASE_MS * Math.pow(BACKOFF_MULTIPLIER, consecutiveErrors - 1), AUTO_SYNC_MAX_MS)
+    return delay
+  }, [])
+
+  const scheduleAutoSync = useCallback((hadErrors: boolean = false) => {
+    if (autoSyncTimerRef.current) {
+      clearTimeout(autoSyncTimerRef.current)
+      autoSyncTimerRef.current = null
+    }
+    if (hadErrors) {
+      consecutiveErrorsRef.current = Math.min(consecutiveErrorsRef.current + 1, 10)
+    } else {
+      consecutiveErrorsRef.current = 0
+    }
+    const delay = getAutoSyncDelay(consecutiveErrorsRef.current)
+    autoSyncTimerRef.current = setTimeout(() => {
+      if (navigator.onLine) void syncNowRef.current()
+    }, delay)
+  }, [getAutoSyncDelay])
+
   const syncNow = useCallback(async () => {
-    if (!isOnline || syncingRef.current) return
+    if (!isOnline || syncingRef.current) return 0
 
     syncingRef.current = true
     setSyncStatus('syncing')
+
+    let syncHadErrors = false
 
     try {
       const sessionStatus = await refreshSession()
@@ -113,7 +143,7 @@ export function useOfflineSync() {
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
         toast.error(`Error de sincronización: ${sessionStatus.message}`)
-        return
+        return 1
       }
 
       const [stuckSyncing, failedReadings] = await Promise.all([
@@ -155,7 +185,7 @@ export function useOfflineSync() {
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
         toast.error('No hay un periodo de facturación abierto. Contacta al administrador para abrir el periodo actual.')
-        return
+        return 1
       }
 
       const pending = await db.pending_readings
@@ -199,6 +229,7 @@ export function useOfflineSync() {
 
           if (!actionResult.success) {
             if (actionResult.error === 'DUPLICATE_READING') {
+              toast.info(`Lectura de ${reading.supply_number} ya existe en el servidor. Se eliminó la copia local.`)
               await db.pending_readings.delete(reading.id!)
               continue
             }
@@ -225,12 +256,14 @@ export function useOfflineSync() {
         }
       }
 
+      syncHadErrors = hasError
       setSyncStatus(hasError ? 'error' : 'success')
       setLastSyncTime(new Date().toISOString())
       await updateCounter()
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       console.error('Sync failed:', error)
+      syncHadErrors = true
       setSyncStatus('error')
       setLastSyncTime(new Date().toISOString())
       await updateCounter()
@@ -238,31 +271,52 @@ export function useOfflineSync() {
     } finally {
       syncingRef.current = false
       setTimeout(() => setSyncStatus('idle'), 10000)
+      scheduleAutoSync(syncHadErrors)
     }
-  }, [isOnline, updateCounter, syncCustomerCache, refreshSession])
+    return syncHadErrors ? 1 : 0
+  }, [isOnline, updateCounter, syncCustomerCache, refreshSession, scheduleAutoSync])
+
+  useEffect(() => {
+    syncNowRef.current = syncNow
+  }, [syncNow])
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
+      consecutiveErrorsRef.current = 0
       void syncCustomerCache()
       void updateCounter()
+      void syncNow()
     }
-    const handleOffline = () => setIsOnline(false)
+    const handleOffline = () => {
+      setIsOnline(false)
+      if (autoSyncTimerRef.current) {
+        clearTimeout(autoSyncTimerRef.current)
+        autoSyncTimerRef.current = null
+      }
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
     const timer = window.setTimeout(() => {
       void updateCounter()
-      if (navigator.onLine) void syncCustomerCache()
+      if (navigator.onLine) {
+        void syncCustomerCache()
+        void syncNow()
+      }
     }, 0)
 
     return () => {
       window.clearTimeout(timer)
+      if (autoSyncTimerRef.current) {
+        clearTimeout(autoSyncTimerRef.current)
+        autoSyncTimerRef.current = null
+      }
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [updateCounter, syncCustomerCache])
+  }, [updateCounter, syncCustomerCache, syncNow, scheduleAutoSync])
 
   return {
     isOnline,
@@ -271,6 +325,7 @@ export function useOfflineSync() {
     syncStatus,
     lastSyncTime,
     syncNow,
-    syncCustomerCache
+    syncCustomerCache,
+    scheduleAutoSync,
   }
 }

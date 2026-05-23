@@ -1,20 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MapPin, Users, Trash2, Power, PowerOff } from 'lucide-react'
 import { updateSectorAction, deleteSectorAction, assignReaderToSectorAction } from './actions'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import dynamic from 'next/dynamic'
+
+const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
 import { toast } from 'sonner'
 import type { Database } from '@/types/database'
 
 type Sector = Database['public']['Tables']['sectors']['Row']
 type Reader = { id: string; full_name: string | null; email: string; assigned_sector_id: string | null }
 
-export function SectorsList({ initialSectors, readers }: { initialSectors: Sector[]; readers: Reader[] }) {
+function SectorsListInner({ initialSectors, readers }: { initialSectors: Sector[]; readers: Reader[] }) {
   const [sectors] = useState(initialSectors)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [toggleTarget, setToggleTarget] = useState<Sector | null>(null)
@@ -123,9 +126,7 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
       })}
 
       {sectors.length === 0 && (
-        <div className="col-span-2 text-center py-12 text-muted-foreground">
-          No hay sectores registrados. Crea uno para empezar.
-        </div>
+    <EmptyState message="No hay sectores registrados" description="Crea uno para empezar." />
       )}
       <ConfirmDialog
         open={!!deleteTargetId}
@@ -148,3 +149,4 @@ export function SectorsList({ initialSectors, readers }: { initialSectors: Secto
     </div>
   )
 }
+export const SectorsList = memo(SectorsListInner)

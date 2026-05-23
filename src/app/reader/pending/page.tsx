@@ -10,6 +10,7 @@ import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { toast } from 'sonner'
+import { EmptyState } from '@/components/empty-state'
 
 import { PendingReadingItem } from '@/types/views'
 
@@ -34,7 +35,7 @@ export default function PendingReadingsPage() {
       supply_number: r.supply_number,
       full_name: r.full_name,
       address: r.address || 'Sin dirección',
-      sectorName: r.sectorName || r.sector || 'Sin sector',
+      sectorName: r.sectorName || 'Sin sector',
       status: r.status === 'failed' && (r.retry_count || 0) >= 5 ? 'exhausted' : (r.status || 'pending'),
       retry_count: r.retry_count || 0,
     }))
@@ -67,7 +68,7 @@ export default function PendingReadingsPage() {
   const handleRetry = useCallback(async (readingId: string) => {
     setRetryingId(readingId)
     try {
-      await db.pending_readings.update(Number(readingId), { status: 'pending', retry_count: 0, last_attempt_time: undefined, needs_review: undefined })
+      await db.pending_readings.update(Number(readingId), { status: 'pending', retry_count: 0, last_attempt_time: undefined })
       const formatted = await loadReadings()
       setPendingReadings(formatted)
       syncNow()
@@ -127,12 +128,7 @@ export default function PendingReadingsPage() {
             Cargando lecturas...
           </div>
         ) : filteredReadings.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="font-medium">No hay lecturas pendientes</p>
-            <p className="text-sm mt-1">
-              {navigator.onLine ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'}
-            </p>
-          </div>
+        <EmptyState message="No hay lecturas pendientes" description={navigator.onLine ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'} />
         ) : (
           <div className="space-y-3">
             {filteredReadings.map((reading) => {

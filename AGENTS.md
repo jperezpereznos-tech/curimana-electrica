@@ -85,10 +85,10 @@ Route protection is in `src/proxy.ts` — it calls `get_user_role()` RPC, then r
 
 `src/lib/db/dexie.ts` — `CurimanaDB` with two tables:
 
-- `pending_readings`: `++id, customer_id, supply_number, status` — statuses: `pending | syncing | failed`. Fields `needs_review`, `retry_count`, `last_attempt_time` track sync failures.
-- `customers_cache`: `id, supply_number, sector`
+- `pending_readings`: `++id, customer_id, supply_number, status, sector_id, reading_date` — statuses: `pending | syncing | failed`. Fields `needs_review`, `retry_count`, `last_attempt_time` track sync failures. Local duplicate detection blocks same `customer_id` + `reading_date === today`.
+- `customers_cache`: `id, supply_number, sector, sector_id, full_name` — `sector` field stores sector name string for offline display (NOT the dropped DB column).
 
-**Critical**: Reader workflows must work without network. Always check online status before Supabase calls. Meter resets (decreasing readings) are handled with zero consumption + `needs_review: true`.
+**Critical**: Reader workflows must work without network. Always check online status before Supabase calls. Meter resets (decreasing readings) are handled with zero consumption + `needs_review: true`. Auto-sync runs every 30s with exponential backoff (2x multiplier, 5min cap). `syncAndSignOut()` protects pending readings on logout.
 
 ## Environment
 
@@ -114,7 +114,7 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 |----------|------|---------|
 | `get_user_role()` | STABLE SECURITY DEFINER | Returns role for auth user (used by proxy.ts) |
 | `get_dashboard_kpis()` | STABLE SECURITY DEFINER | Single-call dashboard data (replaces 5 round-trips) |
-| `calculate_energy_amount(consumption, tariff_id)` | SECURITY DEFINER | Progressive tier energy calculation |
+| `calculate_energy_amount(consumption, tariff_id)` | STABLE SECURITY DEFINER | Progressive tier energy calculation |
 | `generate_period_receipts(period_id, receipts)` | SECURITY DEFINER | Atomic receipt batch insert |
 | `close_billing_period(period_id)` | SECURITY DEFINER | Marks period as closed |
 | `process_payment(receipt_id, ...)` | SECURITY DEFINER | Atomic payment processing |
@@ -124,8 +124,8 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 | `get_user_sector_id(user_id)` | SECURITY DEFINER | Returns sector for reader role |
 | `handle_new_user()` | SECURITY DEFINER trigger | Auto-creates profile on auth user creation |
 | `log_tariff_tier_change()` | SECURITY DEFINER trigger | Logs tier changes to tariff_tier_history |
-| `current_role()` | SECURITY DEFINER | Returns current user role text |
-| `update_updated_at()` | SECURITY DEFINER trigger | Auto-sets updated_at on row update |
+| `current_role()` | STABLE SECURITY DEFINER | Returns current user role text |
+| `update_updated_at()` | trigger (NOT SECURITY DEFINER) | Auto-sets updated_at on row update |
 | `rls_auto_enable()` | SECURITY DEFINER event trigger | Auto-enables RLS on new tables |
 
 ### Performance optimizations applied
@@ -134,10 +134,14 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 - RLS policies split into separate INSERT/UPDATE/DELETE (no redundant `get_user_role()` on SELECT)
 - 7 composite indexes: `idx_receipts_period_status`, `idx_readings_needs_review` (partial), `idx_customers_active_sector_name`, `idx_payments_closure_status`, `idx_receipts_due_date_status` (partial), `idx_payments_created_at`, `billing_periods_year_month_key` (UNIQUE)
 - `get_dashboard_kpis()` RPC replaces 5 sequential HTTP round-trips with 1 DB call
+- `pg_trgm` + 3 GIN indexes for customer name search (`idx_customers_full_name_trgm`, `idx_customers_address_trgm`, `idx_customers_supply_number_trgm`)
+- 13 CHECK constraints: `tariff_tiers_price_positive`, `tariff_tiers_min_less_than_max`, `billing_periods_month_valid`, `billing_periods_date_order`, `billing_concepts_amount_non_negative`, `customers_current_debt_non_negative`, `customers_connection_type_check`, `receipts_*_non_negative` (5), `payments_*_non_negative` (2), `cash_closures_total_collected_non_negative`
+- Legacy `customers.sector` column and `idx_customers_sector` dropped — sector info via `sector_id` FK only
+- Redundant `"Reader read payments"` RLS policy dropped — `"Users read payments"` covers all roles including sector-scoped readers
 
-### Migrations (17)
+### Migrations (18)
 
-Located in `supabase/migrations/`. Most recent: `20260521_audit_fixes.sql`. Schema source of truth: `supabase/schema.sql`.
+Located in `supabase/migrations/`. Most recent: `20260522_check_constraints_rls_cleanup.sql`. Schema source of truth: `supabase/schema.sql`.
 
 ### Admin user setup
 

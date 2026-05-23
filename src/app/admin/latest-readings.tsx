@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
 import { Camera, ChevronRight, User, Calendar } from 'lucide-react'
 import { getReadingService } from '@/services/reading-service'
@@ -71,9 +72,7 @@ export async function LatestReadings() {
           {readingsError}
         </div>
       ) : readings.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground text-sm">
-            No hay lecturas registradas hoy
-          </div>
+    <EmptyState message="No hay lecturas registradas hoy" />
         ) : (
           readings.map((reading) => (
             <div
