@@ -1,31 +1,26 @@
 'use client'
 
 import { useAuth } from '@/hooks/use-auth'
-import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 export default function Home() {
   const { user, role, isLoading, profileError, signOut } = useAuth()
-  const router = useRouter()
   const showError = !isLoading && !!user && !role
 
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        router.replace('/login')
-      } else if (role === 'admin') {
-        router.replace('/admin')
-      } else if (role === 'cashier') {
-        router.replace('/cashier')
-      } else if (role === 'meter_reader') {
-        router.replace('/reader')
+        window.location.href = '/login'
+      } else if (role) {
+        if (role === 'admin') window.location.href = '/admin'
+        else if (role === 'cashier') window.location.href = '/cashier'
+        else if (role === 'meter_reader') window.location.href = '/reader'
       }
     }
-  }, [user, role, isLoading, router])
+  }, [user, role, isLoading])
 
-  // Mostrar loading mientras se inicializa
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
@@ -35,7 +30,6 @@ export default function Home() {
     )
   }
 
-  // Si hay error de perfil o no hay rol, mostrar pantalla de error
   if (showError || profileError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -44,18 +38,18 @@ export default function Home() {
             <AlertCircle className="h-6 w-6 text-destructive" />
             <h2 className="text-lg font-semibold text-destructive">Error de Acceso</h2>
           </div>
-          
+
           <p className="text-sm text-gray-600 mb-4">
             Tu usuario no tiene un rol asignado en el sistema. Esto puede ocurrir porque:
           </p>
-          
+
           <ul className="text-sm text-gray-600 mb-6 list-disc list-inside space-y-1">
             <li>Es tu primera vez iniciando sesión</li>
             <li>Tu perfil aún no ha sido configurado por un administrador</li>
             <li>Hubo un problema al crear tu perfil</li>
           </ul>
 
-        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <Button onClick={() => signOut()} variant="destructive" className="w-full">
               Cerrar Sesión
             </Button>
@@ -64,7 +58,7 @@ export default function Home() {
             </Button>
           </div>
         </div>
-        
+
         <p className="text-xs text-gray-400 mt-6 text-center max-w-md">
           Si el problema persiste, contacta al administrador del sistema para que verifique tu perfil en la base de datos.
         </p>

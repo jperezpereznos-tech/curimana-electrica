@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -12,7 +12,9 @@ Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useRouter } from 'next/navigation'
+
+const MAX_ATTEMPTS = 5
+const WINDOW_MS = 60_000
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -22,8 +24,10 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
+  const [attemptCount, setAttemptCount] = useState(0)
+  const [windowStart, setWindowStart] = useState(0)
   const supabase = createClient()
-  const router = useRouter()
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -33,44 +37,50 @@ export default function LoginPage() {
     },
   })
 
+  useEffect(() => {
+    if (redirectUrl) window.location.replace(redirectUrl)
+  }, [redirectUrl])
+
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsLoading(true)
     setError(null)
 
-  try {
-    const rateRes = await fetch('/api/auth/login', { method: 'POST' })
+    const now = new Date().getTime()
+    let currentCount = attemptCount
+    let currentStart = windowStart
 
-    if (!rateRes.ok) {
-      setError('Servicio no disponible. Intente de nuevo.')
+    if (now - currentStart > WINDOW_MS) {
+      currentCount = 0
+      currentStart = now
+      setWindowStart(now)
+    }
+
+    if (currentCount >= MAX_ATTEMPTS) {
+      const retryAfter = Math.ceil((WINDOW_MS - (now - currentStart)) / 1000)
+      setError(`Demasiados intentos. Espere ${retryAfter} segundos antes de intentar de nuevo.`)
       setIsLoading(false)
       return
     }
 
-    const rateData = await rateRes.json()
+    setAttemptCount(currentCount + 1)
 
-    if (!rateData.allowed) {
-      setError(`Demasiados intentos. Espere ${rateData.retryAfter} segundos antes de intentar de nuevo.`)
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      })
+
+      if (authError) {
+        setError('Credenciales inválidas')
+        setIsLoading(false)
+        return
+      }
+
+      setRedirectUrl('/')
+    } catch {
+      setError('Error de conexión. Intente de nuevo.')
       setIsLoading(false)
-      return
     }
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    })
-
-    if (authError) {
-      setError('Credenciales inválidas')
-      setIsLoading(false)
-      return
-    }
-
-    router.replace('/')
-    router.refresh()
-  } catch {
-    setError('Error de conexión. Intente de nuevo.')
-    setIsLoading(false)
-  }
   }
 
   return (

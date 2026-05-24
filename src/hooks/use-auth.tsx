@@ -3,7 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
 import { db } from '@/lib/db/dexie'
 import { toast } from 'sonner'
 
@@ -18,6 +17,19 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const ROLE_CLIENT_COOKIE = 'x-user-role-client'
+
+function getRoleFromCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${ROLE_CLIENT_COOKIE}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+function deleteRoleCookie() {
+  if (typeof document === 'undefined') return
+  document.cookie = `${ROLE_CLIENT_COOKIE}=; path=/; max-age=0; sameSite=lax`
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [role, setRole] = useState<string | null>(null)
@@ -25,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadingDoneRef = useRef(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [supabase] = useState(() => createClient())
-  const router = useRouter()
   const rpcAttemptedRef = useRef(false)
   const signingOutRef = useRef(false)
 
@@ -77,7 +88,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser)
 
       if (currentUser) {
-        if (!rpcAttemptedRef.current) {
+        const cookieRole = getRoleFromCookie()
+        if (cookieRole) {
+          setRole(cookieRole)
+          loadingDoneRef.current = true
+          setIsLoading(false)
+          if (!rpcAttemptedRef.current) {
+            rpcAttemptedRef.current = true
+            fetchRoleViaRPC().then(rpcRole => {
+              if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
+            })
+          }
+        } else if (!rpcAttemptedRef.current) {
           rpcAttemptedRef.current = true
           fetchRoleViaRPC().then(userRole => {
             if (mounted) {
@@ -107,7 +129,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
-          if (!rpcAttemptedRef.current) {
+          const cookieRole = getRoleFromCookie()
+          if (cookieRole) {
+            setRole(cookieRole)
+            loadingDoneRef.current = true
+            setIsLoading(false)
+            if (!rpcAttemptedRef.current) {
+              rpcAttemptedRef.current = true
+              fetchRoleViaRPC().then(rpcRole => {
+                if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
+              })
+            }
+          } else if (!rpcAttemptedRef.current) {
             const userRole = await fetchRoleViaRPC()
             if (mounted) {
               setRole(userRole)
@@ -126,11 +159,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === 'SIGNED_OUT') {
-          if (!signingOutRef.current) {
-            rpcAttemptedRef.current = false
-            setUser(null)
-            setRole(null)
-            router.replace('/login')
+          rpcAttemptedRef.current = false
+          setUser(null)
+          setRole(null)
+          signingOutRef.current = false
+          deleteRoleCookie()
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
           }
         }
       }
@@ -140,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [fetchRoleViaRPC, router, supabase.auth])
+  }, [fetchRoleViaRPC, supabase.auth])
 
   const signOut = useCallback(async () => {
     if (signingOutRef.current) return
@@ -164,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     signingOutRef.current = true
+    deleteRoleCookie()
 
     setUser(null)
     setRole(null)
@@ -190,8 +226,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    router.replace('/login')
-  }, [router, supabase.auth])
+    signingOutRef.current = false
+    window.location.href = '/login'
+  }, [supabase.auth])
 
   const syncAndSignOut = useCallback(async () => {
     if (signingOutRef.current) return
@@ -209,6 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data: sessionData } = await supa.auth.getSession()
           if (!sessionData.session) {
             toast.error('Sesión expirada. No se pudieron sincronizar las lecturas.')
+            signingOutRef.current = false
             return
           }
 
@@ -219,6 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (!currentPeriod || currentPeriod.is_closed) {
             toast.error('No hay periodo abierto. No se pudieron sincronizar las lecturas.')
+            signingOutRef.current = false
             return
           }
 
@@ -262,6 +301,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     signingOutRef.current = true
+    deleteRoleCookie()
     setUser(null)
     setRole(null)
     setProfileError(null)
@@ -287,8 +327,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    router.replace('/login')
-  }, [router, supabase.auth])
+    signingOutRef.current = false
+    window.location.href = '/login'
+  }, [supabase.auth])
 
   return (
     <AuthContext.Provider value={{ user, role, isLoading, profileError, signOut, syncAndSignOut }}>

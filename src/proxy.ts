@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { ROLE_COOKIE } from '@/lib/auth/constants'
 
 const ROLE_COOKIE_MAX_AGE = 3600
+const ROLE_CLIENT_COOKIE = 'x-user-role-client'
 
 export async function proxy(request: NextRequest) {
  const url = request.nextUrl.clone()
@@ -41,11 +42,13 @@ export async function proxy(request: NextRequest) {
     const response = NextResponse.redirect(url)
     supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
     response.cookies.delete(ROLE_COOKIE)
+    response.cookies.delete(ROLE_CLIENT_COOKIE)
     return response
   }
 
   if (!userId && url.pathname === '/login') {
     supabaseResponse.cookies.delete(ROLE_COOKIE)
+    supabaseResponse.cookies.delete(ROLE_CLIENT_COOKIE)
     return supabaseResponse
   }
 
@@ -60,14 +63,20 @@ export async function proxy(request: NextRequest) {
  return null
  }
  const role = data as string | null
- if (role) {
-        supabaseResponse.cookies.set(ROLE_COOKIE, role, {
-          path: '/',
-          maxAge: ROLE_COOKIE_MAX_AGE,
-          httpOnly: true,
-          sameSite: 'lax',
-        })
- }
+    if (role) {
+      supabaseResponse.cookies.set(ROLE_COOKIE, role, {
+        path: '/',
+        maxAge: ROLE_COOKIE_MAX_AGE,
+        httpOnly: true,
+        sameSite: 'lax',
+      })
+      supabaseResponse.cookies.set(ROLE_CLIENT_COOKIE, role, {
+        path: '/',
+        maxAge: ROLE_COOKIE_MAX_AGE,
+        httpOnly: false,
+        sameSite: 'lax',
+      })
+    }
  return role
  }
 
@@ -105,13 +114,14 @@ export async function proxy(request: NextRequest) {
  if (userId && isProtectedRoute) {
  const role = await getRole()
 
- if (!role) {
- url.pathname = '/'
- const response = NextResponse.redirect(url)
- supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
- response.cookies.delete(ROLE_COOKIE)
- return response
- }
+    if (!role) {
+      url.pathname = '/'
+      const response = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value))
+      response.cookies.delete(ROLE_COOKIE)
+      response.cookies.delete(ROLE_CLIENT_COOKIE)
+      return response
+    }
 
  if (url.pathname.startsWith('/admin') && role !== 'admin') {
  url.pathname = '/'
