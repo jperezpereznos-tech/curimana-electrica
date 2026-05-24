@@ -14,7 +14,7 @@ Sistema integral para la gestión de facturación, recaudación y lectura de med
 | **Offline** | Dexie.js (IndexedDB) | 4.x |
 | **Reportes** | jsPDF + jspdf-autotable | — |
 | **Gráficos** | Recharts | 3.x |
-| **Testing** | Vitest + Playwright | — |
+| **Testing** | Vitest (560 tests) + Playwright | — |
 | **Deploy** | Vercel | Auto desde GitHub |
 
 ## 📐 Arquitectura
@@ -32,7 +32,7 @@ Sistema integral para la gestión de facturación, recaudación y lectura de med
 ├─────────────────────────────────────────────────┤
 │                   BACKEND                        │
 │  Supabase: PostgreSQL + Auth + RLS + Storage    │
-│  15 tablas, 15 funciones/triggers               │
+│ 15 tablas, 15 funciones/triggers, 20+ CHECKs │
 ├─────────────────────────────────────────────────┤
 │  OFFLINE: Dexie.js (IndexedDB) + Background Sync│
 └─────────────────────────────────────────────────┘
@@ -130,8 +130,11 @@ src/
 ├── repositories/               # 12 repositorios (acceso a Supabase)
 ├── hooks/                      # useAuth, useOfflineSync
 ├── components/
-│   ├── ui/                     # 13 componentes shadcn/ui
-│   └── layouts/                # Layouts por rol
+│   ├── ui/ # 13 componentes shadcn/ui
+│   ├── status-badge.tsx # Badge de estado compartido (4 tipos)
+│   ├── empty-state.tsx # Estado vacío compartido
+│   ├── confirm-dialog.tsx # Diálogo de confirmación (dynamic import)
+│   └── layouts/ # Layouts por rol
 ├── lib/
 │   ├── supabase/               # Clientes Supabase (browser, server, middleware)
 │   ├── db/dexie.ts             # Base de datos offline
@@ -144,7 +147,7 @@ src/
 ## 🧪 Testing
 
 ```bash
-# Tests unitarios (Vitest)
+# Tests unitarios (Vitest — 560 tests)
 npm run test
 
 # Tests E2E (Playwright)
@@ -158,6 +161,9 @@ npm run lint
 
 # Build de producción
 npm run build
+
+# Verificación completa (orden recomendado)
+npm run lint && npx tsc --noEmit && npm run test && npm run build
 ```
 
 ## 🗄️ Base de Datos
@@ -185,7 +191,7 @@ npm run build
 ### Funciones SQL (15 en total)
 - **`get_dashboard_kpis()`** — KPIs en una sola llamada, optimizando rendimiento
 - **`generate_period_receipts(...)`**, **`process_payment(...)`**, **`void_payment(...)`** — Operaciones transaccionales atómicas
-- **`calculate_energy_amount(consumption, tariff_id)`** — Calcula el monto por tramos progresivos
+- **`calculate_energy_amount(consumption, tariff_id)`** — Calcula el monto por tramos progresivos (STABLE, cacheado por PostgreSQL)
 - **`get_user_role()`** — Obtiene el rol del usuario autenticado (STABLE, para RLS)
 - **`handle_new_user()`** — Trigger que auto-crea perfil al registrar usuario
 
@@ -203,6 +209,8 @@ npm run build
 - **Funciones SECURITY DEFINER** con `search_path` fijo
 - **Acceso `anon` revocado** en funciones sensibles
 - **Trigger automático** para creación de perfiles
+- **20+ CHECK constraints** protegen integridad de datos (importes no negativos, rangos válidos, etc.)
+- **`pg_trgm`** + 3 índices GIN para búsqueda de clientes por nombre
 
 ## 📱 PWA / Offline
 
@@ -210,6 +218,21 @@ npm run build
 - Lecturas funcionan sin conexión a internet (IndexedDB via Dexie.js)
 - Sincronización automática al recuperar red (cada 30s) con backoff exponencial
 - Cache de clientes para búsqueda offline
+- Detección de duplicados local (mismo `customer_id` + fecha)
+- Protección de lecturas pendientes al cerrar sesión (`syncAndSignOut()`)
+
+## ⚡ Optimizaciones UX/Rendimiento
+
+- `router.replace()` en login y lecturas (evita loops con botón atrás)
+- `aria-label` en todos los botones solo-icono (accesibilidad)
+- Componentes compartidos: `StatusBadge`, `EmptyState` (reducen duplicación)
+- `ConfirmDialog` con import dinámico (`next/dynamic`) en 10 archivos (code-splitting)
+- `React.memo` en 10 listas del panel admin (evita re-renders innecesarios)
+- `error.tsx` en 3 segmentos anidados `[id]` (mejor UX en errores de carga)
+- 2 componentes convertidos a Server Components (menos JS client-side)
+- `get_dashboard_kpis()` RPC reemplaza 5 llamadas HTTP con 1 consulta DB
+- `calculate_energy_amount` declarada `STABLE` (PostgreSQL cachea dentro de una sentencia)
+- `pg_trgm` + índices GIN para búsqueda ILIKE optimizada
 
 ## 🚢 Deployment
 

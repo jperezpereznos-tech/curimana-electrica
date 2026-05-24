@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, startTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
@@ -30,51 +30,62 @@ import { useAuth } from '@/hooks/use-auth'
 import type { CashierHistoryPayment } from '@/types/views'
 
 export default function CashierHistoryPage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const [payments, setPayments] = useState<CashierHistoryPayment[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
   const [dateFilter, setDateFilter] = useState('today')
   const [currentPage, setCurrentPage] = useState(1)
+  const [fetchDone, setFetchDone] = useState(false)
   const itemsPerPage = 10
 
-  function getDateFilterParams(filter: string): { from?: string; to?: string } {
-    const now = new Date()
-    const today = now.toISOString().split('T')[0]
-    if (filter === 'today') return { from: today, to: today + 'T23:59:59' }
-    if (filter === 'week') {
-      const weekAgo = new Date(now)
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      return { from: weekAgo.toISOString().split('T')[0], to: today + 'T23:59:59' }
-    }
-    if (filter === 'month') {
-      const monthAgo = new Date(now)
-      monthAgo.setMonth(monthAgo.getMonth() - 1)
-      return { from: monthAgo.toISOString().split('T')[0], to: today + 'T23:59:59' }
-    }
-    return {}
+  const loading = authLoading || !fetchDone
+
+  function toLocalDateString(date: Date): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
+  const dateFilterParams = useMemo(() => {
+    const now = new Date()
+    const today = toLocalDateString(now)
+    if (dateFilter === 'today') return { from: today, to: today + 'T23:59:59' }
+    if (dateFilter === 'week') {
+      const weekAgo = new Date(now)
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      return { from: toLocalDateString(weekAgo), to: today + 'T23:59:59' }
+    }
+    if (dateFilter === 'month') {
+      const monthAgo = new Date(now)
+      monthAgo.setMonth(monthAgo.getMonth() - 1)
+      return { from: toLocalDateString(monthAgo), to: today + 'T23:59:59' }
+    }
+    return {}
+  }, [dateFilter])
+
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      startTransition(() => { setFetchDone(true) })
+      return
+    }
     let cancelled = false
+    startTransition(() => { setFetchDone(false) })
 
-    const dateFilterParams = getDateFilterParams(dateFilter)
-
- getPaymentsByCashierAction(user.id, dateFilterParams)
- .then((result) => {
- if (!cancelled && result.success) {
- setPayments(result.data)
- setCurrentPage(1)
- }
- })
+    getPaymentsByCashierAction(user.id, dateFilterParams)
+      .then((result) => {
+        if (!cancelled && result.success) {
+          setPayments(result.data)
+          setCurrentPage(1)
+        }
+      })
       .catch((e) => { console.error('Error fetching payment history:', e) })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) setFetchDone(true)
       })
 
     return () => { cancelled = true }
-  }, [user, dateFilter])
+  }, [user, dateFilterParams])
 
   const filteredPayments = payments.filter(p =>
     p.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,7 +124,7 @@ export default function CashierHistoryPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cobros_${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `cobros_${toLocalDateString(new Date())}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }

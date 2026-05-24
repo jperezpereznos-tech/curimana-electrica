@@ -135,13 +135,27 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 - 7 composite indexes: `idx_receipts_period_status`, `idx_readings_needs_review` (partial), `idx_customers_active_sector_name`, `idx_payments_closure_status`, `idx_receipts_due_date_status` (partial), `idx_payments_created_at`, `billing_periods_year_month_key` (UNIQUE)
 - `get_dashboard_kpis()` RPC replaces 5 sequential HTTP round-trips with 1 DB call
 - `pg_trgm` + 3 GIN indexes for customer name search (`idx_customers_full_name_trgm`, `idx_customers_address_trgm`, `idx_customers_supply_number_trgm`)
-- 13 CHECK constraints: `tariff_tiers_price_positive`, `tariff_tiers_min_less_than_max`, `billing_periods_month_valid`, `billing_periods_date_order`, `billing_concepts_amount_non_negative`, `customers_current_debt_non_negative`, `customers_connection_type_check`, `receipts_*_non_negative` (5), `payments_*_non_negative` (2), `cash_closures_total_collected_non_negative`
+- `idx_billing_periods_is_closed` partial index for `getCurrentPeriod()` filter
+- 20+ CHECK constraints (13 added in Phase 3): `tariff_tiers_price_positive`, `tariff_tiers_min_less_than_max`, `billing_periods_month_valid`, `billing_periods_date_order`, `billing_concepts_amount_non_negative`, `customers_current_debt_non_negative`, `customers_connection_type_check`, `receipts_*_non_negative` (5), `payments_*_non_negative` (2), `cash_closures_total_collected_non_negative`, plus pre-existing constraints on readings, payments, receipts, cash_closures
 - Legacy `customers.sector` column and `idx_customers_sector` dropped — sector info via `sector_id` FK only
 - Redundant `"Reader read payments"` RLS policy dropped — `"Users read payments"` covers all roles including sector-scoped readers
+- `calculate_energy_amount` changed from VOLATILE to STABLE (pure function, no side effects)
 
 ### Migrations (18)
 
 Located in `supabase/migrations/`. Most recent: `20260522_check_constraints_rls_cleanup.sql`. Schema source of truth: `supabase/schema.sql`.
+
+### UX/Performance optimizations (Phase 4)
+
+- `router.replace()` instead of `router.push()` on login and reader/new (prevents back-button loops)
+- `aria-label` on all icon-only buttons (12 buttons across 10 files)
+- `StatusBadge` shared component (`src/components/status-badge.tsx`) — 4 status type maps (receipt/payment/active/period), replaces 11+ inline patterns
+- `EmptyState` shared component (`src/components/empty-state.tsx`) — message/description/icon/action props, replaces 7 inline empty states
+- Native `<select>` → shadcn Select in readings-list (period filter) and cashier/history (date filter)
+- `ConfirmDialog` dynamically imported via `next/dynamic()` in 10 files (code-splitting)
+- `React.memo` on 10 admin list components (audit, concepts, customers, payments, periods, readings, receipts, sectors, tariffs, users)
+- `error.tsx` boundaries for 3 deep nested segments: `admin/customers/[id]`, `admin/payments/[id]`, `admin/receipts/[id]`
+- `receipt-row-payment.tsx` and `customer-receipts-tab.tsx` converted from Client to Server Components (removed dead callbacks, eliminated `useMemo`)
 
 ### Admin user setup
 
