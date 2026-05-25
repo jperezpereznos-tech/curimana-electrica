@@ -54,7 +54,6 @@ export async function getReaderDashboardDataAction() {
     const { supabase, userId } = await requireReaderAuth()
     const readingService = getReadingService(supabase)
     const periodService = getPeriodService(supabase)
-    const sectorId = await getAssignedSectorId(userId, supabase)
 
     const [syncedCount, period, sectorResult] = await Promise.all([
       readingService.getTodayReadingsCount(),
@@ -66,12 +65,12 @@ export async function getReaderDashboardDataAction() {
         .single()
     ])
 
-    let activeCustomers = 0
-    if (sectorId) {
-      activeCustomers = await readingService.getActiveCustomersCount(sectorId)
-    }
-
     const sectorProfile = sectorResult.data as SectorProfile | null
+    const sectorId = sectorProfile?.assigned_sector_id ?? null
+
+    const activeCustomers = sectorId
+      ? await readingService.getActiveCustomersCount(sectorId)
+      : 0
 
     return {
       success: true as const,

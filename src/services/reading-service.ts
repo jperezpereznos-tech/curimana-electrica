@@ -36,16 +36,14 @@ export class ReadingService {
     })
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'readings',
-          record_id: reading.id,
-          action: 'INSERT',
-          new_data: { customer_id: data.customer_id, previous_reading: previous, current_reading: current, consumption, needs_review: isMeterReset },
-          user_id: userId,
+      this.auditSvc.log({
+        table_name: 'readings',
+        record_id: reading.id,
+        action: 'INSERT',
+        new_data: { customer_id: data.customer_id, previous_reading: previous, current_reading: current, consumption, needs_review: isMeterReset },
+        user_id: userId,
         user_role: 'meter_reader'
-      })
-    } catch (e) { console.error('Audit log failed for registerReading:', e) }
+      }).catch((e) => { console.error('Audit log failed for registerReading:', e) })
     }
 
     return reading
@@ -103,16 +101,14 @@ export class ReadingService {
     })
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'readings',
-          record_id: readingId,
-          action: 'UPDATE',
-          new_data: { ...(consumption !== undefined ? { consumption } : {}), needs_review: needsReview },
-          user_id: userId,
-          user_role: 'admin'
-        })
-      } catch (e) { console.error('Audit log failed for updateReading:', e) }
+      this.auditSvc.log({
+        table_name: 'readings',
+        record_id: readingId,
+        action: 'UPDATE',
+        new_data: { ...(consumption !== undefined ? { consumption } : {}), needs_review: needsReview },
+        user_id: userId,
+        user_role: 'admin'
+      }).catch((e) => { console.error('Audit log failed for updateReading:', e) })
     }
 
     return updated

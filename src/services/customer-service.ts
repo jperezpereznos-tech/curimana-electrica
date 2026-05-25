@@ -32,16 +32,14 @@ export class CustomerService {
     const customer = await this.customerRepo.create(customerData)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'customers',
-          record_id: customer.id,
-          action: 'INSERT',
-          new_data: { supply_number: customerData.supply_number, full_name: customerData.full_name },
+      this.auditSvc.log({
+        table_name: 'customers',
+        record_id: customer.id,
+        action: 'INSERT',
+        new_data: { supply_number: customerData.supply_number, full_name: customerData.full_name },
         user_id: userId
-      })
-    } catch (e) { console.error('Audit log failed for registerCustomer:', e) }
-  }
+      }).catch((e) => { console.error('Audit log failed for registerCustomer:', e) })
+    }
 
     return customer
   }
@@ -50,15 +48,13 @@ export class CustomerService {
     const customer = await this.customerRepo.update(id, customerData)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'customers',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: customerData,
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for updateCustomer:', e) }
+      this.auditSvc.log({
+        table_name: 'customers',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: customerData,
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for updateCustomer:', e) })
     }
 
     return customer
@@ -66,14 +62,16 @@ export class CustomerService {
 
   async deleteCustomer(id: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const customer = await this.customerRepo.getById(id)
-      if (!customer) return { success: false, error: 'Cliente no encontrado' }
+      const [customer, { data: receipts }] = await Promise.all([
+        this.customerRepo.getById(id),
+        this.supabase
+          .from('receipts')
+          .select('id')
+          .eq('customer_id', id)
+          .limit(1),
+      ])
 
-      const { data: receipts } = await this.supabase
-        .from('receipts')
-        .select('id')
-        .eq('customer_id', id)
-        .limit(1)
+      if (!customer) return { success: false, error: 'Cliente no encontrado' }
 
       if (receipts && receipts.length > 0) {
         return { success: false, error: 'No se puede eliminar un cliente con recibos. Desactívelo en su lugar.' }
@@ -82,15 +80,13 @@ export class CustomerService {
       await this.customerRepo.delete(id)
 
       if (userId) {
-        try {
-          await this.auditSvc.log({
-            table_name: 'customers',
-            record_id: id,
-            action: 'DELETE',
-            old_data: { supply_number: customer.supply_number, full_name: customer.full_name },
-            user_id: userId
-          })
-        } catch (e) { console.error('Audit log failed for deleteCustomer:', e) }
+        this.auditSvc.log({
+          table_name: 'customers',
+          record_id: id,
+          action: 'DELETE',
+          old_data: { supply_number: customer.supply_number, full_name: customer.full_name },
+          user_id: userId
+        }).catch((e) => { console.error('Audit log failed for deleteCustomer:', e) })
       }
 
       return { success: true }

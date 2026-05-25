@@ -367,9 +367,7 @@ describe('PaymentService - getAllPayments', () => {
   const mockSupabase = createMockSupabase()
   const service = new PaymentService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('deberia delegar al repositorio sin filtros', async () => {
     const mockPayments = [{ id: 'p1' }, { id: 'p2' }]
@@ -395,9 +393,7 @@ describe('PaymentService - getPaymentsByCashier', () => {
   const mockSupabase = createMockSupabase()
   const service = new PaymentService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('deberia delegar al repositorio con filtros de fecha', async () => {
     const mockPayments = [{ id: 'p1', cashier_id: 'user1' }]
@@ -422,9 +418,7 @@ describe('PaymentService - getPaymentsByCustomer', () => {
   const mockSupabase = createMockSupabase()
   const service = new PaymentService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('deberia delegar al repositorio con el customerId', async () => {
     const mockPayments = [{ id: 'p1', customer_id: 'c1' }]
@@ -441,9 +435,7 @@ describe('PaymentService - getPaymentDetails', () => {
   const mockSupabase = createMockSupabase()
   const service = new PaymentService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('deberia delegar al repositorio con el paymentId', async () => {
     const mockDetail = { id: 'p1', amount: 100, receipts: { receipt_number: 1 }, cashier: { full_name: 'Cajero1' } }

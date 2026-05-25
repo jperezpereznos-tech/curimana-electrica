@@ -92,16 +92,14 @@ export class ReceiptService {
     }
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'receipts',
-          record_id: id,
-          action: 'UPDATE',
-          old_data: { status: receipt.status },
-          new_data: { status: 'cancelled', reason },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for cancelReceipt:', e) }
+      this.auditSvc.log({
+        table_name: 'receipts',
+        record_id: id,
+        action: 'UPDATE',
+        old_data: { status: receipt.status },
+        new_data: { status: 'cancelled', reason },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for cancelReceipt:', e) })
     }
 
     return updatedReceipt

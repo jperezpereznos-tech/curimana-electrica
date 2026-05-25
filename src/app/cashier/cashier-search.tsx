@@ -91,8 +91,9 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
     const periodData = receiptData?.billing_periods as Record<string, unknown> | null
     const cashierData = payment.cashier as Record<string, unknown> | null
 
-    const { pdfService } = await import('@/services/pdf-service')
-    pdfService.generatePaymentVoucherPdf({
+  const { PdfService } = await import('@/services/pdf-service')
+  const pdfSvc = new PdfService()
+  pdfSvc.generatePaymentVoucherPdf({
       paymentId: payment.id as string,
       reference: (payment.reference as string) || '',
       paymentDate: (payment.payment_date as string) || '',

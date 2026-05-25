@@ -57,15 +57,13 @@ export class PaymentService {
 
     const payment = await this.paymentRepo.getById(paymentId)
 
-    try {
-      await this.auditSvc.log({
-        table_name: 'payments',
-        record_id: paymentId,
-        action: 'INSERT',
-        new_data: { amount, method: 'cash', receipt_id: receiptId },
-        user_id: cashierId
-      })
-    } catch (e) { console.error('Audit log failed for processPayment:', e) }
+    this.auditSvc.log({
+      table_name: 'payments',
+      record_id: paymentId,
+      action: 'INSERT',
+      new_data: { amount, method: 'cash', receipt_id: receiptId },
+      user_id: cashierId
+    }).catch((e) => { console.error('Audit log failed for processPayment:', e) })
 
     return payment
   }
@@ -112,15 +110,13 @@ export class PaymentService {
 
         completedPayments.push({ id: paymentId, receiptId: item.receiptId, amount: item.amount })
 
-        try {
-          await this.auditSvc.log({
-            table_name: 'payments',
-            record_id: paymentId,
-            action: 'INSERT',
-            new_data: { amount: item.amount, method: 'cash', receipt_id: item.receiptId },
-            user_id: cashierId
-          })
-        } catch (e) { console.error('Audit log failed for batchPayment:', e) }
+        this.auditSvc.log({
+          table_name: 'payments',
+          record_id: paymentId,
+          action: 'INSERT',
+          new_data: { amount: item.amount, method: 'cash', receipt_id: item.receiptId },
+          user_id: cashierId
+        }).catch((e) => { console.error('Audit log failed for batchPayment:', e) })
       }
       return completedPayments
     } catch (batchError) {
@@ -160,16 +156,14 @@ export class PaymentService {
     if (rpcError) throw new Error(rpcError.message)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'payments',
-          record_id: paymentId,
-          action: 'UPDATE',
-          old_data: { status: 'completed' },
-          new_data: { status: 'voided' },
-          user_id: userId,
-        })
-      } catch (e) { console.error('Audit log failed for voidPayment:', e) }
+      this.auditSvc.log({
+        table_name: 'payments',
+        record_id: paymentId,
+        action: 'UPDATE',
+        old_data: { status: 'completed' },
+        new_data: { status: 'voided' },
+        user_id: userId,
+      }).catch((e) => { console.error('Audit log failed for voidPayment:', e) })
     }
   }
 

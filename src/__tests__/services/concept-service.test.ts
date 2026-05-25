@@ -39,9 +39,7 @@ const mockSupabase = {
 describe('ConceptService - getAllConcepts', () => {
   const service = new ConceptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio', async () => {
     const mockConcepts = [{ id: 'c1', name: 'Alumbrado' }, { id: 'c2', name: 'Cargo Fijo' }]
@@ -57,9 +55,7 @@ describe('ConceptService - getAllConcepts', () => {
 describe('ConceptService - getActiveConcepts', () => {
   const service = new ConceptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería retornar solo conceptos activos', async () => {
     const mockActive = [{ id: 'c1', is_active: true }, { id: 'c2', is_active: true }]
@@ -89,9 +85,7 @@ describe('ConceptService - getActiveConcepts', () => {
 describe('ConceptService - createConcept', () => {
   const service = new ConceptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería crear el concepto a través del repositorio', async () => {
     vi.spyOn(ConceptRepository.prototype, 'create').mockResolvedValue({ id: 'c1' } as any)
@@ -155,9 +149,7 @@ describe('ConceptService - createConcept', () => {
 describe('ConceptService - updateConcept', () => {
   const service = new ConceptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería actualizar el concepto a través del repositorio', async () => {
     const mockUpdated = { id: 'c1', name: 'Alumbrado Público', amount: 5.00 }
@@ -212,9 +204,7 @@ describe('ConceptService - updateConcept', () => {
 describe('ConceptService - toggleConceptStatus', () => {
   const service = new ConceptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería actualizar is_active en el repositorio', async () => {
     vi.spyOn(ConceptRepository.prototype, 'update').mockResolvedValue({ id: 'c1', is_active: false } as any)
@@ -269,9 +259,7 @@ describe('ConceptService - toggleConceptStatus', () => {
 describe('ConceptService - deleteConcept', () => {
   const service = new ConceptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería eliminar el concepto a través del repositorio', async () => {
     vi.spyOn(ConceptRepository.prototype, 'delete').mockResolvedValue(true as any)

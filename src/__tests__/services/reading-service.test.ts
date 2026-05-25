@@ -46,6 +46,7 @@ describe('ReadingService - registerReading', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
   })
 
   it('debería calcular el consumo correctamente', async () => {
@@ -185,6 +186,7 @@ describe('ReadingService - updateReading', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
   })
 
   it('debería recalcular consumo si se pasan lecturas', async () => {

@@ -28,15 +28,13 @@ export class ConceptService {
     const result = await this.conceptRepo.create(concept as ConceptInsert)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'billing_concepts',
-          record_id: result.id,
-          action: 'INSERT',
-          new_data: { code: concept.code, name: concept.name, type: concept.type, amount: concept.amount },
+      this.auditSvc.log({
+        table_name: 'billing_concepts',
+        record_id: result.id,
+        action: 'INSERT',
+        new_data: { code: concept.code, name: concept.name, type: concept.type, amount: concept.amount },
         user_id: userId
-      })
-    } catch (e) { console.error('Audit log failed for createConcept:', e) }
+      }).catch((e) => { console.error('Audit log failed for createConcept:', e) })
     }
 
     return result
@@ -46,15 +44,13 @@ export class ConceptService {
     const result = await this.conceptRepo.update(id, concept)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'billing_concepts',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: concept,
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for updateConcept:', e) }
+      this.auditSvc.log({
+        table_name: 'billing_concepts',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: concept,
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for updateConcept:', e) })
     }
 
     return result
@@ -64,15 +60,13 @@ export class ConceptService {
     const result = await this.conceptRepo.update(id, { is_active: isActive })
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'billing_concepts',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: { is_active: isActive },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for toggleConceptStatus:', e) }
+      this.auditSvc.log({
+        table_name: 'billing_concepts',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: { is_active: isActive },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for toggleConceptStatus:', e) })
     }
 
     return result
@@ -82,15 +76,13 @@ export class ConceptService {
     const result = await this.conceptRepo.delete(id)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'billing_concepts',
-          record_id: id,
-          action: 'DELETE',
-          old_data: { id },
+      this.auditSvc.log({
+        table_name: 'billing_concepts',
+        record_id: id,
+        action: 'DELETE',
+        old_data: { id },
         user_id: userId
-      })
-    } catch (e) { console.error('Audit log failed for deleteConcept:', e) }
+      }).catch((e) => { console.error('Audit log failed for deleteConcept:', e) })
     }
 
     return result

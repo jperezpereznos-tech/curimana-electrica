@@ -1,20 +1,4 @@
 import { describe, it, expect, vi } from 'vitest'
-import {
-  getPaymentService,
-  getReceiptService,
-  getPeriodService,
-  getReadingService,
-  getCustomerService,
-  getConceptService,
-  getTariffService,
-  getSectorService,
-  getCashClosureService,
-  getAuditService,
-  getDashboardService,
-  getStorageService,
-  getProfileService,
-  getPdfService,
-} from '@/services/index'
 import { PaymentService } from '@/services/payment-service'
 import { ReceiptService } from '@/services/receipt-service'
 import { PeriodService } from '@/services/period-service'
@@ -51,80 +35,80 @@ const mockSupabase = {
   },
 } as any
 
-describe('Service factories - index.ts', () => {
-  it('getPaymentService should return PaymentService instance', () => {
-    const svc = getPaymentService(mockSupabase)
+describe('Service constructors', () => {
+  it('PaymentService constructs with supabaseClient', () => {
+    const svc = new PaymentService(mockSupabase)
     expect(svc).toBeInstanceOf(PaymentService)
   })
 
-  it('getReceiptService should return ReceiptService instance', () => {
-    const svc = getReceiptService(mockSupabase)
+  it('ReceiptService constructs with supabaseClient', () => {
+    const svc = new ReceiptService(mockSupabase)
     expect(svc).toBeInstanceOf(ReceiptService)
   })
 
-  it('getPeriodService should return PeriodService instance', () => {
-    const svc = getPeriodService(mockSupabase)
+  it('PeriodService constructs with supabaseClient', () => {
+    const svc = new PeriodService(mockSupabase)
     expect(svc).toBeInstanceOf(PeriodService)
   })
 
-  it('getReadingService should return ReadingService instance', () => {
-    const svc = getReadingService(mockSupabase)
+  it('ReadingService constructs with supabaseClient', () => {
+    const svc = new ReadingService(mockSupabase)
     expect(svc).toBeInstanceOf(ReadingService)
   })
 
-  it('getCustomerService should return CustomerService instance', () => {
-    const svc = getCustomerService(mockSupabase)
+  it('CustomerService constructs with supabaseClient', () => {
+    const svc = new CustomerService(mockSupabase)
     expect(svc).toBeInstanceOf(CustomerService)
   })
 
-  it('getConceptService should return ConceptService instance', () => {
-    const svc = getConceptService(mockSupabase)
+  it('ConceptService constructs with supabaseClient', () => {
+    const svc = new ConceptService(mockSupabase)
     expect(svc).toBeInstanceOf(ConceptService)
   })
 
-  it('getTariffService should return TariffService instance', () => {
-    const svc = getTariffService(mockSupabase)
+  it('TariffService constructs with supabaseClient', () => {
+    const svc = new TariffService(mockSupabase)
     expect(svc).toBeInstanceOf(TariffService)
   })
 
-  it('getSectorService should return SectorService instance', () => {
-    const svc = getSectorService(mockSupabase)
+  it('SectorService constructs with supabaseClient', () => {
+    const svc = new SectorService(mockSupabase)
     expect(svc).toBeInstanceOf(SectorService)
   })
 
-  it('getCashClosureService should return CashClosureService instance', () => {
-    const svc = getCashClosureService(mockSupabase)
+  it('CashClosureService constructs with supabaseClient', () => {
+    const svc = new CashClosureService(mockSupabase)
     expect(svc).toBeInstanceOf(CashClosureService)
   })
 
-  it('getAuditService should return AuditService instance', () => {
-    const svc = getAuditService(mockSupabase)
+  it('AuditService constructs with supabaseClient', () => {
+    const svc = new AuditService(mockSupabase)
     expect(svc).toBeInstanceOf(AuditService)
   })
 
-  it('getDashboardService should return DashboardService instance', () => {
-    const svc = getDashboardService(mockSupabase)
+  it('DashboardService constructs with supabaseClient', () => {
+    const svc = new DashboardService(mockSupabase)
     expect(svc).toBeInstanceOf(DashboardService)
   })
 
-  it('getStorageService should return StorageService instance', () => {
-    const svc = getStorageService(mockSupabase)
+  it('StorageService constructs with supabaseClient', () => {
+    const svc = new StorageService(mockSupabase)
     expect(svc).toBeInstanceOf(StorageService)
   })
 
-  it('getProfileService should return ProfileService instance', () => {
-    const svc = getProfileService(mockSupabase)
+  it('ProfileService constructs with supabaseClient', () => {
+    const svc = new ProfileService(mockSupabase)
     expect(svc).toBeInstanceOf(ProfileService)
   })
 
-  it('getPdfService should return PdfService instance without supabaseClient', () => {
-    const svc = getPdfService()
+  it('PdfService constructs without supabaseClient', () => {
+    const svc = new PdfService()
     expect(svc).toBeInstanceOf(PdfService)
   })
 
-  it('factory should create fresh instances each call', () => {
-    const a = getCustomerService(mockSupabase)
-    const b = getCustomerService(mockSupabase)
+  it('each call creates a fresh instance', () => {
+    const a = new CustomerService(mockSupabase)
+    const b = new CustomerService(mockSupabase)
     expect(a).not.toBe(b)
   })
 })

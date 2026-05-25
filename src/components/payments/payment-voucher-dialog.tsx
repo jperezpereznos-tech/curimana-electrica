@@ -44,8 +44,9 @@ export function PaymentVoucherDialog({
   open, onOpenChange, payment, customer, municipalityConfig, cashierName,
 }: PaymentVoucherDialogProps) {
   const handlePrint = async () => {
-    const { pdfService } = await import('@/services/pdf-service')
-    pdfService.generatePaymentVoucherPdf({
+  const { PdfService } = await import('@/services/pdf-service')
+  const pdfSvc = new PdfService()
+  pdfSvc.generatePaymentVoucherPdf({
       paymentId: '',
       reference: payment.reference,
       paymentDate: payment.paymentDate,

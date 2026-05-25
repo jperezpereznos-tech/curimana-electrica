@@ -37,15 +37,13 @@ export class CashClosureService {
       status: 'open'
     })
 
-    try {
-      await this.auditSvc.log({
-        table_name: 'cash_closures',
-        record_id: closure.id,
-        action: 'INSERT',
-        new_data: { opening_amount: initialAmount, status: 'open' },
-        user_id: userId
-      })
-    } catch (e) { console.error('Audit log failed for openClosure:', e) }
+    this.auditSvc.log({
+      table_name: 'cash_closures',
+      record_id: closure.id,
+      action: 'INSERT',
+      new_data: { opening_amount: initialAmount, status: 'open' },
+      user_id: userId
+    }).catch((e) => { console.error('Audit log failed for openClosure:', e) })
 
     return closure
   }
@@ -77,16 +75,14 @@ export class CashClosureService {
     })
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'cash_closures',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: { status: 'closed', total_collected: summary.total, total_receipts: summary.count },
+      this.auditSvc.log({
+        table_name: 'cash_closures',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: { status: 'closed', total_collected: summary.total, total_receipts: summary.count },
         user_id: userId
-      })
-    } catch (e) { console.error('Audit log failed for closeClosure:', e) }
-  }
+      }).catch((e) => { console.error('Audit log failed for closeClosure:', e) })
+    }
 
     return result
   }

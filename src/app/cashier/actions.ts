@@ -81,10 +81,12 @@ export async function searchCashierCustomerAction(query: string) {
       const customer = await customerService.getBySupplyNumber(parsed.trim())
 
       if (customer) {
-        const debtResult = await receiptService.recalculateCustomerDebt(customer.id)
+        const [debtResult, receipts] = await Promise.all([
+          receiptService.recalculateCustomerDebt(customer.id),
+          receiptService.getOpenReceiptsByCustomer(customer.id),
+        ])
         if (debtResult != null) customer.current_debt = debtResult
 
-        const receipts = await receiptService.getOpenReceiptsByCustomer(customer.id)
         return { success: true as const, data: { customer, receipts } }
       }
 
@@ -92,10 +94,12 @@ export async function searchCashierCustomerAction(query: string) {
       if (results && results.length > 0) {
         const matchedCustomer = results.find(c => c.supply_number === parsed.trim()) || results[0]
 
-        const debtResult = await receiptService.recalculateCustomerDebt(matchedCustomer.id)
+        const [debtResult, receipts] = await Promise.all([
+          receiptService.recalculateCustomerDebt(matchedCustomer.id),
+          receiptService.getOpenReceiptsByCustomer(matchedCustomer.id),
+        ])
         if (debtResult != null) matchedCustomer.current_debt = debtResult
 
-        const receipts = await receiptService.getOpenReceiptsByCustomer(matchedCustomer.id)
         return { success: true as const, data: { customer: matchedCustomer, receipts } }
       }
 

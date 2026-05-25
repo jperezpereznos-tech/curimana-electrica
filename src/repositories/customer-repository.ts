@@ -61,32 +61,32 @@ export class CustomerRepository extends BaseRepository<'customers'> {
   }
 
   async getCustomerDetails(id: string) {
-    const { data: customer, error: customerError } = await this.supabase
-      .from('customers')
-      .select('*, tariffs(*), sectors(id, name, code)')
-      .eq('id', id)
-      .single()
+    const [customerResult, readingsResult, receiptsResult] = await Promise.all([
+      this.supabase
+        .from('customers')
+        .select('*, tariffs(*), sectors(id, name, code)')
+        .eq('id', id)
+        .single(),
+      this.supabase
+        .from('readings')
+        .select('*, billing_periods(*)')
+        .eq('customer_id', id)
+        .order('reading_date', { ascending: false })
+        .limit(12),
+      this.supabase
+        .from('receipts')
+        .select('*, billing_periods(*)')
+        .eq('customer_id', id)
+        .order('issue_date', { ascending: false })
+        .limit(12),
+    ])
 
-    if (customerError) throw new Error(customerError.message)
-
-    const { data: readings } = await this.supabase
-      .from('readings')
-      .select('*, billing_periods(*)')
-      .eq('customer_id', id)
-      .order('reading_date', { ascending: false })
-      .limit(12)
-
-    const { data: receipts } = await this.supabase
-      .from('receipts')
-      .select('*, billing_periods(*)')
-      .eq('customer_id', id)
-      .order('issue_date', { ascending: false })
-      .limit(12)
+    if (customerResult.error) throw new Error(customerResult.error.message)
 
     return {
-      customer,
-      readings: readings || [],
-      receipts: receipts || []
+      customer: customerResult.data,
+      readings: readingsResult.data || [],
+      receipts: receiptsResult.data || []
     }
   }
 

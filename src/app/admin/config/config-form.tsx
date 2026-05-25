@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,11 @@ export function ConfigForm({ config }: { config: ConfigRow | null }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (successTimerRef.current) clearTimeout(successTimerRef.current) }
+  }, [])
 
   const handleSave = async () => {
     setError(null)
@@ -48,8 +53,8 @@ if (!/^\d{11}$/.test(ruc.trim())) { setError('El RUC debe tener exactamente 11 d
       if (result.error) {
         setError(result.error)
       } else {
-        setSuccess(true)
-        setTimeout(() => setSuccess(false), 3000)
+      setSuccess(true)
+      successTimerRef.current = setTimeout(() => setSuccess(false), 3000)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al guardar')

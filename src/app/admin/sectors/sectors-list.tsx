@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, memo } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/empty-state'
@@ -22,10 +22,19 @@ function SectorsListInner({ initialSectors, readers }: { initialSectors: Sector[
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [toggleTarget, setToggleTarget] = useState<Sector | null>(null)
 
-  const readersForSector = (sectorId: string) =>
-    readers.filter(r => r.assigned_sector_id === sectorId)
+  const readersBySectorId = useMemo(() => {
+    const map = new Map<string, Reader[]>()
+    for (const r of readers) {
+      if (r.assigned_sector_id) {
+        const list = map.get(r.assigned_sector_id)
+        if (list) list.push(r)
+        else map.set(r.assigned_sector_id, [r])
+      }
+    }
+    return map
+  }, [readers])
 
-  const unassignedReaders = readers.filter(r => !r.assigned_sector_id)
+  const unassignedReaders = useMemo(() => readers.filter(r => !r.assigned_sector_id), [readers])
 
   const handleToggleActive = async (sector: Sector) => {
     const result = await updateSectorAction(sector.id, { is_active: !sector.is_active })
@@ -58,7 +67,7 @@ function SectorsListInner({ initialSectors, readers }: { initialSectors: Sector[
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {sectors.map((sector) => {
-        const assignedReaders = readersForSector(sector.id)
+        const assignedReaders = readersBySectorId.get(sector.id) ?? []
         return (
           <Card key={sector.id} className={!sector.is_active ? 'opacity-60' : ''}>
             <CardHeader className="pb-3">

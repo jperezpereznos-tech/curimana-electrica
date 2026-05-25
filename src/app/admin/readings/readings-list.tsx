@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, memo } from 'react'
+import { useState, useTransition, useMemo, memo } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -96,16 +96,16 @@ const handleReadingUpdated = () => {
     setReviewCount(prev => Math.max(0, prev - 1))
   }
 
-  const filtered = readings.filter(r => {
-    if (!filter) return true
+  const filtered = useMemo(() => {
+    if (!filter) return readings
     const q = filter.toLowerCase()
-    return (
+    return readings.filter(r =>
       r.customers?.full_name?.toLowerCase().includes(q) ||
       r.customers?.supply_number?.toLowerCase().includes(q) ||
       r.notes?.toLowerCase().includes(q) ||
       r.profiles?.full_name?.toLowerCase().includes(q)
     )
-  })
+  }, [filter, readings])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

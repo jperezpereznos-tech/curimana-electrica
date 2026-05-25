@@ -58,15 +58,13 @@ export class TariffService {
     const result = await this.tariffRepo.createTariffWithTiers(tariff, tiersWithOrder)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'tariffs',
-          record_id: result.id,
-          action: 'INSERT',
-          new_data: { name: tariff.name, tiers_count: tiers.length },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for createTariffWithValidation:', e) }
+      this.auditSvc.log({
+        table_name: 'tariffs',
+        record_id: result.id,
+        action: 'INSERT',
+        new_data: { name: tariff.name, tiers_count: tiers.length },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for createTariffWithValidation:', e) })
     }
 
     return result
@@ -80,15 +78,13 @@ export class TariffService {
     const result = await this.tariffRepo.update(id, { is_active: isActive })
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'tariffs',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: { is_active: isActive },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for toggleTariffStatus:', e) }
+      this.auditSvc.log({
+        table_name: 'tariffs',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: { is_active: isActive },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for toggleTariffStatus:', e) })
     }
 
     return result
@@ -98,15 +94,13 @@ export class TariffService {
     const result = await this.tariffRepo.delete(id)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'tariffs',
-          record_id: id,
-          action: 'DELETE',
-          old_data: { id },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for deleteTariff:', e) }
+      this.auditSvc.log({
+        table_name: 'tariffs',
+        record_id: id,
+        action: 'DELETE',
+        old_data: { id },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for deleteTariff:', e) })
     }
 
     return result
@@ -127,15 +121,13 @@ export class TariffService {
     const result = await this.tariffRepo.updateTariffWithTiers(id, tariff, tiersWithOrder)
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'tariffs',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: { ...tariff, tiers_count: tiers.length },
-          user_id: userId
-        })
-      } catch (e) { console.error('Audit log failed for updateTariffWithTiers:', e) }
+      this.auditSvc.log({
+        table_name: 'tariffs',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: { ...tariff, tiers_count: tiers.length },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for updateTariffWithTiers:', e) })
     }
 
     return result

@@ -39,7 +39,7 @@ const mockSupabase = {
 describe('TariffService - validateTiers', () => {
   const service = new TariffService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería pasar si los tramos son válidos', () => {
     const tiers = [
@@ -149,7 +149,7 @@ describe('TariffService - validateTiers', () => {
 describe('TariffService - createTariffWithValidation', () => {
   const service = new TariffService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería crear tarifa con tramos ordenados', async () => {
     const mockResult = { id: 't1', name: 'BTSB' }
@@ -212,7 +212,7 @@ describe('TariffService - createTariffWithValidation', () => {
 describe('TariffService - getAllTariffs', () => {
   const service = new TariffService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio', async () => {
     const mockTariffs = [{ id: 't1', name: 'BTSB' }]
@@ -228,7 +228,7 @@ describe('TariffService - getAllTariffs', () => {
 describe('TariffService - toggleTariffStatus', () => {
   const service = new TariffService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería actualizar is_active a través del repositorio', async () => {
     vi.spyOn(TariffRepository.prototype, 'update').mockResolvedValue({ id: 't1', is_active: false } as any)
@@ -274,7 +274,7 @@ describe('TariffService - toggleTariffStatus', () => {
 describe('TariffService - deleteTariff', () => {
   const service = new TariffService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería eliminar tarifa a través del repositorio', async () => {
     vi.spyOn(TariffRepository.prototype, 'delete').mockResolvedValue(true as any)
@@ -319,7 +319,7 @@ describe('TariffService - deleteTariff', () => {
 describe('TariffService - updateTariffWithTiers', () => {
   const service = new TariffService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería actualizar tarifa con tramos validados y ordenados', async () => {
     const mockResult = { id: 't1', name: 'BTSB Updated' }

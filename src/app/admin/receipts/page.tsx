@@ -16,7 +16,6 @@ export default async function ReceiptsPage({
   const receiptService = getReceiptService(supabase)
   const periodService = getPeriodService(supabase)
   const customerService = getCustomerService(supabase)
-
   const configService = getMunicipalityConfigService(supabase)
 
   let receipts: ReceiptWithPeriod[] = []
@@ -27,15 +26,23 @@ export default async function ReceiptsPage({
   try {
     let customerId: string | undefined
     if (params.q) {
-      const customer = await customerService.getBySupplyNumber(params.q)
-      if (customer) customerId = customer.id
+      const [customerMatch, fetchedPeriods, fetchedConfig] = await Promise.all([
+        customerService.getBySupplyNumber(params.q),
+        periodService.getAllPeriods(),
+        configService.getConfig().catch(e => { console.error('Error fetching municipality_config:', e); return null }),
+      ])
+      if (customerMatch) customerId = customerMatch.id
+      periods = fetchedPeriods
+      municipalityConfig = fetchedConfig
     }
     const receiptFilter = { periodId: params.period, status: params.status, customerId }
-    ;[receipts, periods, municipalityConfig] = await Promise.all([
-      receiptService.getAllReceipts(receiptFilter),
-      periodService.getAllPeriods(),
-      configService.getConfig().catch(e => { console.error('Error fetching municipality_config:', e); return null }),
-    ])
+    receipts = await receiptService.getAllReceipts(receiptFilter)
+    if (!params.q) {
+      ;[periods, municipalityConfig] = await Promise.all([
+        periodService.getAllPeriods(),
+        configService.getConfig().catch(e => { console.error('Error fetching municipality_config:', e); return null }),
+      ])
+    }
   } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
   return (

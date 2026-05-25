@@ -39,7 +39,7 @@ const mockSupabase = {
 describe('CustomerService - searchCustomers', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar la búsqueda al repositorio', async () => {
     const mockCustomers = [{ id: 'c1', full_name: 'Juan' }]
@@ -71,7 +71,7 @@ describe('CustomerService - searchCustomers', () => {
 describe('CustomerService - getBySupplyNumber', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio con supply_number', async () => {
     const mockCustomer = { id: 'c1', supply_number: '608132421', full_name: 'Juan' }
@@ -103,7 +103,7 @@ describe('CustomerService - getBySupplyNumber', () => {
 describe('CustomerService - getCustomerDetails', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio', async () => {
     const mockDetails = { customer: { id: 'c1' }, readings: [], receipts: [] }
@@ -119,7 +119,7 @@ describe('CustomerService - getCustomerDetails', () => {
 describe('CustomerService - registerCustomer', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería crear cliente a través del repositorio', async () => {
     const mockCustomer = { id: 'c1', supply_number: '123', full_name: 'Juan' }
@@ -172,7 +172,7 @@ describe('CustomerService - registerCustomer', () => {
 describe('CustomerService - updateCustomer', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería actualizar cliente a través del repositorio', async () => {
     const mockUpdated = { id: 'c1', full_name: 'Pedro' }
@@ -227,7 +227,7 @@ describe('CustomerService - updateCustomer', () => {
 describe('CustomerService - deleteCustomer', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería eliminar cliente sin recibos', async () => {
     vi.spyOn(CustomerRepository.prototype, 'getById').mockResolvedValue({ id: 'c1', supply_number: '123', full_name: 'Juan' } as any)
@@ -340,7 +340,7 @@ describe('CustomerService - deleteCustomer', () => {
 describe('CustomerService - getTopDebtors', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio con límite', async () => {
     const mockDebtors = [{ id: 'c1', current_debt: 500 }]
@@ -364,7 +364,7 @@ describe('CustomerService - getTopDebtors', () => {
 describe('CustomerService - getCustomersWithDebt', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería llamar getTopDebtors con límite 1000', async () => {
     vi.spyOn(CustomerRepository.prototype, 'getTopDebtors').mockResolvedValue([] as any)
@@ -378,7 +378,7 @@ describe('CustomerService - getCustomersWithDebt', () => {
 describe('CustomerService - getActiveCustomersWithReadings', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio', async () => {
     const mockCustomers = [{ id: 'c1' }]
@@ -402,7 +402,7 @@ describe('CustomerService - getActiveCustomersWithReadings', () => {
 describe('CustomerService - getAllForCache', () => {
   const service = new CustomerService(mockSupabase)
 
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio', async () => {
     const mockCache = [{ id: 'c1', supply_number: '123' }]

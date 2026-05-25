@@ -2,28 +2,19 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, Printer, XCircle } from 'lucide-react'
+import { Printer, XCircle } from 'lucide-react'
 import { cancelReceiptAction } from '../actions'
 import dynamic from 'next/dynamic'
 
 const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
-import type { ReceiptWithFullDetails } from '@/types/views'
-import type { Database } from '@/types/database'
 
-type MunicipalityConfig = Database['public']['Tables']['municipality_config']['Row']
-
-interface ConceptBreakdownItem {
-  name: string
-  amount: number
-}
-
-export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBreakdown }: { receipt: ReceiptWithFullDetails; municipalityConfig?: MunicipalityConfig | null; conceptsBreakdown?: ConceptBreakdownItem[] }) {
+export function ReceiptDetailActions({ receiptId, receiptStatus }: { receiptId: string; receiptStatus: string }) {
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const handleCancel = async () => {
     setCancelError(null)
-    const result = await cancelReceiptAction(receipt.id, 'Anulación administrativa')
+    const result = await cancelReceiptAction(receiptId, 'Anulación administrativa')
     if (result.success) {
       setShowCancelConfirm(false)
     } else {
@@ -43,7 +34,7 @@ export function ReceiptDetailActions({ receipt, municipalityConfig, conceptsBrea
           <Printer className="h-4 w-4" /> Imprimir / Guardar PDF
         </Button>
 
-        {receipt.status !== 'cancelled' && (
+        {receiptStatus !== 'cancelled' && (
           <Button variant="destructive" className="gap-2" onClick={() => setShowCancelConfirm(true)}>
             <XCircle className="h-4 w-4" /> Anular Recibo
           </Button>

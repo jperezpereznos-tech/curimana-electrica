@@ -91,6 +91,7 @@ describe('CashClosureService - openClosure', () => {
   it('debería crear un cierre con estado open y monto inicial', async () => {
     vi.spyOn(CashClosureRepository.prototype, 'getActiveClosure').mockResolvedValue(null)
     vi.spyOn(CashClosureRepository.prototype, 'create').mockResolvedValue({ id: 'cl1' } as any)
+    vi.spyOn(AuditService.prototype, 'log').mockResolvedValue()
 
     await service.openClosure('user1', 200)
 

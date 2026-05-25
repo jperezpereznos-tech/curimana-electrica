@@ -80,17 +80,13 @@ export class PeriodService {
     const result = await this.periodRepo.create(periodData)
 
     if (userId && result) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'billing_periods',
-          record_id: result.id,
-          action: 'INSERT',
-          new_data: periodData,
-          user_id: userId
-        })
-      } catch (e) {
-        console.error('Audit log failed for createNextPeriod:', e)
-      }
+      this.auditSvc.log({
+        table_name: 'billing_periods',
+        record_id: result.id,
+        action: 'INSERT',
+        new_data: periodData,
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for createNextPeriod:', e) })
     }
 
     return result
@@ -146,6 +142,14 @@ export class PeriodService {
       return customer?.supply_number || r.customer_id || ''
     })
 
+    const readingsByCustomerId = new Map<string, typeof allReadings>()
+    for (const r of allReadings) {
+      const key = r.customer_id ?? ''
+      const list = readingsByCustomerId.get(key)
+      if (list) list.push(r)
+      else readingsByCustomerId.set(key, [r])
+    }
+
     const receiptPayloads: {
       customer_id: string; reading_id: string; previous_reading: number; current_reading: number;
       consumption_kwh: number; period_start: string; period_end: string; energy_amount: number;
@@ -157,21 +161,25 @@ export class PeriodService {
 
     for (const customer of activeCustomers) {
       try {
-        const customerReadings = allReadings.filter(r => r.customer_id === customer.id)
-        if (customerReadings.length === 0) {
+        const customerReadings = readingsByCustomerId.get(customer.id)
+        if (!customerReadings || customerReadings.length === 0) {
           skippedCustomers.push(customer.supply_number || customer.id)
           continue
         }
-        const customerReading = customerReadings.sort((a, b) =>
-          new Date(b.reading_date || 0).getTime() - new Date(a.reading_date || 0).getTime()
-        )[0]
+        let customerReading = customerReadings[0]
+        let maxDate = customerReadings[0].reading_date ? new Date(customerReadings[0].reading_date!).getTime() : 0
+        for (let i = 1; i < customerReadings.length; i++) {
+          const d = customerReadings[i].reading_date ? new Date(customerReadings[i].reading_date!).getTime() : 0
+          if (d > maxDate) { maxDate = d; customerReading = customerReadings[i] }
+        }
 
         const consumption = customerReading.consumption || 0
         const tariff = customer.tariffs
         const tiers = tariff?.tariff_tiers || []
 
         let fixedCharges = 0
-        let percentageBase = 0
+        let percentageCharges = 0
+        let fixedSubtotal = 0
 
         for (const concept of activeConcepts) {
           if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
@@ -189,7 +197,7 @@ export class PeriodService {
           ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
           : []
 
-        percentageBase = Math.round(((sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges) * 100) / 100
+        fixedSubtotal = Math.round(((sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges) * 100) / 100
 
         for (const concept of activeConcepts) {
           if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
@@ -197,14 +205,14 @@ export class PeriodService {
           }
 
           if (concept.type === 'percentage') {
-            fixedCharges = Math.round((fixedCharges + (percentageBase * concept.amount) / 100) * 100) / 100
+            percentageCharges = Math.round((percentageCharges + (fixedSubtotal * concept.amount) / 100) * 100) / 100
           }
         }
 
-        fixedCharges = Math.round(fixedCharges * 100) / 100
+        const totalFixedCharges = Math.round((fixedCharges + percentageCharges) * 100) / 100
         const previousDebt = customer.current_debt || 0
 
-        const receipt = calculateTotalReceipt(consumption, sortedTiers, fixedCharges, previousDebt)
+        const receipt = calculateTotalReceipt(consumption, sortedTiers, totalFixedCharges, previousDebt)
 
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + graceDays)
@@ -262,17 +270,13 @@ export class PeriodService {
   }
 
     if (userId) {
-      try {
-        await this.auditSvc.log({
-          table_name: 'billing_periods',
-          record_id: id,
-          action: 'UPDATE',
-          new_data: { is_closed: true, receipts_generated: generatedCount, skipped: skippedCount, errors },
-          user_id: userId
-        })
-      } catch (e) {
-        console.error('Audit log failed for closePeriod:', e)
-      }
+      this.auditSvc.log({
+        table_name: 'billing_periods',
+        record_id: id,
+        action: 'UPDATE',
+        new_data: { is_closed: true, receipts_generated: generatedCount, skipped: skippedCount, errors },
+        user_id: userId
+      }).catch((e) => { console.error('Audit log failed for closePeriod:', e) })
     }
 
     return {

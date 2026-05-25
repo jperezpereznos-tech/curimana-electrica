@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, memo } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,17 +23,17 @@ function AuditListInner({ initialLogs }: { initialLogs: AuditLogRow[] }) {
   const [filter, setFilter] = useState('')
   const [page, setPage] = useState(1)
 
-  const filteredLogs = initialLogs.filter(log => {
-    if (!filter) return true
+  const filteredLogs = useMemo(() => {
+    if (!filter) return initialLogs
     const q = filter.toLowerCase()
-    return (
+    return initialLogs.filter(log =>
       log.action?.toLowerCase().includes(q) ||
       log.table_name?.toLowerCase().includes(q) ||
       log.record_id?.toLowerCase().includes(q) ||
       log.user_id?.toLowerCase().includes(q) ||
       log.user_role?.toLowerCase().includes(q)
     )
-  })
+  }, [filter, initialLogs])
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE))
   const paginated = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)

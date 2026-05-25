@@ -150,9 +150,7 @@ describe('ReceiptService - getAllReceipts', () => {
   const mockSupabase = createMockSupabase()
   const service = new ReceiptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio sin filtros', async () => {
     const mockReceipts = [
@@ -195,9 +193,7 @@ describe('ReceiptService - getReceiptByNumber', () => {
   const mockSupabase = createMockSupabase()
   const service = new ReceiptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio con receipt_number', async () => {
     const mockReceipt = { id: 'r1', receipt_number: 42, status: 'pending' }
@@ -222,9 +218,7 @@ describe('ReceiptService - getReceiptDetails', () => {
   const mockSupabase = createMockSupabase()
   const service = new ReceiptService(mockSupabase)
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => { vi.clearAllMocks(); vi.spyOn(AuditService.prototype, 'log').mockResolvedValue() })
 
   it('debería delegar al repositorio con el id', async () => {
     const mockDetail = {

@@ -17,8 +17,10 @@ import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
 import { ReceiptDetailActions } from './receipt-actions'
-import { ReceiptPrintLayout } from '@/components/receipt-print-layout'
+import dynamic from 'next/dynamic'
 import './receipt-print.css'
+
+const ReceiptPrintLayout = dynamic(() => import('@/components/receipt-print-layout').then(m => ({ default: m.ReceiptPrintLayout })))
 
 export default async function ReceiptDetailsPage({
   params,
@@ -50,20 +52,21 @@ export default async function ReceiptDetailsPage({
     type: c.type ?? 'fixed',
   }))
 
-  const breakdown = receiptService.calculateBreakdown(
-    receipt.consumption_kwh ?? 0,
-    sortedTiers,
-    fixedConcepts,
-    receipt.previous_debt ?? 0
-  )
-
-  const { data: prevReceipts } = await supabase
-    .from('receipts')
-    .select('total_amount, status, billing_periods(name)')
-    .eq('customer_id', receipt.customer_id ?? '')
-    .neq('id', receipt.id)
-    .order('created_at', { ascending: false })
-    .limit(3)
+  const [{ data: prevReceipts }, breakdown] = await Promise.all([
+    supabase
+      .from('receipts')
+      .select('total_amount, status, billing_periods(name)')
+      .eq('customer_id', receipt.customer_id ?? '')
+      .neq('id', receipt.id)
+      .order('created_at', { ascending: false })
+      .limit(3),
+    receiptService.calculateBreakdown(
+      receipt.consumption_kwh ?? 0,
+      sortedTiers,
+      fixedConcepts,
+      receipt.previous_debt ?? 0
+    ),
+  ])
 
   const previousReceiptRefs = (prevReceipts ?? []).map(r => ({
     periodName: (r.billing_periods as { name: string } | null)?.name ?? '-',
@@ -206,7 +209,7 @@ export default async function ReceiptDetailsPage({
             <div className="text-sm text-muted-foreground">
               <p><strong>Fecha Vencimiento:</strong> {formatDate(receipt.due_date)}</p>
             </div>
-            <ReceiptDetailActions receipt={receipt} municipalityConfig={municipalityConfig} conceptsBreakdown={breakdown.conceptsBreakdown} />
+            <ReceiptDetailActions receiptId={receipt.id} receiptStatus={receipt.status ?? 'pending'} />
           </CardFooter>
         </Card>
       </div>

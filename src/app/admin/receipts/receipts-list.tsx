@@ -56,8 +56,9 @@ function ReceiptsListInner({ initialReceipts, periods, currentFilters, municipal
   }
 
   const handleDownload = async (receipt: ReceiptWithPeriod) => {
-    const { pdfService } = await import('@/services/pdf-service')
-    pdfService.generateReceiptPdf({
+  const { PdfService } = await import('@/services/pdf-service')
+  const pdfSvc = new PdfService()
+  pdfSvc.generateReceiptPdf({
       ...receipt,
       municipality_config: municipalityConfig ? { ruc: municipalityConfig.ruc, name: municipalityConfig.name } : undefined,
     })

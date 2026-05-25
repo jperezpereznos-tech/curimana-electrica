@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface ConceptBreakdownItem {
@@ -61,7 +59,9 @@ interface PaymentVoucherData {
 }
 
 export class PdfService {
-  generateReceiptPdf(data: ReceiptPdfData) {
+  async generateReceiptPdf(data: ReceiptPdfData) {
+    const { jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
     const { customers, billing_periods, receipt_number, total_amount, due_date, energy_amount, fixed_charges, previous_debt, subtotal, municipality_config, conceptsBreakdown } = data
 
     const ruc = municipality_config?.ruc || '20123456789'
@@ -144,7 +144,9 @@ export class PdfService {
     doc.save(`recibo_${customers?.supply_number || 'unknown'}_${(billing_periods?.name || 'periodo').replace(' ', '_')}.pdf`)
   }
 
-  generatePaymentVoucherPdf(data: PaymentVoucherData) {
+  async generatePaymentVoucherPdf(data: PaymentVoucherData) {
+    const { jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
     const {
       reference, paymentDate, amount, receivedAmount, changeAmount,
       receiptNumber, receiptTotal, receiptPaidAfter, receiptStatus,
@@ -240,6 +242,3 @@ export class PdfService {
     doc.save(`comprobante_${customer.supplyNumber}_${reference}.pdf`)
   }
 }
-
-export function getPdfService() { return new PdfService() }
-export const pdfService = new PdfService()
