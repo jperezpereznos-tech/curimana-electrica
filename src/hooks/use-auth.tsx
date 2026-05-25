@@ -19,10 +19,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const ROLE_CLIENT_COOKIE = 'x-user-role-client'
 
-function getRoleFromCookie(): string | null {
+function getRoleFromCookie(expectedUserId: string): string | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${ROLE_CLIENT_COOKIE}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : null
+  if (!match) return null
+  const raw = decodeURIComponent(match[1])
+  const sep = raw.indexOf(':')
+  if (sep === -1) return null
+  const cookieUserId = raw.substring(0, sep)
+  const cookieRole = raw.substring(sep + 1)
+  if (cookieUserId !== expectedUserId) return null
+  return cookieRole
 }
 
 function deleteRoleCookie() {
@@ -87,8 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
-      if (currentUser) {
-        const cookieRole = getRoleFromCookie()
+  if (currentUser) {
+        const cookieRole = getRoleFromCookie(currentUser.id)
         if (cookieRole) {
           setRole(cookieRole)
           loadingDoneRef.current = true
@@ -120,27 +127,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return
-        if (signingOutRef.current && event !== 'SIGNED_OUT') return
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      if (!mounted) return
+      if (signingOutRef.current && event !== 'SIGNED_OUT') return
 
-        const currentUser = session?.user ?? null
-        setUser(currentUser)
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
 
-        if (currentUser) {
-          const cookieRole = getRoleFromCookie()
-          if (cookieRole) {
-            setRole(cookieRole)
-            loadingDoneRef.current = true
-            setIsLoading(false)
-            if (!rpcAttemptedRef.current) {
-              rpcAttemptedRef.current = true
-              fetchRoleViaRPC().then(rpcRole => {
-                if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
-              })
-            }
-          } else if (!rpcAttemptedRef.current) {
+      if (currentUser) {
+        const cookieRole = getRoleFromCookie(currentUser.id)
+        if (cookieRole) {
+          setRole(cookieRole)
+          loadingDoneRef.current = true
+          setIsLoading(false)
+          if (!rpcAttemptedRef.current) {
+            rpcAttemptedRef.current = true
+            fetchRoleViaRPC().then(rpcRole => {
+              if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
+            })
+          }
+        } else if (!rpcAttemptedRef.current) {
             const userRole = await fetchRoleViaRPC()
             if (mounted) {
               setRole(userRole)
