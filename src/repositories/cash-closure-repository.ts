@@ -22,23 +22,16 @@ export class CashClosureRepository extends BaseRepository<'cash_closures'> {
   }
 
   async getSessionTotal(cashierId: string, from: string, cashClosureId?: string): Promise<{ total: number; count: number }> {
-    let query = this.supabase
-      .from('payments')
-      .select('amount')
-      .eq('cashier_id', cashierId)
-      .gte('created_at', from)
-      .neq('status', 'voided')
-
-    if (cashClosureId) {
-      query = query.eq('cash_closure_id', cashClosureId)
-    }
-
-    const { data, error } = await query
+    const { data, error } = await this.supabase
+      .rpc('get_session_total', {
+        p_cashier_id: cashierId,
+        p_from: from,
+        p_cash_closure_id: cashClosureId ?? null,
+      })
 
     if (error) throw new Error(error.message)
-    const payments = data ?? []
-    const total = Math.round(payments.reduce((sum, p) => sum + p.amount, 0) * 100) / 100
-    return { total, count: payments.length }
+    const row = (data as { total: number; count: number }[] | null)?.[0]
+    return { total: Number(row?.total ?? 0), count: Number(row?.count ?? 0) }
   }
 
   async close(id: string, data: {

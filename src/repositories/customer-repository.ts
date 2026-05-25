@@ -133,6 +133,7 @@ export class CustomerRepository extends BaseRepository<'customers'> {
     const { data, error } = await query
       .order('sector_id', { ascending: true })
       .order('full_name', { ascending: true })
+      .limit(500)
 
     if (error) throw new Error(error.message)
     return data

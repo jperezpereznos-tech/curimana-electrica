@@ -119,14 +119,15 @@ describe('PeriodRepository - getAllPeriods', () => {
     const orderCalls: [string, { ascending: boolean }][] = []
 
     const promise = Promise.resolve({ data: mockPeriods, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn((field: string, opts: { ascending: boolean }) => {
-        orderCalls.push([field, opts])
-        return chain
-      }),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn((field: string, opts: { ascending: boolean }) => {
+      orderCalls.push([field, opts])
+      return chain
+    }),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'billing_periods') return chain

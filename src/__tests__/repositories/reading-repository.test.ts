@@ -137,19 +137,20 @@ describe('ReadingRepository - getAllForAdmin', () => {
     const eqCalls: [string, any][] = []
 
     const promise = Promise.resolve({ data: [], error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: any) => { eqCalls.push([field, value]); return chain }),
-      order: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: any) => { eqCalls.push([field, value]); return chain }),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'readings') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'readings') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await repo.getAllForAdmin('p1')
+  await repo.getAllForAdmin('p1')
 
     expect(eqCalls).toContainEqual(['billing_period_id', 'p1'])
   })
@@ -158,19 +159,20 @@ describe('ReadingRepository - getAllForAdmin', () => {
     const eqCalls: [string, any][] = []
 
     const promise = Promise.resolve({ data: [], error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: any) => { eqCalls.push([field, value]); return chain }),
-      order: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: any) => { eqCalls.push([field, value]); return chain }),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'readings') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'readings') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await repo.getAllForAdmin(undefined, true)
+  await repo.getAllForAdmin(undefined, true)
 
     expect(eqCalls).toContainEqual(['needs_review', true])
   })

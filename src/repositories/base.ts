@@ -12,6 +12,7 @@ export class BaseRepository<T extends keyof Database['public']['Tables']> {
     const { data, error } = await this.supabase
       .from(this.tableName)
       .select('*')
+      .limit(500)
 
     if (error) throw new Error(error.message)
     return data

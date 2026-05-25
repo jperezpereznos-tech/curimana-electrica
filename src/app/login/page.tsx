@@ -96,7 +96,7 @@ export default function LoginPage() {
           <div className="space-y-3">
             <h1 className="text-4xl font-heading font-bold leading-tight">Municipalidad Distrital de Curimana</h1>
             <p className="text-lg text-white/70 font-light leading-relaxed">
-              Sistema de Facturación de Energía Eléctrica
+              Sistema de Recaudación de Energía Eléctrica
             </p>
           </div>
           <div className="flex items-center gap-3 text-sm text-white/40 pt-8">

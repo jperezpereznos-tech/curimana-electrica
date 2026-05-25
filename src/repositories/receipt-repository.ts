@@ -23,7 +23,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
       query = query.eq('customer_id', filters.customerId)
     }
 
-    const { data, error } = await query
+    const { data, error } = await query.limit(500)
     if (error) throw new Error(error.message)
     return data
   }
@@ -35,6 +35,7 @@ export class ReceiptRepository extends BaseRepository<'receipts'> {
       .eq('customer_id', customerId)
       .in('status', ['pending', 'partial', 'overdue'])
       .order('receipt_number', { ascending: false })
+      .limit(50)
 
     if (error) throw new Error(error.message)
     return data

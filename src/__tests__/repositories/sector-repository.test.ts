@@ -25,6 +25,7 @@ function createAwaitableChain(resolvedValue: any) {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
   }
@@ -45,12 +46,13 @@ describe('SectorRepository - getActiveSectors', () => {
     let capturedOrderField: string | null = null
 
     const promise = Promise.resolve({ data: mockSectors, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((f: string) => { capturedEqField = f; return chain }),
-      order: vi.fn((f: string) => { capturedOrderField = f; return chain }),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((f: string) => { capturedEqField = f; return chain }),
+    order: vi.fn((f: string) => { capturedOrderField = f; return chain }),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'sectors') return chain

@@ -32,6 +32,7 @@ export class PeriodRepository extends BaseRepository<'billing_periods'> {
       .select('*')
       .order('year', { ascending: false })
       .order('month', { ascending: false })
+      .limit(120)
 
     if (error) throw new Error(error.message)
     return data || []

@@ -57,7 +57,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
     if (dateFilter?.from) query = query.gte('payment_date', dateFilter.from)
     if (dateFilter?.to) query = query.lte('payment_date', dateFilter.to)
 
-    const { data, error } = await query.order('payment_date', { ascending: false })
+    const { data, error } = await query.order('payment_date', { ascending: false }).limit(500)
 
     if (error) throw new Error(error.message)
     return data
@@ -73,7 +73,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
     if (filters?.from) query = query.gte('payment_date', filters.from)
     if (filters?.to) query = query.lte('payment_date', filters.to)
 
-    const { data, error } = await query
+    const { data, error } = await query.limit(500)
 
     if (error) throw new Error(error.message)
     return data
@@ -89,6 +89,7 @@ export class PaymentRepository extends BaseRepository<'payments'> {
       .eq('customer_id', customerId)
       .neq('status', 'voided')
       .order('payment_date', { ascending: false })
+      .limit(100)
 
     if (error) throw new Error(error.message)
     return data

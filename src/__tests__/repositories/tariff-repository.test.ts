@@ -28,6 +28,7 @@ function createAwaitableChain(resolvedValue: any) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
   }
@@ -48,11 +49,12 @@ describe('TariffRepository - getAllWithTiers', () => {
     let capturedOrderOpts: any = null
 
     const promise = Promise.resolve({ data: mockData, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn((f: string, opts: any) => { capturedOrderField = f; capturedOrderOpts = opts; return chain }),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn((f: string, opts: any) => { capturedOrderField = f; capturedOrderOpts = opts; return chain }),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'tariffs') return chain
@@ -94,6 +96,7 @@ describe('TariffRepository - createTariffWithTiers', () => {
         const chain: any = {
           insert: vi.fn().mockReturnThis(),
           select: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
           single: vi.fn().mockReturnValue(promise),
           then: promise.then.bind(promise),
         }

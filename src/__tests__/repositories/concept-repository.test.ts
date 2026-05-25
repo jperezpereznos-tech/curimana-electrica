@@ -25,6 +25,7 @@ function createAwaitableChain(resolvedValue: any) {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
     maybeSingle: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
@@ -50,19 +51,20 @@ describe('ConceptRepository - getAllActive', () => {
     let capturedOrderField: string | null = null
 
     const promise = Promise.resolve({ data: mockData, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: any) => {
-        capturedEqField = field
-        capturedEqValue = value
-        return chain
-      }),
-      order: vi.fn((field: string) => {
-        capturedOrderField = field
-        return chain
-      }),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: any) => {
+      capturedEqField = field
+      capturedEqValue = value
+      return chain
+    }),
+    order: vi.fn((field: string) => {
+      capturedOrderField = field
+      return chain
+    }),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'billing_concepts') return chain

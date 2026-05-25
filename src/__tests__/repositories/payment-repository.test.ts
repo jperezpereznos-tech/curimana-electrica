@@ -28,6 +28,7 @@ function createAwaitableChain(resolvedValue: any) {
     gte: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
   }
@@ -114,6 +115,7 @@ describe('PaymentRepository - getPaymentsByCashier', () => {
       gte: vi.fn((field: string, value: string) => { gteCalls.push([field, value]); return chain }),
       lte: vi.fn((field: string, value: string) => { lteCalls.push([field, value]); return chain }),
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       then: promise.then.bind(promise),
     }
 
@@ -139,6 +141,7 @@ describe('PaymentRepository - getPaymentsByCashier', () => {
       gte: vi.fn().mockReturnThis(),
       lte: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       then: promise.then.bind(promise),
     }
 
@@ -195,6 +198,7 @@ describe('PaymentRepository - getAllPayments', () => {
       gte: vi.fn((field: string, value: string) => { gteCalls.push([field, value]); return chain }),
       lte: vi.fn((field: string, value: string) => { lteCalls.push([field, value]); return chain }),
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       then: promise.then.bind(promise),
     }
 
@@ -222,6 +226,7 @@ describe('PaymentRepository - getAllPayments', () => {
       gte: vi.fn((field: string, value: string) => { gteCalls.push([field, value]); return chain }),
       lte: vi.fn((field: string, value: string) => { lteCalls.push([field, value]); return chain }),
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       then: promise.then.bind(promise),
     }
 
@@ -258,6 +263,7 @@ describe('PaymentRepository - getPaymentsByCustomer', () => {
       eq: vi.fn((field: string, value: string) => { eqCalls.push([field, value]); return chain }),
       neq: vi.fn((field: string, value: string) => { neqCalls.push([field, value]); return chain }),
       order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       then: promise.then.bind(promise),
     }
 

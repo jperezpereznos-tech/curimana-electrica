@@ -720,6 +720,42 @@ $$;
 REVOKE EXECUTE ON FUNCTION public.get_dashboard_kpis() FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.get_dashboard_kpis() TO authenticated;
 
+-- RPC: Session total for cashier (replaces client-side SUM)
+CREATE OR REPLACE FUNCTION public.get_session_total(
+  p_cashier_id UUID,
+  p_from TIMESTAMPTZ,
+  p_cash_closure_id UUID DEFAULT NULL
+)
+RETURNS TABLE(total NUMERIC, count BIGINT)
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_cash_closure_id IS NOT NULL THEN
+    RETURN QUERY
+    SELECT COALESCE(SUM(p.amount), 0)::NUMERIC AS total,
+           COUNT(*)::BIGINT AS count
+    FROM payments p
+    WHERE p.cashier_id = p_cashier_id
+      AND p.created_at >= p_from
+      AND p.status != 'voided'
+      AND p.cash_closure_id = p_cash_closure_id;
+  ELSE
+    RETURN QUERY
+    SELECT COALESCE(SUM(p.amount), 0)::NUMERIC AS total,
+           COUNT(*)::BIGINT AS count
+    FROM payments p
+    WHERE p.cashier_id = p_cashier_id
+      AND p.created_at >= p_from
+      AND p.status != 'voided';
+  END IF;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.get_session_total(UUID, TIMESTAMPTZ, UUID) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.get_session_total(UUID, TIMESTAMPTZ, UUID) TO authenticated;
+
 -- Trigger: Registrar historial de cambios en tramos tarifarios
 CREATE OR REPLACE FUNCTION public.log_tariff_tier_change()
 RETURNS TRIGGER
@@ -853,6 +889,20 @@ CREATE INDEX IF NOT EXISTS idx_payments_closure_status ON payments(cash_closure_
 CREATE INDEX IF NOT EXISTS idx_receipts_due_date_status ON receipts(due_date, status) WHERE status IN ('pending', 'partial');
 CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at);
 
+-- Partial indexes for filtered queries
+CREATE INDEX IF NOT EXISTS idx_sectors_is_active ON sectors(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_billing_concepts_is_active ON billing_concepts(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_customers_active_debt ON customers(current_debt DESC) WHERE is_active = true AND current_debt > 0;
+CREATE INDEX IF NOT EXISTS idx_payments_status_completed ON payments(created_at DESC) WHERE status = 'completed';
+CREATE INDEX IF NOT EXISTS idx_receipts_status_pending ON receipts(billing_period_id, status) WHERE status IN ('pending', 'partial');
+CREATE INDEX IF NOT EXISTS idx_billing_periods_is_closed ON billing_periods(year DESC, month DESC) WHERE is_closed = false;
+
+-- Covering index for getSessionTotal query
+CREATE INDEX IF NOT EXISTS idx_payments_cashier_session
+  ON payments(cashier_id, created_at DESC)
+  INCLUDE (amount, status)
+  WHERE status != 'voided';
+
 -- ============================================================================
 -- 6. RLS (Row Level Security) - Activar en todas las tablas
 -- ============================================================================
@@ -916,7 +966,7 @@ CREATE POLICY "Authenticated read profiles (restricted)" ON profiles
 FOR SELECT TO authenticated
 USING (
   (SELECT public.get_user_role()) IN ('admin', 'cashier')
-  OR id = auth.uid()
+  OR id = (SELECT auth.uid())
   OR (
     (SELECT public.get_user_role()) = 'meter_reader'
     AND assigned_sector_id = (SELECT public.get_user_sector_id())
@@ -925,19 +975,19 @@ USING (
 
 CREATE POLICY "Users can update own profile (no role)" ON profiles
 FOR UPDATE TO authenticated
-USING (id = auth.uid())
+USING (id = (SELECT auth.uid()))
 WITH CHECK (
-  id = auth.uid()
+  id = (SELECT auth.uid())
   AND role = (SELECT public.get_user_role())
 );
 
 CREATE POLICY "Admin insert profiles" ON profiles
-  FOR INSERT TO authenticated
-  WITH CHECK ((SELECT public.get_user_role()) = 'admin');
+FOR INSERT TO authenticated
+WITH CHECK ((SELECT public.get_user_role()) = 'admin');
 
 CREATE POLICY "Trigger insert profiles" ON profiles
-  FOR INSERT TO authenticated
-  WITH CHECK (id = auth.uid());
+FOR INSERT TO authenticated
+WITH CHECK (id = (SELECT auth.uid()));
 
 CREATE POLICY "Admin update all profiles" ON profiles
 FOR UPDATE TO authenticated
@@ -1092,7 +1142,7 @@ WITH CHECK (
 
 CREATE POLICY "Reader update own readings" ON readings
 FOR UPDATE TO authenticated
-USING ((SELECT public.get_user_role()) IN ('admin', 'meter_reader') AND meter_reader_id = auth.uid())
+USING ((SELECT public.get_user_role()) IN ('admin', 'meter_reader') AND meter_reader_id = (SELECT auth.uid()))
 WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
 
 CREATE POLICY "Users read readings" ON readings

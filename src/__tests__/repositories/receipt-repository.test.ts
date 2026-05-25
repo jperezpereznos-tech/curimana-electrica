@@ -26,6 +26,7 @@ function createAwaitableChain(resolvedValue: any) {
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     filter: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
     maybeSingle: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
@@ -62,24 +63,25 @@ describe('ReceiptRepository - getAllWithDetails', () => {
     let capturedEqValue: string | null = null
 
     const promise = Promise.resolve({ data: [], error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: string) => {
-        capturedEqField = field
-        capturedEqValue = value
-        return chain
-      }),
-      order: vi.fn().mockReturnThis(),
-      filter: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: string) => {
+      capturedEqField = field
+      capturedEqValue = value
+      return chain
+    }),
+    order: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'receipts') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'receipts') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await repo.getAllWithDetails({ periodId: 'p1' })
+  await repo.getAllWithDetails({ periodId: 'p1' })
 
     expect(capturedEqField).toBe('billing_period_id')
     expect(capturedEqValue).toBe('p1')
@@ -89,25 +91,26 @@ describe('ReceiptRepository - getAllWithDetails', () => {
     let capturedEqField: string | null = null
     let capturedEqValue: string | null = null
 
-    const promise = Promise.resolve({ data: [], error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: string) => {
-        capturedEqField = field
-        capturedEqValue = value
-        return chain
-      }),
-      order: vi.fn().mockReturnThis(),
-      filter: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const promise = Promise.resolve({ data: [], error: null })
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: string) => {
+      capturedEqField = field
+      capturedEqValue = value
+      return chain
+    }),
+    order: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'receipts') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'receipts') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await repo.getAllWithDetails({ status: 'pending' })
+  await repo.getAllWithDetails({ status: 'pending' })
 
     expect(capturedEqField).toBe('status')
     expect(capturedEqValue).toBe('pending')
@@ -117,25 +120,26 @@ describe('ReceiptRepository - getAllWithDetails', () => {
     let capturedEqField: string | null = null
     let capturedEqValue: string | null = null
 
-    const promise = Promise.resolve({ data: [], error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: string) => {
-        capturedEqField = field
-        capturedEqValue = value
-        return chain
-      }),
-      order: vi.fn().mockReturnThis(),
-      filter: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const promise = Promise.resolve({ data: [], error: null })
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: string) => {
+      capturedEqField = field
+      capturedEqValue = value
+      return chain
+    }),
+    order: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'receipts') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'receipts') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await repo.getAllWithDetails({ customerId: 'c1' })
+  await repo.getAllWithDetails({ customerId: 'c1' })
 
     expect(capturedEqField).toBe('customer_id')
     expect(capturedEqValue).toBe('c1')
@@ -144,17 +148,18 @@ describe('ReceiptRepository - getAllWithDetails', () => {
   it('debería aplicar múltiples filtros simultáneamente', async () => {
     const eqCalls: [string, string][] = []
 
-    const promise = Promise.resolve({ data: [], error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: string) => {
-        eqCalls.push([field, value])
-        return chain
-      }),
-      order: vi.fn().mockReturnThis(),
-      filter: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const promise = Promise.resolve({ data: [], error: null })
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: string) => {
+      eqCalls.push([field, value])
+      return chain
+    }),
+    order: vi.fn().mockReturnThis(),
+    filter: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'receipts') return chain
@@ -237,18 +242,19 @@ describe('ReceiptRepository - getByReceiptNumber', () => {
     let usedMaybeSingle = false
 
     const promise = Promise.resolve({ data: mockReceipt, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: number) => {
-        capturedEqField = field
-        capturedEqValue = value
-        return chain
-      }),
-      maybeSingle: vi.fn(() => {
-        usedMaybeSingle = true
-        return promise
-      }),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: number) => {
+      capturedEqField = field
+      capturedEqValue = value
+      return chain
+    }),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn(() => {
+      usedMaybeSingle = true
+      return promise
+    }),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'receipts') return chain
@@ -265,18 +271,19 @@ describe('ReceiptRepository - getByReceiptNumber', () => {
 
   it('debería retornar null si no existe recibo con ese número', async () => {
     const promise = Promise.resolve({ data: null, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockReturnValue(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnValue(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'receipts') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'receipts') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.getByReceiptNumber(9999)
+  const result = await repo.getByReceiptNumber(9999)
 
     expect(result).toBeNull()
   })

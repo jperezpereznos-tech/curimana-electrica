@@ -19,6 +19,7 @@ export class TariffRepository extends BaseRepository<'tariffs'> {
       .from('tariffs')
       .select('*, tariff_tiers(*)')
       .order('created_at', { ascending: false })
+      .limit(50)
 
     if (error) throw new Error(error.message)
     return data as TariffWithTiers[]

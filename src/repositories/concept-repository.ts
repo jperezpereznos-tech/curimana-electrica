@@ -13,6 +13,7 @@ export class ConceptRepository extends BaseRepository<'billing_concepts'> {
       .select('*')
       .eq('is_active', true)
       .order('name')
+      .limit(50)
 
     if (error) throw new Error(error.message)
     return data

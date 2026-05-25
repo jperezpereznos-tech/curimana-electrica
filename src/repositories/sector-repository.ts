@@ -15,6 +15,7 @@ export class SectorRepository extends BaseRepository<'sectors'> {
       .select('*')
       .eq('is_active', true)
       .order('code', { ascending: true })
+      .limit(50)
 
     if (error) throw new Error(error.message)
     return data

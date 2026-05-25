@@ -99,28 +99,43 @@ describe('CashClosureRepository - getSessionTotal', () => {
     repo = new CashClosureRepository(mockSupabase)
   })
 
-  it('debería calcular total y conteo de pagos no voided', async () => {
-    const mockPayments = [
-      { amount: 50.50 },
-      { amount: 30.25 },
-      { amount: 20.25 }
-    ]
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'payments') return createAwaitableChain({ data: mockPayments, error: null })
-      return createAwaitableChain({ data: null, error: null })
+  it('debería calcular total y conteo via RPC', async () => {
+    mockSupabase.rpc.mockResolvedValue({
+      data: [{ total: 101, count: 3 }],
+      error: null,
     })
 
     const result = await repo.getSessionTotal('user1', '2025-06-01T00:00:00Z')
 
     expect(result.total).toBe(101)
     expect(result.count).toBe(3)
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('get_session_total', {
+      p_cashier_id: 'user1',
+      p_from: '2025-06-01T00:00:00Z',
+      p_cash_closure_id: null,
+    })
+  })
+
+  it('debería pasar cash_closure_id cuando se proporciona', async () => {
+    mockSupabase.rpc.mockResolvedValue({
+      data: [{ total: 50, count: 1 }],
+      error: null,
+    })
+
+    const result = await repo.getSessionTotal('user1', '2025-06-01T00:00:00Z', 'cl1')
+
+    expect(result.total).toBe(50)
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('get_session_total', {
+      p_cashier_id: 'user1',
+      p_from: '2025-06-01T00:00:00Z',
+      p_cash_closure_id: 'cl1',
+    })
   })
 
   it('debería retornar total 0 y count 0 si no hay pagos', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'payments') return createAwaitableChain({ data: null, error: null })
-      return createAwaitableChain({ data: null, error: null })
+    mockSupabase.rpc.mockResolvedValue({
+      data: [{ total: 0, count: 0 }],
+      error: null,
     })
 
     const result = await repo.getSessionTotal('user1', '2025-06-01T00:00:00Z')
@@ -129,10 +144,10 @@ describe('CashClosureRepository - getSessionTotal', () => {
     expect(result.count).toBe(0)
   })
 
-  it('debería lanzar error si la consulta falla', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'payments') return createAwaitableChain({ data: null, error: { message: 'Query failed' } })
-      return createAwaitableChain({ data: null, error: null })
+  it('debería lanzar error si la RPC falla', async () => {
+    mockSupabase.rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'Query failed' },
     })
 
     await expect(repo.getSessionTotal('user1', '2025-06-01T00:00:00Z')).rejects.toEqual(expect.objectContaining({ message: 'Query failed' }))

@@ -26,6 +26,7 @@ function createAwaitableChain(resolvedValue: any) {
     eq: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnValue(promise),
     then: promise.then.bind(promise),
   }
@@ -88,19 +89,20 @@ describe('ProfileRepository - getReaders', () => {
     let capturedEqValue: any = null
 
     const promise = Promise.resolve({ data: mockReaders, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((f: string, v: any) => { capturedEqField = f; capturedEqValue = v; return chain }),
-      order: vi.fn().mockReturnValue(promise),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((f: string, v: any) => { capturedEqField = f; capturedEqValue = v; return chain }),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnValue(promise),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'profiles') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'profiles') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.getReaders()
+  const result = await repo.getReaders()
 
     expect(capturedEqField).toBe('role')
     expect(capturedEqValue).toBe('meter_reader')
@@ -130,20 +132,21 @@ describe('ProfileRepository - updateRole', () => {
     let capturedUpdateData: any = null
 
     const promise = Promise.resolve({ data: mockResult, error: null })
-    const chain: any = {
-      update: vi.fn((data: any) => { capturedUpdateData = data; return chain }),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnValue(promise),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    update: vi.fn((data: any) => { capturedUpdateData = data; return chain }),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnValue(promise),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'profiles') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'profiles') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.updateRole('u1', 'admin')
+  const result = await repo.updateRole('u1', 'admin')
 
     expect(capturedUpdateData).toEqual({ role: 'admin' })
     expect(result).toEqual(mockResult)
@@ -172,20 +175,21 @@ describe('ProfileRepository - updateAssignedSector', () => {
     let capturedUpdateData: any = null
 
     const promise = Promise.resolve({ data: mockResult, error: null })
-    const chain: any = {
-      update: vi.fn((data: any) => { capturedUpdateData = data; return chain }),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnValue(promise),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    update: vi.fn((data: any) => { capturedUpdateData = data; return chain }),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnValue(promise),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'profiles') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'profiles') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.updateAssignedSector('u1', 's1')
+  const result = await repo.updateAssignedSector('u1', 's1')
 
     expect(capturedUpdateData).toEqual({ assigned_sector_id: 's1' })
     expect(result).toEqual(mockResult)
@@ -195,20 +199,21 @@ describe('ProfileRepository - updateAssignedSector', () => {
     let capturedUpdateData: any = null
 
     const promise = Promise.resolve({ data: { id: 'u1', assigned_sector_id: null }, error: null })
-    const chain: any = {
-      update: vi.fn((data: any) => { capturedUpdateData = data; return chain }),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockReturnValue(promise),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    update: vi.fn((data: any) => { capturedUpdateData = data; return chain }),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockReturnValue(promise),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'profiles') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'profiles') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await repo.updateAssignedSector('u1', null)
+  await repo.updateAssignedSector('u1', null)
 
     expect(capturedUpdateData).toEqual({ assigned_sector_id: null })
   })

@@ -115,18 +115,19 @@ describe('CustomerRepository - getBySupplyNumber', () => {
     let usedMaybeSingle = false
 
     const promise = Promise.resolve({ data: mockCustomer, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((field: string, value: string) => {
-        capturedEqField = field
-        capturedEqValue = value
-        return chain
-      }),
-      maybeSingle: vi.fn(() => {
-        usedMaybeSingle = true
-        return promise
-      }),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((field: string, value: string) => {
+      capturedEqField = field
+      capturedEqValue = value
+      return chain
+    }),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn(() => {
+      usedMaybeSingle = true
+      return promise
+    }),
+  }
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'customers') return chain
@@ -142,37 +143,39 @@ describe('CustomerRepository - getBySupplyNumber', () => {
   })
 
   it('debería retornar null si no existe cliente con ese supply_number', async () => {
-    const promise = Promise.resolve({ data: null, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockReturnValue(promise),
-    }
+  const promise = Promise.resolve({ data: null, error: null })
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnValue(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'customers') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'customers') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.getBySupplyNumber('999999999')
+  const result = await repo.getBySupplyNumber('999999999')
 
     expect(result).toBeNull()
   })
 
   it('debería lanzar error si la consulta falla', async () => {
     const promise = Promise.resolve({ data: null, error: { message: 'DB error' } })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockReturnValue(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockReturnValue(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'customers') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'customers') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    await expect(repo.getBySupplyNumber('608132421')).rejects.toEqual(expect.objectContaining({ message: 'DB error' }))
+  await expect(repo.getBySupplyNumber('608132421')).rejects.toEqual(expect.objectContaining({ message: 'DB error' }))
   })
 })
 
@@ -234,19 +237,20 @@ describe('CustomerRepository - getActiveCustomersWithReadings', () => {
     let capturedEqField: string | null = null
 
     const promise = Promise.resolve({ data: mockCustomers, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn((f: string) => { capturedEqField = f; return chain }),
-      order: vi.fn().mockReturnThis(),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn((f: string) => { capturedEqField = f; return chain }),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'customers') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'customers') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.getActiveCustomersWithReadings()
+  const result = await repo.getActiveCustomersWithReadings()
 
     expect(capturedEqField).toBe('is_active')
     expect(result).toEqual(mockCustomers)
@@ -274,19 +278,20 @@ describe('CustomerRepository - getAllForCache', () => {
     const mockData = [{ id: 'c1', supply_number: '123', full_name: 'Juan', address: 'Calle 1', sector_id: 's1', tariff_id: 't1', is_active: true, readings: [{ current_reading: 100, reading_date: '2025-06-01' }], sectors: { name: 'Centro' } }]
 
     const promise = Promise.resolve({ data: mockData, error: null })
-    const chain: any = {
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnValue(promise),
-      then: promise.then.bind(promise),
-    }
+  const chain: any = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnValue(promise),
+    then: promise.then.bind(promise),
+  }
 
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'customers') return chain
-      return createAwaitableChain({ data: null, error: null })
-    })
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'customers') return chain
+    return createAwaitableChain({ data: null, error: null })
+  })
 
-    const result = await repo.getAllForCache()
+  const result = await repo.getAllForCache()
 
     expect(result[0].previous_reading).toBe(100)
     expect(result[0].sectorName).toBe('Centro')

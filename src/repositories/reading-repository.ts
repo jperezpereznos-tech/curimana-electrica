@@ -28,6 +28,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       .select('*, customers(full_name, supply_number)')
       .eq('billing_period_id', periodId)
       .order('reading_date', { ascending: false })
+      .limit(1000)
 
     if (error) throw new Error(error.message)
     return data
@@ -46,7 +47,7 @@ export class ReadingRepository extends BaseRepository<'readings'> {
       query = query.eq('needs_review', true)
     }
 
-    const { data, error } = await query
+    const { data, error } = await query.limit(500)
 
     if (error) throw new Error(error.message)
     return data
