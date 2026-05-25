@@ -113,7 +113,7 @@ export function PaymentVoucherDialog({
           </div>
 
           {isPartial && (
-            <div className="flex justify-between items-center p-3 bg-amber-50 text-amber-700 rounded-lg border border-amber-200">
+            <div className="flex justify-between items-center p-3 bg-muni-amber/5 text-muni-amber rounded-lg border border-muni-amber/30">
               <span className="font-medium">Saldo Pendiente:</span>
               <span className="text-xl font-black">{formatCurrency(remainingOnReceipt)}</span>
             </div>

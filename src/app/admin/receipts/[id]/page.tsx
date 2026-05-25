@@ -114,7 +114,7 @@ export default async function ReceiptDetailsPage({
       <div className="flex items-center gap-4 no-print">
         <Button variant="ghost" size="icon" aria-label="Volver a recibos" nativeButton={false} render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
-          <h2 className="text-3xl font-bold tracking-tight">Recibo</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Recibo</h2>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>Emitido el {formatDate(receipt.issue_date)}</span>
@@ -177,7 +177,7 @@ export default async function ReceiptDetailsPage({
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center py-2 border-b">
-                  <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" /> Energia Activa</span>
+                  <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-muni-amber" /> Energia Activa</span>
                   <span className="font-medium">{formatCurrency(receipt.energy_amount)}</span>
                 </div>
                 {breakdown.conceptsBreakdown.map((c, i) => (

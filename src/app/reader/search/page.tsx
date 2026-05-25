@@ -87,7 +87,7 @@ export default function SearchPage() {
       <h2 className="text-xl font-bold">Buscar Suministro</h2>
 
       {!navigator.onLine && (
-        <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-lg text-sm">
+        <div className="flex items-center gap-2 bg-muni-amber/5 text-muni-amber px-3 py-2 rounded-lg text-sm">
           <WifiOff className="h-4 w-4" />
           Modo offline — buscando en caché local
         </div>
@@ -115,7 +115,7 @@ export default function SearchPage() {
         </form>
 
         {searched && results.length === 0 && !loading && (
-      <EmptyState message="No se encontraron resultados" />
+      <EmptyState message="No se encontraron resultados" illustration="search" />
         )}
 
         {results.length > 0 && (

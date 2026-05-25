@@ -25,7 +25,7 @@ export default function Home() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-muni-blue mb-4" />
-        <p className="text-sm text-gray-500">Cargando sistema...</p>
+        <p className="text-sm text-muni-silver-dark">Cargando sistema...</p>
       </div>
     )
   }
@@ -39,11 +39,11 @@ export default function Home() {
             <h2 className="text-lg font-semibold text-destructive">Error de Acceso</h2>
           </div>
 
-          <p className="text-sm text-gray-600 mb-4">
-            Tu usuario no tiene un rol asignado en el sistema. Esto puede ocurrir porque:
-          </p>
+    <p className="text-sm text-muni-silver-dark mb-4">
+      Tu usuario no tiene un rol asignado en el sistema. Esto puede ocurrir porque:
+    </p>
 
-          <ul className="text-sm text-gray-600 mb-6 list-disc list-inside space-y-1">
+    <ul className="text-sm text-muni-silver-dark mb-6 list-disc list-inside space-y-1">
             <li>Es tu primera vez iniciando sesión</li>
             <li>Tu perfil aún no ha sido configurado por un administrador</li>
             <li>Hubo un problema al crear tu perfil</li>
@@ -59,7 +59,7 @@ export default function Home() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 mt-6 text-center max-w-md">
+        <p className="text-xs text-muni-silver mt-6 text-center max-w-md">
           Si el problema persiste, contacta al administrador del sistema para que verifique tu perfil en la base de datos.
         </p>
       </div>

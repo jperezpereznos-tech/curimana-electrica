@@ -82,7 +82,7 @@ export function TopDebtors() {
       </CardHeader>
       <CardContent className="space-y-3">
         {debtors.length === 0 ? (
-    <EmptyState message="No hay clientes con deuda" />
+      <EmptyState message="No hay clientes con deuda" illustration="customers" />
         ) : (
           debtors.map((debtor, index) => (
             <div

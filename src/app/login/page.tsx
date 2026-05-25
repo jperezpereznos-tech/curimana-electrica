@@ -7,11 +7,11 @@ import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import {
-Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Zap } from 'lucide-react'
 
 const MAX_ATTEMPTS = 5
 const WINDOW_MS = 60_000
@@ -84,15 +84,43 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold text-muni-blue">Curimana Eléctrica</CardTitle>
-          <CardDescription>
-            Ingresa tus credenciales para acceder al sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="relative flex min-h-screen">
+      <div className="hidden lg:flex lg:w-1/2 bg-muni-blue dark:bg-muni-blue-deep relative overflow-hidden flex-col items-center justify-center p-12 text-white">
+        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }} />
+        <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-white/5" />
+        <div className="absolute -bottom-48 -left-48 h-[500px] w-[500px] rounded-full bg-white/5" />
+        <div className="relative z-10 flex flex-col items-center text-center space-y-8 max-w-md">
+          <div className="h-24 w-24 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+            <Zap size={48} className="text-white" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-3">
+            <h1 className="text-4xl font-heading font-bold leading-tight">Municipalidad Distrital de Curimana</h1>
+            <p className="text-lg text-white/70 font-light leading-relaxed">
+              Sistema de Facturación de Energía Eléctrica
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-white/40 pt-8">
+            <div className="h-px w-12 bg-white/20" />
+            <span>Ucayali, Perú</span>
+            <div className="h-px w-12 bg-white/20" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center px-6 py-12 bg-background">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="lg:hidden flex flex-col items-center text-center space-y-3 mb-8">
+            <div className="h-16 w-16 rounded-xl bg-muni-blue dark:bg-muni-blue-deep flex items-center justify-center">
+              <Zap size={32} className="text-white" strokeWidth={1.5} />
+            </div>
+            <h1 className="text-2xl font-heading font-bold text-muni-blue dark:text-muni-blue">Curimana Eléctrica</h1>
+          </div>
+
+          <div className="space-y-1.5">
+            <h2 className="text-2xl font-heading font-bold tracking-tight">Iniciar Sesión</h2>
+            <p className="text-sm text-muted-foreground">Ingresa tus credenciales para acceder al sistema</p>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -126,16 +154,17 @@ export default function LoginPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <Button type="submit" className="w-full bg-muni-blue hover:bg-muni-blue/90" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-muni-blue hover:bg-muni-blue/90 dark:bg-muni-blue dark:hover:bg-muni-blue/80" disabled={isLoading}>
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
           </Form>
-        </CardContent>
-        <CardFooter className="text-center text-sm text-muted-foreground flex justify-center">
-          © {new Date().getFullYear()} Municipalidad Distrital de Curimana
-        </CardFooter>
-      </Card>
+
+          <p className="text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Municipalidad Distrital de Curimana
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

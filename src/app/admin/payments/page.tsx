@@ -25,7 +25,7 @@ export default async function PaymentsPage({
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Pagos Registrados</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Pagos Registrados</h2>
           <p className="text-muted-foreground">Historial completo de cobros realizados.</p>
         </div>
       </div>

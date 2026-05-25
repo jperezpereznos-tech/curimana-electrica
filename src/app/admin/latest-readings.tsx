@@ -72,7 +72,7 @@ export async function LatestReadings() {
           {readingsError}
         </div>
       ) : readings.length === 0 ? (
-    <EmptyState message="No hay lecturas registradas hoy" />
+      <EmptyState message="No hay lecturas registradas hoy" illustration="readings" />
         ) : (
           readings.map((reading) => (
             <div

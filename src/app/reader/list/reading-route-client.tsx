@@ -68,27 +68,27 @@ export function ReadingRouteClient({ assignedSector, customers }: ReadingRouteCl
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-green-600">{completedCount}</p>
+            <p className="text-2xl font-bold text-muni-green">{completedCount}</p>
             <p className="text-xs text-muted-foreground">Completados</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
+            <p className="text-2xl font-bold text-muni-amber">{pendingCount}</p>
             <p className="text-xs text-muted-foreground">Pendientes</p>
           </CardContent>
         </Card>
       </div>
 
       {customers.length === 0 ? (
-      <EmptyState message="No hay suministros en su sector asignado" />
+      <EmptyState message="No hay suministros en su sector asignado" illustration="sectors" />
       ) : (
         <div className="space-y-3">
           {customers.map((customer, index) => (
             <Card
               key={customer.id}
               className={`hover:border-primary/50 transition-colors ${
-                customer.last_reading ? 'border-green-200 bg-green-50/30' : ''
+                customer.last_reading ? 'border-muni-green/30 bg-muni-green/5' : ''
               }`}
             >
               <CardContent className="p-3">

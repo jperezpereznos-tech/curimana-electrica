@@ -42,7 +42,7 @@ export default async function ReceiptsPage({
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Recibos Emitidos</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Recibos Emitidos</h2>
           <p className="text-muted-foreground">Consulta y gestion de la facturacion historica.</p>
         </div>
       </div>

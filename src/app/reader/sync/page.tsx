@@ -48,8 +48,8 @@ export default function SyncPage() {
  ) : (
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-3">
- <div className={`p-3 rounded-full ${isOnline ? 'bg-green-100' : 'bg-amber-100'}`}>
- {isOnline ? <Wifi className="h-6 w-6 text-green-600" /> : <WifiOff className="h-6 w-6 text-amber-600" />}
+          <div className={`p-3 rounded-full ${isOnline ? 'bg-muni-green/10' : 'bg-muni-amber/10'}`}>
+            {isOnline ? <Wifi className="h-6 w-6 text-muni-green" /> : <WifiOff className="h-6 w-6 text-muni-amber" />}
  </div>
  <div>
  <p className="font-medium">{isOnline ? 'Conectado' : 'Sin conexión'}</p>
@@ -76,8 +76,8 @@ export default function SyncPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <Database className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-muni-blue/10 rounded-full">
+              <Database className="h-5 w-5 text-muni-blue" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{pendingSyncCount}</p>
@@ -90,8 +90,8 @@ export default function SyncPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-full">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div className="p-2 bg-muni-green/10 rounded-full">
+              <CheckCircle2 className="h-5 w-5 text-muni-green" />
               </div>
               <div>
                 <p className="text-sm font-medium">{formatLastSync()}</p>
@@ -104,14 +104,14 @@ export default function SyncPage() {
       )}
 
       {hasMounted && exhaustedSyncCount > 0 && (
-        <Card className="border-amber-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-full">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="font-medium text-amber-700">{exhaustedSyncCount} lecturas sin reintentos</p>
+      <Card className="border-muni-amber/30">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-muni-amber/10 rounded-full">
+              <AlertTriangle className="h-5 w-5 text-muni-amber" />
+            </div>
+            <div>
+              <p className="font-medium text-muni-amber">{exhaustedSyncCount} lecturas sin reintentos</p>
                 <p className="text-xs text-muted-foreground">
                   Alcanzaron el máximo de intentos. Reinténtalas manualmente desde Lecturas Pendientes.
                 </p>
@@ -128,9 +128,9 @@ export default function SyncPage() {
  ) : (
  <>
  {isSyncing && (
- <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
- <RefreshCcw className="h-5 w-5 animate-spin text-blue-600" />
- <span className="text-sm font-medium text-blue-700">Sincronizando lecturas...</span>
+          <div className="flex items-center gap-3 p-3 bg-muni-blue-light rounded-lg">
+            <RefreshCcw className="h-5 w-5 animate-spin text-muni-blue" />
+            <span className="text-sm font-medium text-muni-blue">Sincronizando lecturas...</span>
  </div>
  )}
 
@@ -182,11 +182,11 @@ export default function SyncPage() {
  )}
 
  {hasMounted && syncStatus === 'success' && (
- <Card className="border-green-200">
- <CardContent className="p-4">
- <div className="flex items-center gap-3">
- <CheckCircle2 className="h-5 w-5 text-green-600" />
- <p className="font-medium text-green-700">Sincronización completa</p>
+      <Card className="border-muni-green/30">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-muni-green" />
+            <p className="font-medium text-muni-green">Sincronización completa</p>
  </div>
  </CardContent>
  </Card>

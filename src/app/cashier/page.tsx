@@ -24,7 +24,7 @@ export default async function CashierDashboard() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Caja Curimana</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Caja Curimana</h2>
           <p className="text-muted-foreground">Búsqueda rápida de suministros y registro de cobros.</p>
         </div>
         {activeClosure && (

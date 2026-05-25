@@ -199,7 +199,7 @@ export function PaymentModal({ receipt, customer, closureId, onSuccess, onProces
             <div className="space-y-2">
               <Label htmlFor="amount">Monto a Cobrar (S/)</Label>
               <Input id="amount" type="number" className="text-2xl font-bold" value={amountToPay} onChange={(e) => setAmountToPay(Number(e.target.value))} />
-              <p className={`text-xs font-medium ${isFullPayment ? 'text-success' : 'text-amber-600'}`}>
+              <p className={`text-xs font-medium ${isFullPayment ? 'text-success' : 'text-muni-amber'}`}>
                 {isFullPayment ? 'Pago completo del recibo' : `Pago parcial — quedará un saldo de ${formatCurrency(Math.round((remaining - amountToPay) * 100) / 100)}`}
               </p>
             </div>

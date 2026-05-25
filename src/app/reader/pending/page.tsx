@@ -128,7 +128,7 @@ export default function PendingReadingsPage() {
             Cargando lecturas...
           </div>
         ) : filteredReadings.length === 0 ? (
-        <EmptyState message="No hay lecturas pendientes" description={navigator.onLine ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'} />
+        <EmptyState message="No hay lecturas pendientes" illustration="readings" description={navigator.onLine ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'} />
         ) : (
           <div className="space-y-3">
             {filteredReadings.map((reading) => {
@@ -136,12 +136,12 @@ export default function PendingReadingsPage() {
               const StatusIcon = config.icon
               return (
                 <Card key={reading.id} className={
-                  reading.status === 'exhausted' ? 'border-red-300 bg-red-50/70' :
-                  reading.status === 'failed' ? 'border-red-200 bg-red-50/50' : ''
+    reading.status === 'exhausted' ? 'border-destructive/40 bg-destructive/5' :
+    reading.status === 'failed' ? 'border-destructive/30 bg-destructive/5' : ''
                 }>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <StatusIcon className={`h-5 w-5 ${(reading.status === 'failed' || reading.status === 'exhausted') ? 'text-red-500' : 'text-muted-foreground'} mt-0.5 ${config.className}`} />
+                      <StatusIcon className={`h-5 w-5 ${(reading.status === 'failed' || reading.status === 'exhausted') ? 'text-destructive' : 'text-muted-foreground'} mt-0.5 ${config.className}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className="font-medium text-sm">{reading.full_name}</p>

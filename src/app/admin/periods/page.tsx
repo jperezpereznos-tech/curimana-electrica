@@ -16,7 +16,7 @@ export default async function PeriodsPage() {
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Periodos de Facturacion</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Periodos de Facturacion</h2>
           <p className="text-muted-foreground">Control de ciclos mensuales y cierre de facturacion.</p>
         </div>
         <CreatePeriodButton />

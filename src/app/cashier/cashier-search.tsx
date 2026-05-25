@@ -192,7 +192,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
             <CardContent>
 {receipts.length === 0 ? (
   <>
-    <EmptyState message="No hay recibos pendientes para este suministro." />
+            <EmptyState message="No hay recibos pendientes para este suministro." illustration="receipts" />
     {totalDebt > 0 && (
       <p className="text-sm text-center mt-2 text-destructive font-medium">
         Deuda registrada: {formatCurrency(totalDebt)}

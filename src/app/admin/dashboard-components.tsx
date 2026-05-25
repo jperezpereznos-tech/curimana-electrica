@@ -3,6 +3,7 @@
 import { lazy, Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/utils'
+import { AnimatedNumber } from '@/components/animated-number'
 import type { KPIProps, ChartDataEntry } from '@/types/views'
 
 const RevenueChartInner = lazy(() =>
@@ -38,7 +39,7 @@ const RevenueChartInner = lazy(() =>
 
 const SectorConsumptionChartInner = lazy(() =>
   import('recharts').then(mod => {
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8']
+    const COLORS = ['#0066cc', '#1a7a3a', '#cc7a00', '#c0c0c0', '#003d7a']
     return {
       default: ({ data }: { data: ChartDataEntry[] }) => (
         <Card>
@@ -75,15 +76,41 @@ function ChartSkeleton() {
   return <div className="h-[300px] bg-muted/30 animate-pulse rounded-lg" />
 }
 
-export function KPICard({ title, value, subtext, icon, trend }: KPIProps) {
+const accentStyles = {
+  blue: 'border-t-2 border-t-muni-blue bg-muni-blue/[0.03] dark:bg-muni-blue/10',
+  amber: 'border-t-2 border-t-muni-amber bg-muni-amber/[0.03] dark:bg-muni-amber/10',
+  green: 'border-t-2 border-t-muni-green bg-muni-green/[0.03] dark:bg-muni-green/10',
+  red: 'border-t-2 border-t-destructive bg-destructive/[0.03] dark:bg-destructive/10',
+} as const
+
+const accentIconBg = {
+  blue: 'bg-muni-blue/10 text-muni-blue',
+  amber: 'bg-muni-amber/10 text-muni-amber',
+  green: 'bg-muni-green/10 text-muni-green',
+  red: 'bg-destructive/10 text-destructive',
+} as const
+
+export function KPICard({ title, value, subtext, icon, trend, accent }: KPIProps) {
+  const numericValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]/g, '')) || 0
+  const isCurrency = typeof value === 'string' && value.startsWith('S/')
+
   return (
-    <Card>
+    <Card className={accent ? accentStyles[accent] : ''}>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
+        {icon && accent ? (
+          <div className={`p-2 rounded-lg ${accentIconBg[accent]}`}>{icon}</div>
+        ) : icon}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-4xl font-heading font-bold tracking-tight">
+          <AnimatedNumber
+            value={numericValue}
+            decimals={isCurrency ? 2 : 0}
+            prefix={isCurrency ? 'S/ ' : ''}
+            duration={1000}
+          />
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           {subtext}
           {trend && (

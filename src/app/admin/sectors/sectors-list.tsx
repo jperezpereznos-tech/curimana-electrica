@@ -126,7 +126,7 @@ function SectorsListInner({ initialSectors, readers }: { initialSectors: Sector[
       })}
 
       {sectors.length === 0 && (
-    <EmptyState message="No hay sectores registrados" description="Crea uno para empezar." />
+        <EmptyState message="No hay sectores registrados" illustration="sectors" description="Crea uno para empezar." />
       )}
       <ConfirmDialog
         open={!!deleteTargetId}

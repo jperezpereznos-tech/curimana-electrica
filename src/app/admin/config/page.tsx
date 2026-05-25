@@ -17,7 +17,7 @@ export default async function ConfigPage() {
   return (
     <>
       <div className="mb-6">
-        <h2 className="text-3xl font-bold tracking-tight">Configuracion Municipal</h2>
+        <h2 className="text-3xl font-heading font-bold tracking-tight">Configuracion Municipal</h2>
         <p className="text-muted-foreground">Datos de la municipalidad y parametros de facturacion.</p>
       </div>
 

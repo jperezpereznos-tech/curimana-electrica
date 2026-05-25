@@ -49,7 +49,7 @@ export default async function CashClosurePage() {
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Cierre de Caja</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Cierre de Caja</h2>
           <p className="text-muted-foreground">Monitoreo de recaudación y finalización de turno.</p>
         </div>
 

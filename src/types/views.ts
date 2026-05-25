@@ -175,6 +175,7 @@ export type KPIProps = {
   subtext?: string
   icon?: React.ReactNode
   trend?: number
+  accent?: 'blue' | 'amber' | 'green' | 'red'
 }
 
 export type ChartDataEntry = { name: string; total?: number; value?: number }

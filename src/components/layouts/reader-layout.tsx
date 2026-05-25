@@ -2,16 +2,25 @@
 
 import { useAuth } from '@/hooks/use-auth'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner'
 import { Button } from '@/components/ui/button'
-import { Camera, ClipboardList, LogOut, RefreshCcw } from 'lucide-react'
+import { ModeToggle } from '@/components/mode-toggle'
+import { Camera, ClipboardList, LogOut, RefreshCcw, ScanBarcode } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 export function ReaderLayout({ children }: { children: React.ReactNode }) {
   const { signOut, syncAndSignOut } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
   const { pendingSyncCount } = useOfflineSync()
+
+  useBarcodeScanner((barcode) => {
+    router.push(`/reader/new?supply=${encodeURIComponent(barcode)}`)
+    toast.info(`Código escaneado: ${barcode}`)
+  })
 
   const navItems = [
     { name: 'Lectura', href: '/reader', icon: Camera },
@@ -22,10 +31,15 @@ export function ReaderLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col pb-16">
       <header className="h-14 bg-background border-b flex items-center justify-between px-4 sticky top-0 z-10 shadow-sm">
-        <h1 className="font-bold text-muni-blue">Lector Curimana</h1>
-        <Button variant="ghost" size="icon" onClick={() => pendingSyncCount > 0 ? syncAndSignOut() : signOut()} className="text-muted-foreground" aria-label="Cerrar sesión">
-          <LogOut size={20} />
-        </Button>
+    <h1 className="font-heading font-bold text-muni-blue flex items-center gap-1.5">
+      <ScanBarcode size={20} /> Lector Curimana
+    </h1>
+    <div className="flex items-center gap-1">
+      <ModeToggle />
+      <Button variant="ghost" size="icon" onClick={() => pendingSyncCount > 0 ? syncAndSignOut() : signOut()} className="text-muted-foreground" aria-label="Cerrar sesión">
+        <LogOut size={20} />
+      </Button>
+    </div>
       </header>
 
       <main id="main-content" className="flex-1 p-4">

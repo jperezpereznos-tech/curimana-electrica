@@ -15,9 +15,9 @@ import { updateUserRoleAction, assignSectorToUserAction, deleteUserAction } from
 import type { ProfileWithSector, SectorRow } from '@/types/views'
 
 const ROLES = [
- { id: 'admin', label: 'Administrador', color: 'bg-red-100 text-red-800' },
- { id: 'cashier', label: 'Cajero', color: 'bg-blue-100 text-blue-800' },
- { id: 'meter_reader', label: 'Lecturador', color: 'bg-green-100 text-green-800' },
+  { id: 'admin', label: 'Administrador', color: 'bg-destructive/10 text-destructive' },
+  { id: 'cashier', label: 'Cajero', color: 'bg-muni-blue/10 text-muni-blue' },
+  { id: 'meter_reader', label: 'Lecturador', color: 'bg-muni-green/10 text-muni-green' },
 ] as const
 
 function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sectors: SectorRow[] }) {
@@ -65,7 +65,7 @@ function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sector
 
  const getRoleBadge = (role: string) => {
  const r = ROLES.find(ro => ro.id === role)
- return r || { label: role, color: 'bg-gray-100 text-gray-800' }
+    return r || { label: role, color: 'bg-muni-silver-light text-muni-silver-dark' }
  }
 
  return (

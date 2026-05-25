@@ -109,7 +109,11 @@ function CustomersListInner({ initialCustomers, query, tariffs, sectors }: { ini
           </TableRow>
         ) : (
           paginated.map((customer) => (
-                <TableRow key={customer.id}>
+            <TableRow
+              key={customer.id}
+              className="cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 transition-colors"
+              onClick={() => router.push(`/admin/customers/${customer.id}`)}
+            >
                   <TableCell className="font-mono font-bold text-primary">
                     {customer.supply_number}
                   </TableCell>
@@ -131,8 +135,8 @@ function CustomersListInner({ initialCustomers, query, tariffs, sectors }: { ini
                   <TableCell>
               <StatusBadge status={customer.is_active ? 'active' : 'inactive'} type="active" />
                   </TableCell>
-                  <TableCell className="text-right">
-                    <EditCustomerDialog
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                <EditCustomerDialog
                       customer={customer}
                       tariffs={tariffs}
                       sectors={sectors}

@@ -88,9 +88,9 @@ export function ReadingEditDialog({
 
         <div className="space-y-4">
           {reading.needs_review && (
-            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <span className="text-sm text-amber-700">Lectura marcada para revisión (posible reinicio de medidor)</span>
+          <div className="flex items-center gap-2 p-3 bg-muni-amber/5 border border-muni-amber/30 rounded-lg">
+            <AlertTriangle className="h-4 w-4 text-muni-amber" />
+            <span className="text-sm text-muni-amber">Lectura marcada para revisión (posible reinicio de medidor)</span>
             </div>
           )}
 
@@ -121,7 +121,7 @@ export function ReadingEditDialog({
               <span className="font-mono font-bold text-lg">{consumption} kWh</span>
             </div>
             {isMeterReset && (
-              <div className="flex items-center gap-1 mt-1 text-xs text-amber-600">
+              <div className="flex items-center gap-1 mt-1 text-xs text-muni-amber">
                 <AlertTriangle className="h-3 w-3" />
                 Reinicio de medidor — consumo = 0
               </div>

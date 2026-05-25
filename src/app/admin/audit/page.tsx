@@ -14,7 +14,7 @@ export default async function AuditPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Bitacora de Auditoria</h2>
+        <h2 className="text-3xl font-heading font-bold tracking-tight">Bitacora de Auditoria</h2>
         <p className="text-muted-foreground">Registro historico de acciones criticas y cambios en el sistema.</p>
       </div>
 

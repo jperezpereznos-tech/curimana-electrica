@@ -36,7 +36,7 @@ export default async function CustomersPage({
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Gestion de Clientes</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Gestion de Clientes</h2>
           <p className="text-muted-foreground">Administra el padron de suministros electricos.</p>
         </div>
         <CreateCustomerDialog tariffs={tariffs} sectors={sectors} />

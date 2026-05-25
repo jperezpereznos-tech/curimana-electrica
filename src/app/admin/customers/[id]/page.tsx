@@ -48,7 +48,7 @@ export default async function CustomerDetailsPage({
             <User className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">{customer.full_name}</h2>
+            <h2 className="text-3xl font-heading font-bold tracking-tight">{customer.full_name}</h2>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Badge variant="outline" className="font-mono">{customer.supply_number}</Badge>
               <span>.</span>

@@ -38,7 +38,7 @@ export default async function PaymentDetailPage({
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" aria-label="Volver a pagos" nativeButton={false} render={<Link href="/admin/payments"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
-          <h2 className="text-3xl font-bold tracking-tight">Detalle de Pago</h2>
+          <h2 className="text-3xl font-heading font-bold tracking-tight">Detalle de Pago</h2>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span suppressHydrationWarning>{formatDate(payment.payment_date, { includeTime: true })}</span>

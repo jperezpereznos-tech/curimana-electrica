@@ -147,9 +147,13 @@ const rows = initialPayments.map((p: PaymentWithDetails) => [
                 </TableCell>
               </TableRow>
             ) : (
-              paginated.map((payment: PaymentWithDetails) => (
-                <TableRow key={payment.id} className={payment.status === 'voided' ? 'opacity-50' : ''}>
-                  <TableCell className="font-mono text-xs"><a href={`/admin/payments/${payment.id}`} className="text-primary hover:underline">{payment.receipts?.receipt_number || 'N/A'}</a></TableCell>
+          paginated.map((payment: PaymentWithDetails) => (
+            <TableRow
+              key={payment.id}
+              className={`cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 transition-colors ${payment.status === 'voided' ? 'opacity-50' : ''}`}
+              onClick={() => router.push(`/admin/payments/${payment.id}`)}
+            >
+              <TableCell className="font-mono text-xs"><span className="text-primary hover:underline">{payment.receipts?.receipt_number || 'N/A'}</span></TableCell>
                   <TableCell className="font-medium">{payment.receipts?.customers?.full_name || 'Desconocido'}</TableCell>
                   <TableCell className="font-mono text-xs">{payment.receipts?.customers?.supply_number || 'N/A'}</TableCell>
                   <TableCell className={payment.status === 'voided' ? 'line-through' : 'font-bold'}>{formatCurrency(payment.amount)}</TableCell>
@@ -158,9 +162,9 @@ const rows = initialPayments.map((p: PaymentWithDetails) => [
                   <TableCell>
                 <StatusBadge status={payment.status ?? 'completed'} type="payment" />
                   </TableCell>
-                  <TableCell className="text-right">
-                    {payment.status !== 'voided' && (
-          <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={() => setVoidTargetId(payment.id)}>
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                {payment.status !== 'voided' && (
+                  <Button variant="ghost" size="sm" className="text-destructive gap-1" onClick={() => setVoidTargetId(payment.id)}>
                 <Ban className="h-3 w-3" /> Anular
               </Button>
                     )}

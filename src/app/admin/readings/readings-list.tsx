@@ -183,7 +183,7 @@ const handleReadingUpdated = () => {
                 </TableRow>
               ) : (
                 paginated.map((r) => (
-                  <TableRow key={r.id} className={r.needs_review ? 'bg-amber-50/50' : ''}>
+                  <TableRow key={r.id} className={r.needs_review ? 'bg-muni-amber/5' : ''}>
                     <TableCell className="font-mono text-xs">{r.customers?.supply_number || '-'}</TableCell>
                     <TableCell className="font-medium text-sm">{r.customers?.full_name || '-'}</TableCell>
                     <TableCell>

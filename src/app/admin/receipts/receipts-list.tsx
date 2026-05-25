@@ -144,23 +144,27 @@ function ReceiptsListInner({ initialReceipts, periods, currentFilters, municipal
                 </TableCell>
               </TableRow>
 ) : (
-  paginated.map((receipt: ReceiptWithPeriod) => (
-    <TableRow key={receipt.id}>
-      <TableCell className="font-mono font-bold">{receipt.receipt_number}</TableCell>
-      <TableCell className="font-mono text-primary">{receipt.customers?.supply_number}</TableCell>
-      <TableCell className="font-medium">{receipt.customers?.full_name}</TableCell>
-      <TableCell>{receipt.billing_periods?.name}</TableCell>
-      <TableCell className="font-bold">{formatCurrency(receipt.total_amount)}</TableCell>
-      <TableCell>
+          paginated.map((receipt: ReceiptWithPeriod) => (
+            <TableRow
+              key={receipt.id}
+              className="cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 transition-colors"
+              onClick={() => router.push(`/admin/receipts/${receipt.id}`)}
+            >
+              <TableCell className="font-mono font-bold">{receipt.receipt_number}</TableCell>
+              <TableCell className="font-mono text-muni-blue">{receipt.customers?.supply_number}</TableCell>
+              <TableCell className="font-medium">{receipt.customers?.full_name}</TableCell>
+              <TableCell>{receipt.billing_periods?.name}</TableCell>
+              <TableCell className="font-bold">{formatCurrency(receipt.total_amount)}</TableCell>
+              <TableCell>
                 <StatusBadge status={receipt.status ?? ''} type="receipt" />
- </TableCell>
- <TableCell className="text-right flex justify-end gap-2">
-        <Button variant="ghost" size="icon" aria-label="Ver recibo" nativeButton={false} render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
-        <Button variant="ghost" size="icon" aria-label="Descargar recibo" onClick={() => handleDownload(receipt)}>
-          <Download className="h-4 w-4" />
-        </Button>
-      </TableCell>
-    </TableRow>
+              </TableCell>
+              <TableCell className="text-right flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" aria-label="Ver recibo" nativeButton={false} render={<Link href={`/admin/receipts/${receipt.id}`}><Eye className="h-4 w-4" /></Link>} />
+                <Button variant="ghost" size="icon" aria-label="Descargar recibo" onClick={() => handleDownload(receipt)}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
   ))
 )}
 </TableBody>
