@@ -610,78 +610,83 @@ SET search_path = public
 AS $$
 DECLARE
   v_user_role TEXT;
+  v_start_of_month TIMESTAMPTZ := date_trunc('month', now());
   v_total_collected NUMERIC;
   v_total_debt NUMERIC;
   v_active_customers BIGINT;
-  v_total_receipts BIGINT;
   v_pending_receipts BIGINT;
-  v_paid_receipts BIGINT;
-  v_revenue_history JSONB;
-  v_sector_consumption JSONB;
+  v_current_period_id UUID;
+  v_revenue JSONB;
+  v_sectors JSONB;
 BEGIN
   SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
   IF v_user_role NOT IN ('admin', 'cashier') THEN
     RAISE EXCEPTION 'Permiso denegado: se requiere rol de cajero o administrador';
   END IF;
 
-  SELECT COALESCE(SUM(amount), 0) INTO v_total_collected
-  FROM payments WHERE status = 'completed';
+  SELECT COALESCE(SUM(p.amount), 0) INTO v_total_collected
+  FROM payments p
+  WHERE p.status = 'completed'
+  AND p.created_at >= v_start_of_month;
 
-  SELECT COALESCE(SUM(current_debt), 0) INTO v_total_debt
-  FROM customers WHERE is_active = true;
+  SELECT COALESCE(SUM(c.current_debt), 0) INTO v_total_debt
+  FROM customers c
+  WHERE c.is_active = true;
 
   SELECT COUNT(*) INTO v_active_customers
-  FROM customers WHERE is_active = true;
+  FROM customers c
+  WHERE c.is_active = true;
 
-  SELECT COUNT(*) INTO v_total_receipts FROM receipts;
-  SELECT COUNT(*) INTO v_pending_receipts FROM receipts WHERE status IN ('pending', 'partial', 'overdue');
-  SELECT COUNT(*) INTO v_paid_receipts FROM receipts WHERE status = 'paid';
+  SELECT id INTO v_current_period_id
+  FROM billing_periods
+  WHERE is_closed = false
+  ORDER BY created_at DESC
+  LIMIT 1;
 
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
-      'period_id', bp.id,
-      'period_name', bp.name,
+  IF v_current_period_id IS NOT NULL THEN
+    SELECT COUNT(*) INTO v_pending_receipts
+    FROM receipts
+    WHERE billing_period_id = v_current_period_id
+    AND status IN ('pending', 'partial');
+  ELSE
+    SELECT COUNT(*) INTO v_pending_receipts
+    FROM receipts
+    WHERE status IN ('pending', 'partial', 'overdue');
+  END IF;
+
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('name', sub.rw->>'name', 'total', sub.rw->>'total') ORDER BY sub.rw->>'year' ASC, sub.rw->>'month' ASC), '[]'::jsonb)
+  INTO v_revenue
+  FROM (
+    SELECT jsonb_build_object(
+      'name', bp.name,
+      'total', COALESCE(SUM(r.paid_amount), 0),
       'year', bp.year,
-      'month', bp.month,
-      'total', r.total
-    )
-  ), '[]'::jsonb) INTO v_revenue_history
-  FROM billing_periods bp
-  LEFT JOIN LATERAL (
-    SELECT COALESCE(SUM(r.amount), 0) as total
-    FROM receipts r
-    JOIN payments p ON p.receipt_id = r.id AND p.status = 'completed'
-    WHERE r.billing_period_id = bp.id
-  ) r ON true
-  WHERE bp.is_closed = true
-  ORDER BY bp.year DESC, bp.month DESC
-  LIMIT 12;
+      'month', bp.month
+    ) AS rw
+    FROM billing_periods bp
+    LEFT JOIN receipts r ON r.billing_period_id = bp.id AND r.status = 'paid'
+    GROUP BY bp.id, bp.name, bp.year, bp.month
+    ORDER BY bp.year ASC, bp.month ASC
+    LIMIT 6
+  ) sub;
 
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
-      'sector_id', s.id,
-      'sector_name', s.name,
-      'total_consumption', sc.total_kwh
-    )
-  ), '[]'::jsonb) INTO v_sector_consumption
-  FROM sectors s
-  LEFT JOIN LATERAL (
-    SELECT COALESCE(SUM(rd.consumption_kwh), 0) as total_kwh
+  SELECT COALESCE(jsonb_agg(sw), '[]'::jsonb)
+  INTO v_sectors
+  FROM (
+    SELECT jsonb_build_object('name', s.name, 'value', COALESCE(SUM(rd.consumption), 0)) AS sw
     FROM readings rd
     JOIN customers c ON c.id = rd.customer_id
-    WHERE c.sector_id = s.id
-  ) sc ON true
-  WHERE s.is_active = true;
+    JOIN sectors s ON s.id = c.sector_id
+    GROUP BY s.id, s.name
+  ) sub;
 
   RETURN jsonb_build_object(
-    'totalCollected', v_total_collected,
-    'totalDebt', v_total_debt,
-    'activeCustomers', v_active_customers,
-    'totalReceipts', v_total_receipts,
-    'pendingReceipts', v_pending_receipts,
-    'paidReceipts', v_paid_receipts,
-    'revenueHistory', v_revenue_history,
-    'sectorConsumption', v_sector_consumption
+    'total_collected', v_total_collected,
+    'total_debt', v_total_debt,
+    'active_customers', v_active_customers,
+    'pending_receipts', v_pending_receipts,
+    'revenue_history', v_revenue,
+    'sector_consumption', v_sectors
   );
 END;
 $$;
