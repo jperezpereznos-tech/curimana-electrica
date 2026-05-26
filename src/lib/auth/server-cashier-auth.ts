@@ -6,12 +6,12 @@ const VALID_CASHIER_ROLES = new Set(['admin', 'cashier'])
 
 export async function requireCashierAuth() {
   const supabase = await createClient()
-  const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims()
-  if (claimsErr || !claimsData) throw new Error(`No autenticado: ${claimsErr?.message || 'sin claims'}`)
+	const { data: userData, error: userErr } = await supabase.auth.getUser()
+	if (userErr || !userData?.user) throw new Error(`No autenticado: ${userErr?.message || 'sin usuario'}`)
 
-  const userId = claimsData.claims.sub
-  const cookieStore = await cookies()
-  const cachedRole = decodeRoleCookie(cookieStore.get(ROLE_COOKIE)?.value, userId)
+	const userId = userData.user.id
+	const cookieStore = await cookies()
+	const cachedRole = await decodeRoleCookie(cookieStore.get(ROLE_COOKIE)?.value, userId)
 
   if (cachedRole && VALID_CASHIER_ROLES.has(cachedRole)) {
     return { supabase, userId, role: cachedRole }

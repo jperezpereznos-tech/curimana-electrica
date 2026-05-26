@@ -52,7 +52,7 @@ vi.mock('@/lib/auth/server-reader-auth', () => ({
 const mockFrom = vi.fn()
 const mockSupabaseInstance = {
   from: mockFrom,
-  auth: { getUser: vi.fn(), getClaims: vi.fn() },
+	auth: { getUser: vi.fn() },
   rpc: vi.fn()
 }
 

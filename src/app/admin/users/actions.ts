@@ -119,8 +119,8 @@ export async function deleteUserAction(userId: string): Promise<{ success: boole
     uuidSchema.parse(userId)
     const { supabase } = await requireAdminAuth()
 
-    const { data: currentUser } = await supabase.auth.getClaims()
-    if (currentUser && currentUser.claims.sub === userId) {
+	const { data: currentUser } = await supabase.auth.getUser()
+	if (currentUser?.user && currentUser.user.id === userId) {
       return { success: false, error: 'No puedes eliminar tu propia cuenta' }
     }
 

@@ -16,16 +16,16 @@ function DashboardSkeleton() {
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
-  const { data: claimsData, error: authErr } = await supabase.auth.getClaims()
-  const dashboardService = getDashboardService(supabase)
+	const { data: userData, error: authErr } = await supabase.auth.getUser()
+	const dashboardService = getDashboardService(supabase)
 
-  let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
-  let revenueHistory: RevenueEntry[] = []
-  let sectorData: SectorEntry[] = []
-  const fetchErrors: string[] = []
+	let kpis = { totalCollected: 0, totalDebt: 0, activeCustomers: 0, pendingReceipts: 0 }
+	let revenueHistory: RevenueEntry[] = []
+	let sectorData: SectorEntry[] = []
+	const fetchErrors: string[] = []
 
-  if (authErr || !claimsData) {
-    fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
+	if (authErr || !userData?.user) {
+		fetchErrors.push(`Sesion: ${authErr?.message || 'No autenticado'}`)
   } else {
     try {
       const dashboardData = await dashboardService.getDashboardData()

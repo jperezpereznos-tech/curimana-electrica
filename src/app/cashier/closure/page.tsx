@@ -27,10 +27,10 @@ type SessionPayment = {
 
 export default async function CashClosurePage() {
   const supabase = await createClient()
- const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims()
- if (claimsErr || !claimsData) redirect('/login')
+	const { data: userData, error: userErr } = await supabase.auth.getUser()
+	if (userErr || !userData?.user) redirect('/login')
 
- const userId = claimsData.claims.sub
+	const userId = userData.user.id
   const cashClosureSvc = getCashClosureService(supabase)
   const paymentSvc = getPaymentService(supabase)
   const activeClosure = await cashClosureSvc.getActiveClosure(userId)

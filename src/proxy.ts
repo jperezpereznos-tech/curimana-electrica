@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { ROLE_COOKIE, encodeRoleCookie, decodeRoleCookie } from '@/lib/auth/constants'
-import { patchGetClaims } from '@/lib/supabase/patch'
 
 const ROLE_COOKIE_MAX_AGE = 3600
 const ROLE_CLIENT_COOKIE = 'x-user-role-client'
@@ -13,33 +12,31 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   try {
-    const supabase = patchGetClaims(
-      createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return request.cookies.getAll()
-            },
-            setAll(cookiesToSet, headers) {
-              cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-              supabaseResponse = NextResponse.next({ request })
-              cookiesToSet.forEach(({ name, value, options }) =>
-                supabaseResponse.cookies.set(name, value, options)
-              )
-              Object.entries(headers).forEach(([key, value]) =>
-                supabaseResponse.headers.set(key, value)
-              )
-            },
-          },
-        }
-      )
-    )
+		const supabase = createServerClient(
+			process.env.NEXT_PUBLIC_SUPABASE_URL!,
+			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+			{
+				cookies: {
+					getAll() {
+						return request.cookies.getAll()
+					},
+					setAll(cookiesToSet, headers) {
+						cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+						supabaseResponse = NextResponse.next({ request })
+						cookiesToSet.forEach(({ name, value, options }) =>
+							supabaseResponse.cookies.set(name, value, options)
+						)
+						Object.entries(headers).forEach(([key, value]) =>
+							supabaseResponse.headers.set(key, value)
+						)
+					},
+				},
+			}
+		)
 
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims()
-    if (claimsError) console.error('[PROXY] getClaims error:', claimsError.message)
-    const userId = claimsData ? claimsData.claims.sub : null
+		const { data: userData, error: userError } = await supabase.auth.getUser()
+		if (userError) console.error('[PROXY] getUser error:', userError.message)
+		const userId = userData?.user?.id ?? null
 
     if (!userId && url.pathname !== '/login') {
       url.pathname = '/login'
@@ -56,10 +53,10 @@ export async function proxy(request: NextRequest) {
       return supabaseResponse
     }
 
-    const getCachedRole = (): string | null => {
-      if (!userId) return null
-      return decodeRoleCookie(request.cookies.get(ROLE_COOKIE)?.value, userId)
-    }
+	const getCachedRole = async (): Promise<string | null> => {
+		if (!userId) return null
+		return decodeRoleCookie(request.cookies.get(ROLE_COOKIE)?.value, userId)
+	}
 
     const fetchAndCacheRole = async (): Promise<string | null> => {
       const { data, error } = await supabase.rpc('get_user_role')
@@ -68,8 +65,8 @@ export async function proxy(request: NextRequest) {
         return null
       }
       const role = data as string | null
-      if (role && userId) {
-        const encoded = encodeRoleCookie(userId, role)
+		if (role && userId) {
+			const encoded = await encodeRoleCookie(userId, role)
         supabaseResponse.cookies.set(ROLE_COOKIE, encoded, {
           path: '/',
           maxAge: ROLE_COOKIE_MAX_AGE,
@@ -86,11 +83,11 @@ export async function proxy(request: NextRequest) {
       return role
     }
 
-    const getRole = async (): Promise<string | null> => {
-      const cached = getCachedRole()
-      if (cached) return cached
-      return fetchAndCacheRole()
-    }
+	const getRole = async (): Promise<string | null> => {
+		const cached = await getCachedRole()
+		if (cached) return cached
+		return fetchAndCacheRole()
+	}
 
     if (userId && (url.pathname === '/login' || url.pathname === '/')) {
       const role = await getRole()

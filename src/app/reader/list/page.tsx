@@ -16,16 +16,16 @@ interface RouteCustomer {
 
 export default async function ReadingRoutePage() {
   const supabase = await createClient()
-  const { data: claimsData } = await supabase.auth.getClaims()
+	const { data: userData } = await supabase.auth.getUser()
 
-  let assignedSector: AssignedSectorItem | null = null
-  let customers: RouteCustomer[] = []
+	let assignedSector: AssignedSectorItem | null = null
+	let customers: RouteCustomer[] = []
 
-  if (claimsData) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('assigned_sector_id, sectors:sectors!profiles_assigned_sector_id_fkey(id, name, code)')
-      .eq('id', claimsData.claims.sub)
+	if (userData?.user) {
+		const { data: profile } = await supabase
+			.from('profiles')
+			.select('assigned_sector_id, sectors:sectors!profiles_assigned_sector_id_fkey(id, name, code)')
+			.eq('id', userData.user.id)
       .single()
 
     if (profile?.assigned_sector_id) {

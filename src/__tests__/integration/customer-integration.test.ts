@@ -21,10 +21,9 @@ const mockSupabase = {
     gt: vi.fn().mockReturnThis(),
   }),
   rpc: vi.fn().mockReturnValue({ data: null, error: null }),
-  auth: {
-    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-    getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: 'test-user' } }, error: null }),
-  },
+		auth: {
+			getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } }, error: null }),
+		},
   storage: {
     from: vi.fn().mockReturnValue({
       upload: vi.fn().mockResolvedValue({ data: null, error: null }),

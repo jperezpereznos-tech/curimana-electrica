@@ -30,7 +30,7 @@ vi.mock('next/cache', () => ({
 const mockFrom = vi.fn()
 const mockSupabaseInstance = {
   from: mockFrom,
-  auth: { getUser: vi.fn(), getClaims: vi.fn() },
+	auth: { getUser: vi.fn() },
   rpc: vi.fn()
 }
 
