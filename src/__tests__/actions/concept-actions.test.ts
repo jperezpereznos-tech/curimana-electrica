@@ -62,7 +62,7 @@ describe('registerConceptAction', () => {
       code: 'ALUM', name: 'Alumbrado', amount: 4.20, type: 'fixed', is_active: true
     })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al crear el concepto' })
     expect(mockCreateConcept).not.toHaveBeenCalled()
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
@@ -86,7 +86,7 @@ describe('registerConceptAction', () => {
       code: 'ALUM', name: 'Alumbrado', amount: 4.20, type: 'fixed', is_active: true
     })
 
-    expect(result).toEqual({ success: false, error: 'Código duplicado' })
+    expect(result).toEqual({ success: false, error: 'Error al crear el concepto' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -161,7 +161,7 @@ describe('toggleConceptStatusAction', () => {
 
     const result = await toggleConceptStatusAction('00000000-0000-4000-8900-000000000090', false)
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al cambiar estado del concepto' })
     expect(mockToggleConceptStatus).not.toHaveBeenCalled()
   })
 
@@ -170,7 +170,7 @@ describe('toggleConceptStatusAction', () => {
 
     const result = await toggleConceptStatusAction('00000000-0000-4000-8900-000000000090', false)
 
-    expect(result).toEqual({ success: false, error: 'Concepto no encontrado' })
+    expect(result).toEqual({ success: false, error: 'Error al cambiar estado del concepto' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -205,7 +205,7 @@ describe('deleteConceptAction', () => {
 
     const result = await deleteConceptAction('00000000-0000-4000-8900-000000000090')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar el concepto' })
     expect(mockDeleteConcept).not.toHaveBeenCalled()
   })
 
@@ -214,7 +214,7 @@ describe('deleteConceptAction', () => {
 
     const result = await deleteConceptAction('00000000-0000-4000-8900-000000000090')
 
-    expect(result).toEqual({ success: false, error: 'Restricción de clave foránea' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar el concepto' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -250,7 +250,7 @@ describe('updateConceptAction', () => {
 
     const result = await updateConceptAction('00000000-0000-4000-8900-000000000090', { name: 'Test' })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar el concepto' })
     expect(mockUpdateConcept).not.toHaveBeenCalled()
   })
 
@@ -269,7 +269,7 @@ describe('updateConceptAction', () => {
 
     const result = await updateConceptAction('00000000-0000-4000-8900-000000000090', { name: 'Test' })
 
-    expect(result).toEqual({ success: false, error: 'Concepto no encontrado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar el concepto' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 

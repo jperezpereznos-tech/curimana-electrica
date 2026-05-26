@@ -6,20 +6,32 @@ import { getReceiptService } from '@/services/receipt-service'
 import { topDebtorsLimitSchema } from '@/lib/validations/schemas'
 
 export async function getTopDebtorsAction(limit: number = 5) {
-  const { supabase } = await requireAdminAuth()
-  topDebtorsLimitSchema.parse(limit)
-  const customerService = getCustomerService(supabase)
-  return await customerService.getTopDebtors(limit)
+  try {
+    const { supabase } = await requireAdminAuth()
+    topDebtorsLimitSchema.parse(limit)
+    const customerService = getCustomerService(supabase)
+    return await customerService.getTopDebtors(limit)
+  } catch {
+    return []
+  }
 }
 
 export async function getCustomersWithDebtAction() {
-  const { supabase } = await requireAdminAuth()
-  const customerService = getCustomerService(supabase)
-  return await customerService.getCustomersWithDebt()
+  try {
+    const { supabase } = await requireAdminAuth()
+    const customerService = getCustomerService(supabase)
+    return await customerService.getCustomersWithDebt()
+  } catch {
+    return []
+  }
 }
 
 export async function getPaidReceiptsAction() {
-  const { supabase } = await requireAdminAuth()
-  const receiptService = getReceiptService(supabase)
-  return await receiptService.getAllReceipts({ status: 'paid' })
+  try {
+    const { supabase } = await requireAdminAuth()
+    const receiptService = getReceiptService(supabase)
+    return await receiptService.getAllReceipts({ status: 'paid' })
+  } catch {
+    return []
+  }
 }

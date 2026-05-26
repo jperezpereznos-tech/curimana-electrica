@@ -55,7 +55,7 @@ describe('registerCustomerAction', () => {
 
     const result = await registerCustomerAction({ full_name: 'Juan' })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al registrar cliente' })
   })
 
   it('debería retornar error si Zod validation falla', async () => {
@@ -69,7 +69,7 @@ describe('registerCustomerAction', () => {
 
     const result = await registerCustomerAction({ full_name: 'Juan', supply_number: '123', address: 'Calle 1' })
 
-    expect(result).toEqual({ success: false, error: 'Duplicate' })
+    expect(result).toEqual({ success: false, error: 'Error al registrar cliente' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -102,7 +102,7 @@ describe('updateCustomerAction', () => {
 
     const result = await updateCustomerAction('00000000-0000-4000-8300-000000000030', { full_name: 'Pedro' })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar cliente' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -110,7 +110,7 @@ describe('updateCustomerAction', () => {
 
     const result = await updateCustomerAction('00000000-0000-4000-8300-000000000030', { full_name: 'Pedro' })
 
-    expect(result).toEqual({ success: false, error: 'Not found' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar cliente' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -152,7 +152,7 @@ describe('deleteCustomerAction', () => {
 
     const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar cliente' })
   })
 
   it('debería retornar error si el servicio lanza excepción', async () => {
@@ -160,7 +160,7 @@ describe('deleteCustomerAction', () => {
 
     const result = await deleteCustomerAction('00000000-0000-4000-8300-000000000030')
 
-    expect(result).toEqual({ success: false, error: 'DB error' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar cliente' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

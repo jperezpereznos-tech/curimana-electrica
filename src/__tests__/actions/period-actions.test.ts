@@ -51,7 +51,7 @@ describe('closePeriodAction', () => {
 
     const result = await closePeriodAction('00000000-0000-4000-8600-000000000060')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al cerrar el periodo' })
     expect(mockClosePeriod).not.toHaveBeenCalled()
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
@@ -61,7 +61,7 @@ describe('closePeriodAction', () => {
 
     const result = await closePeriodAction('00000000-0000-4000-8600-000000000060')
 
-    expect(result).toEqual({ success: false, error: 'El periodo ya está cerrado' })
+    expect(result).toEqual({ success: false, error: 'Error al cerrar el periodo' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -97,7 +97,7 @@ describe('openNextPeriodAction', () => {
 
     const result = await openNextPeriodAction()
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al crear el siguiente periodo' })
     expect(mockCreateNextPeriod).not.toHaveBeenCalled()
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
@@ -107,7 +107,7 @@ describe('openNextPeriodAction', () => {
 
     const result = await openNextPeriodAction()
 
-    expect(result).toEqual({ success: false, error: 'Ya existe un periodo abierto' })
+    expect(result).toEqual({ success: false, error: 'Error al crear el siguiente periodo' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 

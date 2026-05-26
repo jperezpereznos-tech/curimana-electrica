@@ -24,7 +24,7 @@ export async function updateMunicipalityConfigAction(data: unknown): Promise<{ s
     revalidatePath('/cashier')
     revalidatePath('/admin/receipts')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al actualizar configuracion' }
+  } catch {
+    return { success: false, error: 'Error al actualizar configuracion' }
   }
 }

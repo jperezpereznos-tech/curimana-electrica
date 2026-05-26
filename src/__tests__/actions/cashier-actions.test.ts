@@ -126,7 +126,7 @@ describe('processPaymentAction', () => {
       amount: 50, paymentMethod: 'cash', receivedAmount: 50, changeAmount: 0
     })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al procesar el pago.' })
   })
 
   it('debería retornar error si processPayment falla', async () => {
@@ -137,7 +137,7 @@ describe('processPaymentAction', () => {
       amount: 50, paymentMethod: 'cash', receivedAmount: 50, changeAmount: 0
     })
 
-    expect(result).toEqual({ success: false, error: 'Caja cerrada' })
+    expect(result).toEqual({ success: false, error: 'Error al procesar el pago.' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -180,7 +180,7 @@ describe('processBatchPaymentAction', () => {
       customerId: '00000000-0000-4000-8300-000000000030', cashClosureId: '00000000-0000-4000-8700-000000000070', paymentMethod: 'cash'
     })
 
-    expect(result).toEqual({ success: false, error: 'Lote fallido' })
+    expect(result).toEqual({ success: false, error: 'Error al procesar el pago lote.' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -217,7 +217,7 @@ describe('openClosureAction', () => {
 
     const result = await openClosureAction(200)
 
-    expect(result).toEqual({ success: false, error: 'Ya tienes una caja abierta' })
+    expect(result).toEqual({ success: false, error: 'Error al abrir caja.' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -230,9 +230,16 @@ describe('openClosureAction', () => {
 })
 
 describe('closeClosureAction', () => {
+  const mockSelectChain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: { cashier_id: '00000000-0000-4000-8200-000000000002' }, error: null }),
+  }
+  const mockSupabase = { from: vi.fn().mockReturnValue(mockSelectChain) }
+
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: mockSupabase, userId: '00000000-0000-4000-8200-000000000002', role: 'admin' })
   })
 
   it('debería cerrar caja y revalidar ruta', async () => {
@@ -251,7 +258,7 @@ describe('closeClosureAction', () => {
 
     const result = await closeClosureAction('00000000-0000-4000-8700-000000000070')
 
-    expect(result).toEqual({ success: false, error: 'La caja ya está cerrada' })
+    expect(result).toEqual({ success: false, error: 'Error al cerrar caja.' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -300,11 +307,11 @@ describe('searchCashierCustomerAction', () => {
 
     const result = await searchCashierCustomerAction('SUM-001')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
-  })
+expect(result).toEqual({ success: false, error: 'Error al buscar cliente.' })
+    })
 
-  it('debería manejar errores que no son instancias de Error', async () => {
-    mockSearchCustomers.mockRejectedValue('fail')
+    it('debería manejar errores que no son instancias de Error', async () => {
+      mockSearchCustomers.mockRejectedValue('fail')
 
     const result = await searchCashierCustomerAction('SUM-001')
 
@@ -400,7 +407,7 @@ describe('getCustomerPaymentsAction', () => {
 
     const result = await getCustomerPaymentsAction('00000000-0000-4000-8300-000000000030')
 
-    expect(result).toEqual({ success: false, error: 'DB error' })
+    expect(result).toEqual({ success: false, error: 'Error al obtener pagos.' })
   })
 })
 
@@ -424,14 +431,14 @@ describe('getPaymentVoucherDataAction', () => {
 
     const result = await getPaymentVoucherDataAction('00000000-0000-4000-8400-000000000040')
 
-    expect(result).toEqual({ success: false, error: 'Not found' })
+    expect(result).toEqual({ success: false, error: 'Error al obtener datos del comprobante.' })
   })
 })
 
 describe('getPaymentsByCashierAction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002' })
+    mockRequireCashierAuth.mockResolvedValue({ supabase: {}, userId: '00000000-0000-4000-8200-000000000002', role: 'admin' })
   })
 
   it('debería obtener pagos del cajero y mapear campos', async () => {
@@ -469,6 +476,6 @@ describe('getPaymentsByCashierAction', () => {
 
     const result = await getPaymentsByCashierAction('00000000-0000-4000-8100-000000000001', {})
 
-    expect(result).toEqual({ success: false, error: 'DB error' })
+    expect(result).toEqual({ success: false, error: 'Error al obtener pagos.' })
   })
 })

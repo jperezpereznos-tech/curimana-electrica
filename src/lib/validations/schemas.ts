@@ -30,21 +30,26 @@ export const batchPaymentActionSchema = z.object({
 
 export const openClosureSchema = z.number().min(0).finite()
 
+export const dateFilterSchema = z.object({
+  from: z.string().date().optional(),
+  to: z.string().date().optional(),
+})
+
 export const readingActionSchema = z.object({
   customer_id: uuidSchema,
   billing_period_id: uuidSchema,
   previous_reading: z.number().min(0).finite(),
   current_reading: z.number().min(0).finite(),
-  reading_date: z.string().min(1),
-  notes: z.string().optional(),
-  photo_url: z.string().optional(),
+  reading_date: z.string().date(),
+  notes: z.string().max(1000).optional(),
+  photo_url: z.string().url().max(500).optional(),
 })
 
 export const updateReadingSchema = z.object({
   current_reading: z.number().min(0).finite().optional(),
   previous_reading: z.number().min(0).finite().optional(),
   needs_review: z.boolean().optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(1000).optional(),
 })
 
 export const sectorCreateSchema = z.object({

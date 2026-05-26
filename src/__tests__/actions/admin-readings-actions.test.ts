@@ -67,7 +67,7 @@ describe('getReadingsAdminAction', () => {
 
     const result = await getReadingsAdminAction()
 
-    expect(result).toEqual({ success: false, error: 'No autenticado', data: [] })
+    expect(result).toEqual({ success: false, error: 'Error al obtener lecturas', data: [] })
   })
 
   it('debería retornar error y data vacía si el servicio falla', async () => {
@@ -75,7 +75,7 @@ describe('getReadingsAdminAction', () => {
 
     const result = await getReadingsAdminAction()
 
-    expect(result).toEqual({ success: false, error: 'DB error', data: [] })
+    expect(result).toEqual({ success: false, error: 'Error al obtener lecturas', data: [] })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -107,7 +107,7 @@ describe('getPeriodsForFilterAction', () => {
 
     const result = await getPeriodsForFilterAction()
 
-    expect(result).toEqual({ success: false, error: 'No autenticado', data: [] })
+    expect(result).toEqual({ success: false, error: 'Error al obtener periodos', data: [] })
   })
 
   it('debería retornar error y data vacía si el servicio falla', async () => {
@@ -115,7 +115,7 @@ describe('getPeriodsForFilterAction', () => {
 
     const result = await getPeriodsForFilterAction()
 
-    expect(result).toEqual({ success: false, error: 'DB error', data: [] })
+    expect(result).toEqual({ success: false, error: 'Error al obtener periodos', data: [] })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -149,7 +149,7 @@ describe('updateReadingAction', () => {
 
     const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { needs_review: false })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar lectura' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -158,7 +158,7 @@ describe('updateReadingAction', () => {
 
     const result = await updateReadingAction('00000000-0000-4000-8800-000000000080', { current_reading: 150 })
 
-    expect(result).toEqual({ success: false, error: 'Lectura no encontrada' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar lectura' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 

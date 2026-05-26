@@ -52,7 +52,7 @@ describe('cancelReceiptAction', () => {
 
     const result = await cancelReceiptAction('00000000-0000-4000-8200-000000000020', 'razón')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al anular el recibo' })
     expect(mockCancelReceipt).not.toHaveBeenCalled()
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
@@ -62,7 +62,7 @@ describe('cancelReceiptAction', () => {
 
     const result = await cancelReceiptAction('00000000-0000-4000-8200-000000000020', 'razón')
 
-    expect(result).toEqual({ success: false, error: 'El recibo ya está anulado' })
+    expect(result).toEqual({ success: false, error: 'Error al anular el recibo' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -99,7 +99,7 @@ describe('getConceptsForBreakdownAction', () => {
 
     const result = await getConceptsForBreakdownAction()
 
-    expect(result).toEqual({ success: false, error: 'No autenticado', data: [] })
+    expect(result).toEqual({ success: false, error: 'Error al obtener conceptos', data: [] })
   })
 
   it('debería retornar error genérico si getActiveConcepts falla', async () => {
@@ -107,7 +107,7 @@ describe('getConceptsForBreakdownAction', () => {
 
     const result = await getConceptsForBreakdownAction()
 
-    expect(result).toEqual({ success: false, error: 'DB connection lost', data: [] })
+    expect(result).toEqual({ success: false, error: 'Error al obtener conceptos', data: [] })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

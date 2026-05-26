@@ -7,16 +7,15 @@ import { z } from 'zod'
 import { uuidSchema } from '@/lib/validations/schemas'
 
 const customerSchema = z.object({
-  full_name: z.string().min(1),
-  supply_number: z.string().min(1),
-  address: z.string().min(1),
-  document_number: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  sector_id: z.string().optional().nullable(),
-  tariff_id: z.string().optional().nullable(),
+  full_name: z.string().min(1).max(200),
+  supply_number: z.string().min(1).max(50),
+  address: z.string().min(1).max(300),
+  document_number: z.string().max(20).optional().nullable(),
+  phone: z.string().max(30).optional().nullable(),
+  sector_id: uuidSchema.optional().nullable(),
+  tariff_id: uuidSchema.optional().nullable(),
   connection_type: z.enum(['monofásico', 'trifásico']).optional().nullable(),
   is_active: z.boolean().optional().nullable(),
-  current_debt: z.number().optional().nullable(),
 })
 
 export async function registerCustomerAction(data: unknown): Promise<{ success: boolean; error?: string }> {
@@ -28,8 +27,8 @@ export async function registerCustomerAction(data: unknown): Promise<{ success: 
   await customerService.registerCustomer(parsed, userId)
   revalidatePath('/admin/customers')
   return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al registrar cliente' }
+  } catch {
+    return { success: false, error: 'Error al registrar cliente' }
   }
 }
 
@@ -43,8 +42,8 @@ export async function updateCustomerAction(id: string, data: unknown): Promise<{
   await customerService.updateCustomer(id, parsed, userId)
   revalidatePath('/admin/customers')
   return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al actualizar cliente' }
+  } catch {
+    return { success: false, error: 'Error al actualizar cliente' }
   }
 }
 
@@ -58,7 +57,7 @@ export async function deleteCustomerAction(id: string): Promise<{ success: boole
     if (!result.success) return result
     revalidatePath('/admin/customers')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al eliminar cliente' }
+  } catch {
+    return { success: false, error: 'Error al eliminar cliente' }
   }
 }

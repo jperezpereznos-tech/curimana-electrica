@@ -87,11 +87,15 @@ describe('updateUserRoleAction', () => {
   })
 
   it('debería actualizar rol y revalidar ruta', async () => {
-    mockUpdateRole.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000001', role: 'admin' })
+    mockGetAllUsers.mockResolvedValue([
+      { id: '00000000-0000-4000-8100-000000000001', role: 'admin' },
+      { id: '00000000-0000-4000-8100-000000000002', role: 'admin' },
+    ])
+    mockUpdateRole.mockResolvedValue({ id: '00000000-0000-4000-8100-000000000002', role: 'cashier' })
 
-    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000002', 'cashier')
 
-    expect(mockUpdateRole).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000001', 'admin')
+    expect(mockUpdateRole).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000002', 'cashier')
     expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
     expect(result).toEqual({ success: true })
   })
@@ -99,23 +103,31 @@ describe('updateUserRoleAction', () => {
   it('debería retornar error si auth falla', async () => {
     mockRequireAdminAuth.mockRejectedValue(new Error('No autenticado'))
 
-    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000002', 'admin')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al cambiar rol' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
+    mockGetAllUsers.mockResolvedValue([
+      { id: '00000000-0000-4000-8100-000000000001', role: 'admin' },
+      { id: '00000000-0000-4000-8100-000000000002', role: 'admin' },
+    ])
     mockUpdateRole.mockRejectedValue(new Error('Update failed'))
 
-    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000002', 'admin')
 
-    expect(result).toEqual({ success: false, error: 'Update failed' })
+    expect(result).toEqual({ success: false, error: 'Error al cambiar rol' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
+    mockGetAllUsers.mockResolvedValue([
+      { id: '00000000-0000-4000-8100-000000000001', role: 'admin' },
+      { id: '00000000-0000-4000-8100-000000000002', role: 'admin' },
+    ])
     mockUpdateRole.mockRejectedValue('fail')
 
-    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000001', 'admin')
+    const result = await updateUserRoleAction('00000000-0000-4000-8100-000000000002', 'admin')
 
     expect(result).toEqual({ success: false, error: 'Error al cambiar rol' })
   })
@@ -143,7 +155,7 @@ describe('assignSectorToUserAction', () => {
 
     const result = await assignSectorToUserAction('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al asignar sector' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -151,7 +163,7 @@ describe('assignSectorToUserAction', () => {
 
     const result = await assignSectorToUserAction('00000000-0000-4000-8100-000000000001', '00000000-0000-4000-8100-000000000010')
 
-    expect(result).toEqual({ success: false, error: 'Not found' })
+    expect(result).toEqual({ success: false, error: 'Error al asignar sector' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -208,7 +220,7 @@ describe('inviteUserAction', () => {
 
     const result = await inviteUserAction('test@test.com', 'Juan', 'admin')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al invitar usuario' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -251,7 +263,7 @@ describe('deleteUserAction', () => {
 
     const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar usuario' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -260,7 +272,7 @@ describe('deleteUserAction', () => {
 
     const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
-    expect(result).toEqual({ success: false, error: 'Not found' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar usuario' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

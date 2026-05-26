@@ -1,4 +1,4 @@
-import { KPISkeleton, PageHeaderSkeleton } from '@/components/skeletons'
+import { KPISkeleton } from '@/components/skeletons'
 
 export default function Loading() {
   return (

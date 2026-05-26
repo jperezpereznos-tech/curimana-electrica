@@ -32,10 +32,10 @@ export async function getReaderAssignedSectorAction() {
       .eq('id', userId)
       .single()
 
-    if (error) return { success: false as const, error: error.message }
+    if (error) return { success: false as const, error: 'Error al obtener sector asignado.' }
     return { success: true as const, data: profile as unknown as SectorProfile }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener sector asignado.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener sector asignado.' }
   }
 }
 
@@ -44,8 +44,8 @@ export async function getReaderAssignedSectorIdAction() {
     const { supabase, userId } = await requireReaderAuth()
     const data = await getAssignedSectorId(userId, supabase)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener sector asignado.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener sector asignado.' }
   }
 }
 
@@ -85,8 +85,8 @@ export async function getReaderDashboardDataAction() {
         sectorName: sectorProfile?.sectors?.name || null
       }
     }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al cargar dashboard.' }
+  } catch {
+    return { success: false as const, error: 'Error al cargar dashboard.' }
   }
 }
 
@@ -99,20 +99,32 @@ export async function searchReaderCustomersAction(query: string) {
     const customerService = getCustomerService(supabase)
     const data = await customerService.searchCustomers(parsed, sectorId)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al buscar clientes.' }
+  } catch {
+    return { success: false as const, error: 'Error al buscar clientes.' }
   }
 }
 
 export async function getLatestReadingAction(customerId: string) {
   try {
     uuidSchema.parse(customerId)
-    const { supabase } = await requireReaderAuth()
+    const { supabase, userId } = await requireReaderAuth()
+    const sectorId = await getAssignedSectorId(userId, supabase)
+    if (!sectorId) return { success: false as const, error: 'No tiene un sector asignado. Contacte al administrador.' }
+
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('sector_id')
+      .eq('id', customerId)
+      .single()
+    if (!customer || customer.sector_id !== sectorId) {
+      return { success: false as const, error: 'No puede consultar suministros fuera de su sector asignado.' }
+    }
+
     const readingService = getReadingService(supabase)
     const data = await readingService.getLatestReading(customerId)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener lectura anterior.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener lectura anterior.' }
   }
 }
 
@@ -157,13 +169,12 @@ export async function registerReadingAction(data: unknown) {
       revalidatePath('/reader')
       return { success: true as const, data: result }
     } catch (insertError: unknown) {
-      const errMsg = insertError instanceof Error ? insertError.message : String(insertError)
-      if (errMsg.includes('readings_customer_period_unique')) {
+      if (insertError instanceof Error && insertError.message.includes('readings_customer_period_unique')) {
         return { success: false as const, error: 'DUPLICATE_READING' }
       }
-      return { success: false as const, error: errMsg }
+      return { success: false as const, error: 'Error al registrar lectura.' }
     }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al registrar lectura.' }
+  } catch {
+    return { success: false as const, error: 'Error al registrar lectura.' }
   }
 }

@@ -14,8 +14,8 @@ export async function cancelReceiptAction(id: string, reason: string) {
     const result = await receiptService.cancelReceipt(parsed.id, parsed.reason, userId)
     revalidatePath('/admin/receipts')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al anular el recibo' }
+  } catch {
+    return { success: false as const, error: 'Error al anular el recibo' }
   }
 }
 
@@ -25,7 +25,7 @@ export async function getConceptsForBreakdownAction() {
     const conceptService = getConceptService(supabase)
     const data = await conceptService.getActiveConcepts()
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener conceptos', data: [] }
+  } catch {
+    return { success: false as const, error: 'Error al obtener conceptos', data: [] }
   }
 }

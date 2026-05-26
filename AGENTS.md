@@ -108,7 +108,7 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 
 `audit_logs`, `billing_concepts`, `billing_periods`, `cash_closures`, `customers`, `municipality_config`, `payments`, `profiles`, `readings`, `receipts`, `roles`, `sectors`, `tariff_tier_history`, `tariff_tiers`, `tariffs`
 
-### SQL Functions (15)
+### SQL Functions (17)
 
 | Function | Type | Purpose |
 |----------|------|---------|
@@ -122,6 +122,7 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 | `adjust_customer_debt(customer_id, amount)` | SECURITY DEFINER | Adjusts customer.current_debt |
 | `recalculate_customer_debt(customer_id)` | SECURITY DEFINER | Recalculates debt from open receipts |
 | `get_user_sector_id(user_id)` | SECURITY DEFINER | Returns sector for reader role |
+| `get_session_total(cashier_id)` | STABLE SECURITY DEFINER | Returns total for cashier's open session |
 | `handle_new_user()` | SECURITY DEFINER trigger | Auto-creates profile on auth user creation |
 | `log_tariff_tier_change()` | SECURITY DEFINER trigger | Logs tier changes to tariff_tier_history |
 | `current_role()` | STABLE SECURITY DEFINER | Returns current user role text |
@@ -140,10 +141,15 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 - Legacy `customers.sector` column and `idx_customers_sector` dropped — sector info via `sector_id` FK only
 - Redundant `"Reader read payments"` RLS policy dropped — `"Users read payments"` covers all roles including sector-scoped readers
 - `calculate_energy_amount` changed from VOLATILE to STABLE (pure function, no side effects)
+- 6 SECURITY DEFINER functions with role checks: `process_payment`, `generate_period_receipts`, `adjust_customer_debt`, `recalculate_customer_debt`, `get_dashboard_kpis`, `get_session_total`
+- `audit_logs` UPDATE and DELETE deny policies (immutable audit trail)
+- `reading-photos` bucket: INSERT restricted to admin+meter_reader, DELETE/UPDATE restricted to admin
+- `readings` UPDATE policy: WITH CHECK enforces `meter_reader_id = auth.uid()`
+- `process_payment` EXECUTE revoked from public/anon
 
-### Migrations (18)
+### Migrations (22)
 
-Located in `supabase/migrations/`. Most recent: `20260522_check_constraints_rls_cleanup.sql`. Schema source of truth: `supabase/schema.sql`.
+Located in `supabase/migrations/`. Most recent: `20260525_security_hardening.sql`. Schema source of truth: `supabase/schema.sql`.
 
 ### UX/Performance optimizations (Phase 4)
 
@@ -192,49 +198,49 @@ total_amount   = subtotal + previous_debt
 
 **Subtlety**: `closePeriod` (period-service.ts) calculates all percentage concepts against the **same** base (`energy + fixed from pass 1`). `ReceiptService.calculateBreakdown` uses **cascading** percentages (each builds on running total including previous percentage concepts). Currently identical because only 1 percentage concept exists (IGV, inactive). Will diverge if multiple percentage concepts are activated.
 
-## Production DB — Known Data Issues
+## Production DB — Data Issues (ALL RESOLVED)
 
-The following issues exist in the **live Supabase database** (not in the code). The billing algorithm code is correct; the problems are configuration data.
+All 10 data issues from the real receipt audit have been fixed on the live DB. Migration: `20260521_data_audit_fixes.sql`. Follow-up fixes (CF tariff link, CF3, EL PORVENIR sector) applied directly to live DB.
 
-### CRITICAL — Affects billing accuracy
+### Resolved CRITICAL issues (billing accuracy)
 
-| # | Issue | Current BD value | Correct value (per real receipt) | Impact |
-|---|-------|-----------------|----------------------------------|--------|
-| 1 | Tier 2 `min_kwh` gap | `31` | `30` | kWh 30-31 not billed. 31 kWh charged as 30 kWh. |
-| 2 | Missing tier 3 | Does not exist | `(100, NULL, 0.64)` | All consumption >100 kWh is FREE. 150 kWh pays same as 100 kWh. |
-| 3 | Tier 2 price | `0.63` | `0.62` | S/0.01/kWh overcharge on 30-100 kWh range. |
-| 4 | Alumbrado Público amount | `S/ 3.00` | `S/ 1.68` | S/1.32 overcharge per receipt. |
-| 5 | Missing Cargo Fijo concept | Does not exist | `S/ 4.37, fixed` | S/4.37 undercharge per receipt. |
+| # | Issue | Fix applied |
+|---|-------|------------|
+| 1 | Tier 2 `min_kwh` gap (31→30) | `UPDATE tariff_tiers SET min_kwh = 30` |
+| 2 | Missing tier 3 | `INSERT (100, NULL, 0.64)` for monofásico |
+| 3 | Tier 2 price (0.63→0.62) | `UPDATE tariff_tiers SET price_per_kwh = 0.62` |
+| 4 | Alumbrado Público (3.00→1.68) | `UPDATE billing_concepts SET amount = 1.68 WHERE code = 'AP'` |
+| 5 | Missing Cargo Fijo | `INSERT 'CF' S/4.37 fixed` (applies_to_tariff_id = monofásico) + `INSERT 'CF3' S/5.20 fixed` (applies_to_tariff_id = trifásico) |
 
-### IMPORTANT — Incomplete configuration
+### Resolved IMPORTANT issues (configuration)
 
-| # | Issue | Detail |
-|---|-------|--------|
-| 6 | Missing billing concepts | Recolección Residuos Sólidos, Serenazgo, Barrido de Calles, Parques y Jardines (all at S/0 but must exist for receipt display) |
-| 7 | Missing trifásica tariff | Only "residencial" (monofásico) exists. No trifásica tariff or tiers. |
-| 8 | Tariff name wrong | "residencial" → should be "BT5B-RESIDENCIAL - MONOFÁSICO" |
-| 9 | Missing sectors | Only "BARRIO LAS LOMAS" exists. Real receipt shows "PLAZA MAYOR". All real sectors needed. |
-| 10 | Municipality name has extra "2026" | "Municipalidad Distrital de Curimana **2026**" → should not have "2026" |
+| # | Issue | Fix applied |
+|---|-------|------------|
+| 6 | Missing billing concepts | RRS, SE, BC, PJ all inserted at S/0 |
+| 7 | Missing trifásica tariff | `BT5B-RESIDENCIAL - TRIFÁSICO` with 3 tiers (0.39/0.70/0.76) |
+| 8 | Tariff name wrong | Renamed to `BT5B-RESIDENCIAL - MONOFÁSICO` |
+| 9 | Missing sectors | 9 sectors: LAS LOMAS, PLAZA MAYOR, CENTRO, SAN JUAN, NUEVO CURIMANA, SAN MIGUEL, SANTA ROSA, LA FLORIDA, EL PORVENIR, BUENOS AIRES |
+| 10 | Municipality name "2026" | Removed → `Municipalidad Distrital de Curimana` |
 
-### OPERATIONAL — No data loaded
+### OPERATIONAL — Data status
 
 | Table | Records |
 |-------|---------|
-| customers | 0 |
+| customers | 1 (608132425 - jack jois perez noa) |
 | billing_periods | 0 |
 | readings | 0 |
 | receipts | 0 |
 | payments | 0 |
 
-### Verified calculation discrepancies (live RPC)
+### Verified calculations (live RPC — all correct)
 
-| Consumption | Current BD result | Expected result | Delta |
-|-------------|------------------|-----------------|-------|
-| 30 kWh | S/ 9.30 | S/ 9.30 | 0 |
-| 31 kWh | S/ 9.30 | S/ 9.92 | **-S/ 0.62** |
-| 50 kWh | S/ 21.27 | S/ 21.70 | **-S/ 0.43** |
-| 100 kWh | S/ 52.77 | S/ 52.70 | +S/ 0.07 |
-| 150 kWh | S/ 52.77 | S/ 84.70 | **-S/ 32.00** |
+| Consumption | Energy amount | Status |
+|-------------|---------------|--------|
+| 30 kWh | S/ 9.30 | Match |
+| 31 kWh | S/ 9.92 | Match |
+| 50 kWh | S/ 21.70 | Match |
+| 100 kWh | S/ 52.70 | Match |
+| 150 kWh | S/ 84.70 | Match |
 
 ## Deployment
 

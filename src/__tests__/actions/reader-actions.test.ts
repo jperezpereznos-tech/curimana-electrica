@@ -156,7 +156,7 @@ describe('registerReadingAction', () => {
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+expect(result).toEqual({ success: false, error: 'Error al registrar lectura.' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -170,16 +170,16 @@ describe('registerReadingAction', () => {
         const promise = Promise.resolve({ data: { sector_id: '00000000-0000-4000-8100-000000000010', is_active: true }, error: null })
         return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(promise) }
       }
-			return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
-		})
-		mockRegisterReading.mockRejectedValue('fail')
+      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockReturnValue(Promise.resolve({ data: null, error: null })) }
+    })
+    mockRegisterReading.mockRejectedValue('fail')
 
     const result = await registerReadingAction({
       customer_id: '00000000-0000-4000-8300-000000000030', billing_period_id: '00000000-0000-4000-8600-000000000060',
       previous_reading: 100, current_reading: 150, reading_date: '2025-06-10'
     })
 
-    expect(result).toEqual({ success: false, error: 'fail' })
+    expect(result).toEqual({ success: false, error: 'Error al registrar lectura.' })
   })
 
   it('debería devolver DUPLICATE_READING si ya existe lectura para ese cliente y periodo', async () => {
@@ -225,7 +225,7 @@ describe('getLatestReadingAction', () => {
 
     const result = await getLatestReadingAction('00000000-0000-4000-8300-000000000030')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al obtener lectura anterior.' })
   })
 })
 
@@ -306,7 +306,7 @@ describe('getReaderDashboardDataAction', () => {
 
     const result = await getReaderDashboardDataAction()
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al cargar dashboard.' })
   })
 })
 

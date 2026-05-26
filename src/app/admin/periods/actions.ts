@@ -15,8 +15,8 @@ export async function closePeriodAction(id: string) {
     revalidatePath('/admin/receipts')
     revalidatePath('/admin/customers')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al cerrar el periodo' }
+  } catch {
+    return { success: false as const, error: 'Error al cerrar el periodo' }
   }
 }
 
@@ -27,7 +27,7 @@ export async function openNextPeriodAction() {
     const result = await periodService.createNextPeriod(userId)
     revalidatePath('/admin/periods')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al crear el siguiente periodo' }
+  } catch {
+    return { success: false as const, error: 'Error al crear el siguiente periodo' }
   }
 }

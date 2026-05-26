@@ -63,7 +63,7 @@ describe('updateMunicipalityConfigAction', () => {
 
     const result = await updateMunicipalityConfigAction(validData)
 
-    expect(result).toEqual({ success: false, error: 'Update failed' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar configuracion' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -94,7 +94,7 @@ describe('updateMunicipalityConfigAction', () => {
 
     const result = await updateMunicipalityConfigAction(validData)
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar configuracion' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

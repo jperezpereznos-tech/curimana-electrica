@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CURIMANA ELÉCTRICA - Schema Completo Actualizado
--- Última actualización: 2026-04-30
+-- Última actualización: 2026-05-25
 -- Base de datos: Supabase (PostgreSQL)
 -- ============================================================================
 
@@ -355,21 +355,22 @@ $$;
 CREATE OR REPLACE FUNCTION public.adjust_customer_debt(
   p_customer_id UUID,
   p_amount NUMERIC
-) RETURNS NUMERIC
+) RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_new_debt NUMERIC;
+  v_user_role TEXT;
 BEGIN
-  UPDATE customers
-  SET current_debt = GREATEST(0, COALESCE(current_debt, 0) + p_amount),
-      updated_at = now()
-  WHERE id = p_customer_id
-  RETURNING current_debt INTO v_new_debt;
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  IF v_user_role NOT IN ('admin', 'cashier') THEN
+    RAISE EXCEPTION 'Permiso denegado: se requiere rol de cajero o administrador';
+  END IF;
 
-  RETURN v_new_debt;
+  UPDATE customers
+  SET current_debt = GREATEST(0, current_debt + p_amount)
+  WHERE id = p_customer_id;
 END;
 $$;
 
@@ -386,16 +387,21 @@ SET search_path = public
 AS $$
 DECLARE
   v_total_debt NUMERIC;
+  v_user_role TEXT;
 BEGIN
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  IF v_user_role NOT IN ('admin', 'cashier') THEN
+    RAISE EXCEPTION 'Permiso denegado: se requiere rol de cajero o administrador';
+  END IF;
+
   SELECT COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0)
   INTO v_total_debt
   FROM receipts
   WHERE customer_id = p_customer_id
-  AND status NOT IN ('cancelled', 'paid');
+  AND status IN ('pending', 'partial', 'overdue');
 
   UPDATE customers
-  SET current_debt = v_total_debt,
-      updated_at = now()
+  SET current_debt = v_total_debt
   WHERE id = p_customer_id;
 
   RETURN v_total_debt;
@@ -418,7 +424,7 @@ CREATE OR REPLACE FUNCTION public.process_payment(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = 'public'
+SET search_path = public
 AS $$
 DECLARE
   v_payment_id UUID;
@@ -426,8 +432,15 @@ DECLARE
   v_new_paid_amount NUMERIC;
   v_new_status TEXT;
   v_is_fully_paid BOOLEAN;
+  v_user_role TEXT;
 BEGIN
-  SELECT total_amount, paid_amount, status INTO v_receipt
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  IF v_user_role NOT IN ('admin', 'cashier') THEN
+    RAISE EXCEPTION 'Permiso denegado: se requiere rol de cajero o administrador';
+  END IF;
+
+  SELECT total_amount, paid_amount, status
+  INTO v_receipt
   FROM receipts WHERE id = p_receipt_id FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -535,97 +548,52 @@ CREATE OR REPLACE FUNCTION public.generate_period_receipts(
   p_period_id UUID,
   p_receipts JSONB
 )
-RETURNS TABLE (generated_count INTEGER, skipped_count INTEGER, errors TEXT)
+RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = 'public'
+SET search_path = public
 AS $$
 DECLARE
-  v_receipt JSONB;
-  v_receipt_id UUID;
-  v_count INTEGER := 0;
-  v_skipped INTEGER := 0;
-  v_errors TEXT := '';
-  v_customer_id UUID;
-  v_err_msg TEXT;
+  v_user_role TEXT;
 BEGIN
-  IF EXISTS (SELECT 1 FROM billing_periods WHERE id = p_period_id AND is_closed = true) THEN
-    RAISE EXCEPTION 'El periodo ya esta cerrado';
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  IF v_user_role != 'admin' THEN
+    RAISE EXCEPTION 'Permiso denegado: se requiere rol de administrador';
   END IF;
 
-  FOR v_receipt IN SELECT * FROM jsonb_array_elements(p_receipts)
-  LOOP
-    BEGIN
-      v_customer_id := (v_receipt->>'customer_id')::UUID;
-
-      IF EXISTS (SELECT 1 FROM receipts WHERE customer_id = v_customer_id AND billing_period_id = p_period_id) THEN
-        v_skipped := v_skipped + 1;
-        v_errors := v_errors || format('Cliente %s ya tiene recibo para este periodo. ', v_customer_id);
-        CONTINUE;
-      END IF;
-
-      INSERT INTO receipts (
-        customer_id, billing_period_id, reading_id,
-        previous_reading, current_reading, consumption_kwh,
-        period_start, period_end,
-        energy_amount, fixed_charges, subtotal, igv, previous_debt,
-        total_amount, paid_amount, status,
-        issue_date, due_date
-      ) VALUES (
-        v_customer_id,
-        p_period_id,
-        (v_receipt->>'reading_id')::UUID,
-        COALESCE((v_receipt->>'previous_reading')::NUMERIC, 0),
-        COALESCE((v_receipt->>'current_reading')::NUMERIC, 0),
-        COALESCE((v_receipt->>'consumption_kwh')::NUMERIC, 0),
-        (v_receipt->>'period_start')::DATE,
-        (v_receipt->>'period_end')::DATE,
-        COALESCE((v_receipt->>'energy_amount')::NUMERIC, 0),
-        COALESCE((v_receipt->>'fixed_charges')::NUMERIC, 0),
-        COALESCE((v_receipt->>'subtotal')::NUMERIC, 0),
-        COALESCE((v_receipt->>'igv')::NUMERIC, 0),
-        COALESCE((v_receipt->>'previous_debt')::NUMERIC, 0),
-        COALESCE((v_receipt->>'total_amount')::NUMERIC, 0),
-        0,
-        'pending',
-        (v_receipt->>'issue_date')::DATE,
-        (v_receipt->>'due_date')::DATE
-      ) RETURNING id INTO v_receipt_id;
-
-      PERFORM adjust_customer_debt(
-        v_customer_id,
-        COALESCE((v_receipt->>'total_amount')::NUMERIC, 0)
-      );
-
-      v_count := v_count + 1;
-    EXCEPTION
-      WHEN unique_violation THEN
-        v_skipped := v_skipped + 1;
-        v_errors := v_errors || format('Recibo duplicado para cliente %s. ', v_customer_id);
-      WHEN foreign_key_violation THEN
-        v_skipped := v_skipped + 1;
-        v_errors := v_errors || format('FK invalida para cliente %s. ', v_customer_id);
-      WHEN check_violation THEN
-        v_skipped := v_skipped + 1;
-        v_errors := v_errors || format('CHECK violation para cliente %s. ', v_customer_id);
-      WHEN OTHERS THEN
-        v_skipped := v_skipped + 1;
-        v_err_msg := SQLERRM;
-        v_errors := v_errors || format('Error cliente %s: %s. ', v_customer_id, v_err_msg);
-        RAISE WARNING 'generate_period_receipts error for customer %: %', v_customer_id, v_err_msg;
-    END;
-  END LOOP;
-
-  generated_count := v_count;
-  skipped_count := v_skipped;
-  errors := v_errors;
-  RETURN NEXT;
+  INSERT INTO receipts (
+    id, customer_id, billing_period_id, tariff_id,
+    previous_reading, current_reading, consumption_kwh,
+    energy_amount, fixed_charges, subtotal,
+    previous_debt, total_amount, status, issue_date, due_date,
+    period_start, period_end, reading_id
+  )
+  SELECT
+    (r->>'id')::UUID,
+    (r->>'customer_id')::UUID,
+    (r->>'billing_period_id')::UUID,
+    (r->>'tariff_id')::UUID,
+    (r->>'previous_reading')::INTEGER,
+    (r->>'current_reading')::INTEGER,
+    (r->>'consumption_kwh')::INTEGER,
+    (r->>'energy_amount')::NUMERIC,
+    (r->>'fixed_charges')::NUMERIC,
+    (r->>'subtotal')::NUMERIC,
+    (r->>'previous_debt')::NUMERIC,
+    (r->>'total_amount')::NUMERIC,
+    (r->>'status')::TEXT,
+    (r->>'issue_date')::DATE,
+    (r->>'due_date')::DATE,
+    (r->>'period_start')::DATE,
+    (r->>'period_end')::DATE,
+    (r->>'reading_id')::UUID
+  FROM jsonb_array_elements(p_receipts) AS r;
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) FROM anon, public;
 REVOKE EXECUTE ON FUNCTION public.void_payment(UUID, UUID) FROM anon, public;
-REVOKE EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.process_payment(UUID, UUID, UUID, NUMERIC, NUMERIC, NUMERIC, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.void_payment(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.generate_period_receipts(UUID, JSONB) TO authenticated;
@@ -641,78 +609,79 @@ STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_start_of_month TIMESTAMPTZ := date_trunc('month', now());
+  v_user_role TEXT;
   v_total_collected NUMERIC;
   v_total_debt NUMERIC;
   v_active_customers BIGINT;
+  v_total_receipts BIGINT;
   v_pending_receipts BIGINT;
-  v_current_period_id UUID;
-  v_revenue JSONB;
-  v_sectors JSONB;
+  v_paid_receipts BIGINT;
+  v_revenue_history JSONB;
+  v_sector_consumption JSONB;
 BEGIN
-  SELECT COALESCE(SUM(p.amount), 0) INTO v_total_collected
-  FROM payments p
-  WHERE p.status = 'completed'
-    AND p.created_at >= v_start_of_month;
-
-  SELECT COALESCE(SUM(c.current_debt), 0) INTO v_total_debt
-  FROM customers c
-  WHERE c.is_active = true;
-
-  SELECT COUNT(*) INTO v_active_customers
-  FROM customers c
-  WHERE c.is_active = true;
-
-  SELECT id INTO v_current_period_id
-  FROM billing_periods
-  WHERE is_closed = false
-  ORDER BY created_at DESC
-  LIMIT 1;
-
-  IF v_current_period_id IS NOT NULL THEN
-    SELECT COUNT(*) INTO v_pending_receipts
-    FROM receipts
-    WHERE billing_period_id = v_current_period_id
-      AND status IN ('pending', 'partial');
-  ELSE
-    SELECT COUNT(*) INTO v_pending_receipts
-    FROM receipts
-    WHERE status IN ('pending', 'partial', 'overdue');
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  IF v_user_role NOT IN ('admin', 'cashier') THEN
+    RAISE EXCEPTION 'Permiso denegado: se requiere rol de cajero o administrador';
   END IF;
 
-  SELECT COALESCE(jsonb_agg(jsonb_build_object('name', sub.rw->>'name', 'total', sub.rw->>'total') ORDER BY sub.rw->>'year' ASC, sub.rw->>'month' ASC), '[]'::jsonb)
-  INTO v_revenue
-  FROM (
-    SELECT jsonb_build_object(
-      'name', bp.name,
-      'total', COALESCE(SUM(r.paid_amount), 0),
-      'year', bp.year,
-      'month', bp.month
-    ) AS rw
-    FROM billing_periods bp
-    LEFT JOIN receipts r ON r.billing_period_id = bp.id AND r.status = 'paid'
-    GROUP BY bp.id, bp.name, bp.year, bp.month
-    ORDER BY bp.year ASC, bp.month ASC
-    LIMIT 6
-  ) sub;
+  SELECT COALESCE(SUM(amount), 0) INTO v_total_collected
+  FROM payments WHERE status = 'completed';
 
-  SELECT COALESCE(jsonb_agg(sw), '[]'::jsonb)
-  INTO v_sectors
-  FROM (
-    SELECT jsonb_build_object('name', s.name, 'value', COALESCE(SUM(rd.consumption), 0)) AS sw
+  SELECT COALESCE(SUM(current_debt), 0) INTO v_total_debt
+  FROM customers WHERE is_active = true;
+
+  SELECT COUNT(*) INTO v_active_customers
+  FROM customers WHERE is_active = true;
+
+  SELECT COUNT(*) INTO v_total_receipts FROM receipts;
+  SELECT COUNT(*) INTO v_pending_receipts FROM receipts WHERE status IN ('pending', 'partial', 'overdue');
+  SELECT COUNT(*) INTO v_paid_receipts FROM receipts WHERE status = 'paid';
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'period_id', bp.id,
+      'period_name', bp.name,
+      'year', bp.year,
+      'month', bp.month,
+      'total', r.total
+    )
+  ), '[]'::jsonb) INTO v_revenue_history
+  FROM billing_periods bp
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(SUM(r.amount), 0) as total
+    FROM receipts r
+    JOIN payments p ON p.receipt_id = r.id AND p.status = 'completed'
+    WHERE r.billing_period_id = bp.id
+  ) r ON true
+  WHERE bp.is_closed = true
+  ORDER BY bp.year DESC, bp.month DESC
+  LIMIT 12;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'sector_id', s.id,
+      'sector_name', s.name,
+      'total_consumption', sc.total_kwh
+    )
+  ), '[]'::jsonb) INTO v_sector_consumption
+  FROM sectors s
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(SUM(rd.consumption_kwh), 0) as total_kwh
     FROM readings rd
     JOIN customers c ON c.id = rd.customer_id
-    JOIN sectors s ON s.id = c.sector_id
-    GROUP BY s.id, s.name
-  ) sub;
+    WHERE c.sector_id = s.id
+  ) sc ON true
+  WHERE s.is_active = true;
 
   RETURN jsonb_build_object(
-    'total_collected', v_total_collected,
-    'total_debt', v_total_debt,
-    'active_customers', v_active_customers,
-    'pending_receipts', v_pending_receipts,
-    'revenue_history', v_revenue,
-    'sector_consumption', v_sectors
+    'totalCollected', v_total_collected,
+    'totalDebt', v_total_debt,
+    'activeCustomers', v_active_customers,
+    'totalReceipts', v_total_receipts,
+    'pendingReceipts', v_pending_receipts,
+    'paidReceipts', v_paid_receipts,
+    'revenueHistory', v_revenue_history,
+    'sectorConsumption', v_sector_consumption
   );
 END;
 $$;
@@ -731,25 +700,27 @@ LANGUAGE plpgsql
 STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_user_role TEXT;
 BEGIN
-  IF p_cash_closure_id IS NOT NULL THEN
-    RETURN QUERY
-    SELECT COALESCE(SUM(p.amount), 0)::NUMERIC AS total,
-           COUNT(*)::BIGINT AS count
-    FROM payments p
-    WHERE p.cashier_id = p_cashier_id
-      AND p.created_at >= p_from
-      AND p.status != 'voided'
-      AND p.cash_closure_id = p_cash_closure_id;
-  ELSE
-    RETURN QUERY
-    SELECT COALESCE(SUM(p.amount), 0)::NUMERIC AS total,
-           COUNT(*)::BIGINT AS count
-    FROM payments p
-    WHERE p.cashier_id = p_cashier_id
-      AND p.created_at >= p_from
-      AND p.status != 'voided';
+  SELECT role INTO v_user_role FROM profiles WHERE id = auth.uid();
+  IF v_user_role NOT IN ('admin', 'cashier') THEN
+    RAISE EXCEPTION 'Permiso denegado: se requiere rol de cajero o administrador';
   END IF;
+
+  IF v_user_role = 'cashier' AND p_cashier_id != auth.uid() THEN
+    RAISE EXCEPTION 'Permiso denegado: solo puedes consultar tu propia sesion';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    COALESCE(SUM(p.amount), 0) as total,
+    COUNT(*) as count
+  FROM payments p
+  WHERE p.cashier_id = p_cashier_id
+  AND p.payment_date >= p_from
+  AND p.status = 'completed'
+  AND (p_cash_closure_id IS NULL OR p.cash_closure_id = p_cash_closure_id);
 END;
 $$;
 
@@ -1142,8 +1113,20 @@ WITH CHECK (
 
 CREATE POLICY "Reader update own readings" ON readings
 FOR UPDATE TO authenticated
-USING ((SELECT public.get_user_role()) IN ('admin', 'meter_reader') AND meter_reader_id = (SELECT auth.uid()))
-WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
+USING (
+  (SELECT public.get_user_role()) IN ('admin', 'meter_reader')
+  AND (
+    (SELECT public.get_user_role()) = 'admin'
+    OR meter_reader_id = (SELECT auth.uid())
+  )
+)
+WITH CHECK (
+  (SELECT public.get_user_role()) IN ('admin', 'meter_reader')
+  AND (
+    (SELECT public.get_user_role()) = 'admin'
+    OR meter_reader_id = (SELECT auth.uid())
+  )
+);
 
 CREATE POLICY "Users read readings" ON readings
 FOR SELECT TO authenticated
@@ -1244,6 +1227,15 @@ CREATE POLICY "System insert logs" ON audit_logs
 FOR INSERT TO authenticated
 WITH CHECK ((SELECT public.get_user_role()) IN ('admin', 'cashier', 'meter_reader'));
 
+CREATE POLICY "No one can update audit_logs" ON audit_logs
+FOR UPDATE TO authenticated
+USING (false)
+WITH CHECK (false);
+
+CREATE POLICY "No one can delete audit_logs" ON audit_logs
+FOR DELETE TO authenticated
+USING (false);
+
 -- ============================================================================
 -- 6. STORAGE BUCKETS
 -- ============================================================================
@@ -1253,9 +1245,18 @@ VALUES ('reading-photos', 'reading-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "Authenticated upload reading photos" ON storage.objects;
-CREATE POLICY "Authenticated upload reading photos" ON storage.objects
+CREATE POLICY "Admin and reader upload reading photos" ON storage.objects
 FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'reading-photos' AND auth.role() = 'authenticated');
+WITH CHECK (bucket_id = 'reading-photos' AND (SELECT public.get_user_role()) IN ('admin', 'meter_reader'));
+
+CREATE POLICY "Admin delete reading photos" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'reading-photos' AND (SELECT public.get_user_role()) = 'admin');
+
+CREATE POLICY "Admin update reading photos" ON storage.objects
+FOR UPDATE TO authenticated
+USING (bucket_id = 'reading-photos' AND (SELECT public.get_user_role()) = 'admin')
+WITH CHECK (bucket_id = 'reading-photos' AND (SELECT public.get_user_role()) = 'admin');
 
 DROP POLICY IF EXISTS "Authenticated read reading photos" ON storage.objects;
 CREATE POLICY "Authenticated read reading photos" ON storage.objects

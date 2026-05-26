@@ -63,7 +63,7 @@ describe('registerTariffAction', () => {
 
     const result = await registerTariffAction({ name: 'BTSB' }, [])
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al crear la tarifa' })
   })
 
   it('debería retornar error si Zod validation de tarifa falla', async () => {
@@ -83,7 +83,7 @@ describe('registerTariffAction', () => {
 
     const result = await registerTariffAction({ name: 'BTSB' }, [{ min_kwh: 0, max_kwh: null, price_per_kwh: 1, order_index: 1 }])
 
-    expect(result).toEqual({ success: false, error: 'Validate error' })
+    expect(result).toEqual({ success: false, error: 'Error al crear la tarifa' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -117,7 +117,7 @@ describe('toggleTariffStatusAction', () => {
 
     const result = await toggleTariffStatusAction('00000000-0000-4000-8500-000000000050', true)
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al cambiar estado de la tarifa' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -125,7 +125,7 @@ describe('toggleTariffStatusAction', () => {
 
     const result = await toggleTariffStatusAction('00000000-0000-4000-8500-000000000050', true)
 
-    expect(result).toEqual({ success: false, error: 'Not found' })
+    expect(result).toEqual({ success: false, error: 'Error al cambiar estado de la tarifa' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -158,7 +158,7 @@ describe('deleteTariffAction', () => {
 
     const result = await deleteTariffAction('00000000-0000-4000-8500-000000000050')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar la tarifa' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -166,7 +166,7 @@ describe('deleteTariffAction', () => {
 
     const result = await deleteTariffAction('00000000-0000-4000-8500-000000000050')
 
-    expect(result).toEqual({ success: false, error: 'FK constraint' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar la tarifa' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -200,7 +200,7 @@ describe('updateTariffAction', () => {
 
     const result = await updateTariffAction('00000000-0000-4000-8500-000000000050', { name: 'BTSB' }, [])
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar la tarifa' })
   })
 
   it('debería retornar error si Zod validation de tramos falla', async () => {
@@ -214,7 +214,7 @@ describe('updateTariffAction', () => {
 
     const result = await updateTariffAction('00000000-0000-4000-8500-000000000050', { name: 'BTSB' }, [{ min_kwh: 0, max_kwh: null, price_per_kwh: 1, order_index: 1 }])
 
-    expect(result).toEqual({ success: false, error: 'Validate error' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar la tarifa' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

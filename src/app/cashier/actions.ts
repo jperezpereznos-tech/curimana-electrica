@@ -7,7 +7,7 @@ import { getCustomerService } from '@/services/customer-service'
 import { getReceiptService } from '@/services/receipt-service'
 import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { revalidatePath } from 'next/cache'
-import { paymentActionSchema, batchPaymentActionSchema, openClosureSchema, uuidSchema, querySchema } from '@/lib/validations/schemas'
+import { paymentActionSchema, batchPaymentActionSchema, openClosureSchema, uuidSchema, querySchema, dateFilterSchema } from '@/lib/validations/schemas'
 
 export async function processPaymentAction(data: unknown) {
   try {
@@ -21,8 +21,8 @@ export async function processPaymentAction(data: unknown) {
     revalidatePath('/admin/receipts')
     revalidatePath('/admin/payments')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al procesar el pago.' }
+  } catch {
+    return { success: false as const, error: 'Error al procesar el pago.' }
   }
 }
 
@@ -38,8 +38,8 @@ export async function processBatchPaymentAction(data: unknown) {
     revalidatePath('/admin/receipts')
     revalidatePath('/admin/payments')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al procesar el pago lote.' }
+  } catch {
+    return { success: false as const, error: 'Error al procesar el pago lote.' }
   }
 }
 
@@ -52,22 +52,33 @@ export async function openClosureAction(amount: unknown) {
     const result = await cashClosureService.openClosure(userId, parsed)
     revalidatePath('/cashier')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al abrir caja.' }
+  } catch {
+    return { success: false as const, error: 'Error al abrir caja.' }
   }
 }
 
 export async function closeClosureAction(closureId: string) {
   try {
     uuidSchema.parse(closureId)
-    const { supabase, userId } = await requireCashierAuth()
-    const cashClosureService = getCashClosureService(supabase)
+    const { supabase, userId, role } = await requireCashierAuth()
 
+    if (role !== 'admin') {
+      const { data: closure } = await supabase
+        .from('cash_closures')
+        .select('cashier_id')
+        .eq('id', closureId)
+        .single()
+      if (!closure || closure.cashier_id !== userId) {
+        return { success: false as const, error: 'Solo puedes cerrar tu propia caja.' }
+      }
+    }
+
+    const cashClosureService = getCashClosureService(supabase)
     const result = await cashClosureService.closeClosure(closureId, userId)
     revalidatePath('/cashier')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al cerrar caja.' }
+  } catch {
+    return { success: false as const, error: 'Error al cerrar caja.' }
   }
 }
 
@@ -118,8 +129,8 @@ export async function searchCashierCustomerAction(query: string) {
     }
 
     return { success: true as const, data: null }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al buscar cliente.' }
+  } catch {
+    return { success: false as const, error: 'Error al buscar cliente.' }
   }
 }
 
@@ -130,8 +141,8 @@ export async function getCustomerPaymentsAction(customerId: string) {
     const paymentService = getPaymentService(supabase)
     const data = await paymentService.getPaymentsByCustomer(customerId)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener pagos.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener pagos.' }
   }
 }
 
@@ -142,18 +153,21 @@ export async function getPaymentVoucherDataAction(paymentId: string) {
     const paymentService = getPaymentService(supabase)
     const data = await paymentService.getPaymentDetails(paymentId)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener datos del comprobante.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener datos del comprobante.' }
   }
 }
 
-export async function getPaymentsByCashierAction(userId: string, dateFilterParams: { from?: string; to?: string }) {
+export async function getPaymentsByCashierAction(userId: string, dateFilterParams: unknown) {
   try {
     uuidSchema.parse(userId)
-    const { supabase } = await requireCashierAuth()
-    const paymentService = getPaymentService(supabase)
+    const parsedDates = dateFilterSchema.parse(dateFilterParams)
+    const { supabase, userId: currentUserId, role } = await requireCashierAuth()
 
-    const data = await paymentService.getPaymentsByCashier(userId, dateFilterParams)
+    const effectiveUserId = role === 'admin' ? userId : currentUserId
+
+    const paymentService = getPaymentService(supabase)
+    const data = await paymentService.getPaymentsByCashier(effectiveUserId, parsedDates)
     const mapped = data?.map((p) => ({
       id: p.id,
       receipt_number: p.receipts?.receipt_number?.toString() || 'N/A',
@@ -165,8 +179,8 @@ export async function getPaymentsByCashierAction(userId: string, dateFilterParam
       reference: p.reference || null
     })) || []
     return { success: true as const, data: mapped }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener pagos.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener pagos.' }
   }
 }
 
@@ -183,8 +197,8 @@ export async function getReceiptPrintDataAction(receiptId: string) {
   const concepts = await conceptService.getActiveConcepts()
 
   const configService = getMunicipalityConfigService(supabase)
-  let municipalityConfig = null
-  try { municipalityConfig = await configService.getConfig() } catch (e) { console.error('Error fetching municipality_config:', e) }
+    let municipalityConfig = null
+    try { municipalityConfig = await configService.getConfig() } catch { }
 
     const tariffTiers = receipt.customers?.tariffs?.tariff_tiers ?? []
     const sortedTiers = [...tariffTiers].sort((a, b) => a.min_kwh - b.min_kwh)
@@ -256,7 +270,7 @@ export async function getReceiptPrintDataAction(receiptId: string) {
         previousReceipts: previousReceiptRefs,
       },
     }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener datos del recibo.' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener datos del recibo.' }
   }
 }

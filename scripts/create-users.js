@@ -1,7 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yxhzkbzmnvhesdefwgjc.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -21,7 +19,7 @@ const users = [
 
 async function main() {
   for (const user of users) {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: user.email,
       password: user.password,
       options: {

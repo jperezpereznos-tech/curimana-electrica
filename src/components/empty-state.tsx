@@ -1,5 +1,5 @@
 import {
-  InboxIcon, Users, Receipt, Wallet, BookOpen, Zap, MapPin, Shield, Calendar, Tag, ClipboardList, Search, FileText,
+  InboxIcon, Users, Receipt, Wallet, BookOpen, Zap, MapPin, Shield, Calendar, Tag, ClipboardList, Search,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 

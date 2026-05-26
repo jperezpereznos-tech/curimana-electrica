@@ -7,22 +7,22 @@ import { z } from 'zod'
 import { uuidSchema } from '@/lib/validations/schemas'
 
 const conceptCreateSchema = z.object({
-  code: z.string().min(2),
-  name: z.string().min(3),
-  description: z.string().optional(),
-  amount: z.number().min(0),
+  code: z.string().min(2).max(50),
+  name: z.string().min(3).max(200),
+  description: z.string().max(500).optional(),
+  amount: z.number().min(0).finite(),
   type: z.enum(['fixed', 'percentage', 'per_kwh']),
-  applies_to_tariff_id: z.string().nullable().optional(),
+  applies_to_tariff_id: uuidSchema.nullable().optional(),
   is_active: z.boolean(),
 })
 
 const conceptUpdateSchema = z.object({
-  code: z.string().min(2).optional(),
-  name: z.string().min(3).optional(),
-  description: z.string().optional(),
-  amount: z.number().min(0).optional(),
+  code: z.string().min(2).max(50).optional(),
+  name: z.string().min(3).max(200).optional(),
+  description: z.string().max(500).optional(),
+  amount: z.number().min(0).finite().optional(),
   type: z.enum(['fixed', 'percentage', 'per_kwh']).optional(),
-  applies_to_tariff_id: z.string().nullable().optional(),
+  applies_to_tariff_id: uuidSchema.nullable().optional(),
 })
 
 export async function registerConceptAction(data: unknown) {
@@ -33,8 +33,8 @@ export async function registerConceptAction(data: unknown) {
     const result = await conceptService.createConcept(parsed, userId)
     revalidatePath('/admin/concepts')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al crear el concepto' }
+  } catch {
+    return { success: false as const, error: 'Error al crear el concepto' }
   }
 }
 
@@ -46,8 +46,8 @@ export async function toggleConceptStatusAction(id: string, isActive: boolean) {
     const result = await conceptService.toggleConceptStatus(id, isActive, userId)
     revalidatePath('/admin/concepts')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al cambiar estado del concepto' }
+  } catch {
+    return { success: false as const, error: 'Error al cambiar estado del concepto' }
   }
 }
 
@@ -59,8 +59,8 @@ export async function deleteConceptAction(id: string) {
     const result = await conceptService.deleteConcept(id, userId)
     revalidatePath('/admin/concepts')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al eliminar el concepto' }
+  } catch {
+    return { success: false as const, error: 'Error al eliminar el concepto' }
   }
 }
 
@@ -73,7 +73,7 @@ export async function updateConceptAction(id: string, data: unknown) {
     const result = await conceptService.updateConcept(id, parsed, userId)
     revalidatePath('/admin/concepts')
     return { success: true as const, data: result }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al actualizar el concepto' }
+  } catch {
+    return { success: false as const, error: 'Error al actualizar el concepto' }
   }
 }

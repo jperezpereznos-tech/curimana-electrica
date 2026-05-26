@@ -60,11 +60,9 @@ serve(async (req) => {
         const reading = customer.readings?.find((r: any) => r.billing_period_id === period_id)
         if (!reading) continue
 
-        const consumption = reading.consumption || 0
-        const tariff = customer.tariffs
-        const tiers = (tariff?.tariff_tiers || []).sort((a: any, b: any) => a.min_kwh - b.min_kwh)
+const consumption = reading.consumption || 0
 
-        let fixedCharges = 0
+      let fixedCharges = 0
         let percentageBase = 0
 
         for (const concept of concepts) {

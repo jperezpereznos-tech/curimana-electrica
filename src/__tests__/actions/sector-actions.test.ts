@@ -66,7 +66,7 @@ describe('createSectorAction', () => {
 
     const result = await createSectorAction({ name: 'Centro', code: 'CTR' })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al crear sector' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -74,7 +74,7 @@ describe('createSectorAction', () => {
 
     const result = await createSectorAction({ name: 'Centro', code: 'CTR' })
 
-    expect(result).toEqual({ success: false, error: 'Duplicate code' })
+    expect(result).toEqual({ success: false, error: 'Error al crear sector' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -107,7 +107,7 @@ describe('updateSectorAction', () => {
 
     const result = await updateSectorAction('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar sector' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -115,7 +115,7 @@ describe('updateSectorAction', () => {
 
     const result = await updateSectorAction('00000000-0000-4000-8100-000000000010', { name: 'Norte' })
 
-    expect(result).toEqual({ success: false, error: 'Not found' })
+    expect(result).toEqual({ success: false, error: 'Error al actualizar sector' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -148,7 +148,7 @@ describe('deleteSectorAction', () => {
 
     const result = await deleteSectorAction('00000000-0000-4000-8100-000000000010')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar sector' })
   })
 
   it('debería retornar error si el servicio falla', async () => {
@@ -156,7 +156,7 @@ describe('deleteSectorAction', () => {
 
     const result = await deleteSectorAction('00000000-0000-4000-8100-000000000010')
 
-    expect(result).toEqual({ success: false, error: 'FK constraint' })
+    expect(result).toEqual({ success: false, error: 'Error al eliminar sector' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -169,18 +169,27 @@ describe('deleteSectorAction', () => {
 })
 
 describe('assignReaderToSectorAction', () => {
+  const mockSelectChain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: { role: 'meter_reader' }, error: null }),
+  }
+  const mockUpdateChain = {
+    update: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockResolvedValue({ data: [{ id: '00000000-0000-4000-8100-000000000002' }], error: null }),
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireAdminAuth.mockResolvedValue({ supabase: mockSupabaseInstance, userId: '00000000-0000-4000-8100-000000000001' })
+    mockFrom.mockReturnValue(mockSelectChain)
   })
 
   it('debería asignar sector al lector y revalidar ruta', async () => {
-    const mockUpdateChain = {
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockResolvedValue({ data: [{ id: '00000000-0000-4000-8100-000000000002' }], error: null }),
-    }
-    mockFrom.mockReturnValue(mockUpdateChain)
+    mockFrom
+      .mockReturnValueOnce(mockSelectChain)
+      .mockReturnValueOnce(mockUpdateChain)
 
     const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
@@ -191,12 +200,7 @@ describe('assignReaderToSectorAction', () => {
   })
 
   it('debería desasignar sector si sectorId es null', async () => {
-    const mockUpdateChain = {
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockResolvedValue({ data: [{ id: '00000000-0000-4000-8100-000000000002' }], error: null }),
-    }
-    mockFrom.mockReturnValue(mockUpdateChain)
+    mockFrom.mockReturnValueOnce(mockSelectChain).mockReturnValueOnce(mockUpdateChain)
 
     const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', null)
 
@@ -205,16 +209,18 @@ describe('assignReaderToSectorAction', () => {
   })
 
   it('debería retornar error si la actualización falla', async () => {
-    const mockUpdateChain = {
+    const failingUpdateChain = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
     }
-    mockFrom.mockReturnValue(mockUpdateChain)
+    mockFrom
+      .mockReturnValueOnce(mockSelectChain)
+      .mockReturnValueOnce(failingUpdateChain)
 
     const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
-    expect(result).toEqual({ success: false, error: 'Update failed' })
+    expect(result).toEqual({ success: false, error: 'Error al asignar sector' })
   })
 
   it('debería retornar error si auth falla', async () => {
@@ -222,7 +228,7 @@ describe('assignReaderToSectorAction', () => {
 
     const result = await assignReaderToSectorAction('00000000-0000-4000-8200-000000000002', '00000000-0000-4000-8100-000000000010')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al asignar lector' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

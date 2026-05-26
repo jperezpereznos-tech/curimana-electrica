@@ -62,7 +62,7 @@ describe('voidPaymentAction', () => {
 
     const result = await voidPaymentAction('00000000-0000-4000-8400-000000000040')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al anular el pago' })
     expect(mockVoidPayment).not.toHaveBeenCalled()
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
@@ -72,7 +72,7 @@ describe('voidPaymentAction', () => {
 
     const result = await voidPaymentAction('00000000-0000-4000-8400-000000000040')
 
-    expect(result).toEqual({ success: false, error: 'El pago ya esta anulado' })
+    expect(result).toEqual({ success: false, error: 'Error al anular el pago' })
     expect(mockRevalidatePath).not.toHaveBeenCalled()
   })
 
@@ -135,7 +135,7 @@ describe('adminSearchCustomerReceiptsAction', () => {
 
     const result = await adminSearchCustomerReceiptsAction('SUM-001')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al buscar recibos del cliente' })
   })
 
   it('debería retornar error genérico si la búsqueda falla', async () => {
@@ -143,7 +143,7 @@ describe('adminSearchCustomerReceiptsAction', () => {
 
     const result = await adminSearchCustomerReceiptsAction('SUM-001')
 
-    expect(result).toEqual({ success: false, error: 'DB error' })
+    expect(result).toEqual({ success: false, error: 'Error al buscar recibos del cliente' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -177,7 +177,7 @@ describe('getPaymentDetailsAction', () => {
 
     const result = await getPaymentDetailsAction('00000000-0000-4000-8400-000000000040')
 
-    expect(result).toEqual({ success: false, error: 'No autenticado' })
+    expect(result).toEqual({ success: false, error: 'Error al obtener detalles del pago' })
   })
 
   it('debería retornar error si getPaymentDetails falla', async () => {
@@ -185,7 +185,7 @@ describe('getPaymentDetailsAction', () => {
 
     const result = await getPaymentDetailsAction('00000000-0000-4000-8400-000000000041')
 
-    expect(result).toEqual({ success: false, error: 'Pago no encontrado' })
+    expect(result).toEqual({ success: false, error: 'Error al obtener detalles del pago' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {

@@ -14,8 +14,8 @@ export async function createSectorAction(data: unknown): Promise<{ success: bool
     await sectorService.createSector(parsed)
     revalidatePath('/admin/sectors')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al crear sector' }
+  } catch {
+    return { success: false, error: 'Error al crear sector' }
   }
 }
 
@@ -29,8 +29,8 @@ export async function updateSectorAction(id: string, data: unknown): Promise<{ s
     await sectorService.updateSector(id, parsed)
     revalidatePath('/admin/sectors')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al actualizar sector' }
+  } catch {
+    return { success: false, error: 'Error al actualizar sector' }
   }
 }
 
@@ -43,8 +43,8 @@ export async function deleteSectorAction(id: string): Promise<{ success: boolean
     await sectorService.deleteSector(id)
     revalidatePath('/admin/sectors')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al eliminar sector' }
+  } catch {
+    return { success: false, error: 'Error al eliminar sector' }
   }
 }
 
@@ -53,16 +53,30 @@ export async function assignReaderToSectorAction(readerId: string, sectorId: str
     uuidSchema.parse(readerId)
     if (sectorId !== null) uuidSchema.parse(sectorId)
     const { supabase } = await requireAdminAuth()
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', readerId)
+      .single()
+
+    if (profileError || !profile) {
+      return { success: false, error: 'Usuario no encontrado' }
+    }
+    if (profile.role !== 'meter_reader' && sectorId !== null) {
+      return { success: false, error: 'Solo se puede asignar sector a un lecturador' }
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({ assigned_sector_id: sectorId })
       .eq('id', readerId)
       .select()
 
-    if (error) return { success: false, error: error.message }
+    if (error) return { success: false, error: 'Error al asignar sector' }
     revalidatePath('/admin/sectors')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al asignar lector' }
+  } catch {
+    return { success: false, error: 'Error al asignar lector' }
   }
 }

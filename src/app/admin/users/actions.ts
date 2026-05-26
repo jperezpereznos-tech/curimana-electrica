@@ -23,13 +23,26 @@ export async function updateUserRoleAction(userId: string, role: string): Promis
   try {
     uuidSchema.parse(userId)
     roleSchema.parse(role)
-    const { supabase } = await requireAdminAuth()
+    const { supabase, userId: currentUserId } = await requireAdminAuth()
+
+    if (userId === currentUserId) {
+      return { success: false, error: 'No puedes cambiar tu propio rol' }
+    }
+
     const profileService = getProfileService(supabase)
+    const allProfiles = await profileService.getAllUsers()
+    const adminCount = allProfiles.filter((p: { role: string | null }) => p.role === 'admin').length
+    const targetProfile = allProfiles.find((p: { id: string }) => p.id === userId)
+
+    if (targetProfile?.role === 'admin' && role !== 'admin' && adminCount <= 1) {
+      return { success: false, error: 'No se puede cambiar el rol del último administrador' }
+    }
+
     await profileService.updateRole(userId, role)
     revalidatePath('/admin/users')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al cambiar rol' }
+  } catch {
+    return { success: false, error: 'Error al cambiar rol' }
   }
 }
 
@@ -43,8 +56,8 @@ export async function assignSectorToUserAction(userId: string, sectorId: string 
     revalidatePath('/admin/users')
     revalidatePath('/admin/sectors')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al asignar sector' }
+  } catch {
+    return { success: false, error: 'Error al asignar sector' }
   }
 }
 
@@ -96,8 +109,8 @@ export async function inviteUserAction(
 
     revalidatePath('/admin/users')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al invitar usuario' }
+  } catch {
+    return { success: false, error: 'Error al invitar usuario' }
   }
 }
 
@@ -116,7 +129,7 @@ export async function deleteUserAction(userId: string): Promise<{ success: boole
 
     revalidatePath('/admin/users')
     return { success: true }
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Error al eliminar usuario' }
+  } catch {
+    return { success: false, error: 'Error al eliminar usuario' }
   }
 }

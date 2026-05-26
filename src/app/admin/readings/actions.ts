@@ -9,12 +9,13 @@ import { uuidSchema, updateReadingSchema } from '@/lib/validations/schemas'
 export async function getReadingsAdminAction(periodId?: string, needsReviewOnly?: boolean) {
   try {
     if (periodId) uuidSchema.parse(periodId)
+    const validatedReview = typeof needsReviewOnly === 'boolean' ? needsReviewOnly : undefined
     const { supabase } = await requireAdminAuth()
     const readingService = getReadingService(supabase)
-    const data = await readingService.getAllForAdmin(periodId, needsReviewOnly)
+    const data = await readingService.getAllForAdmin(periodId, validatedReview)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener lecturas', data: [] }
+  } catch {
+    return { success: false as const, error: 'Error al obtener lecturas', data: [] }
   }
 }
 
@@ -24,8 +25,8 @@ export async function getPeriodsForFilterAction() {
     const periodService = getPeriodService(supabase)
     const data = await periodService.getAllPeriods()
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener periodos', data: [] }
+  } catch {
+    return { success: false as const, error: 'Error al obtener periodos', data: [] }
   }
 }
 
@@ -38,7 +39,7 @@ export async function updateReadingAction(readingId: string, data: unknown) {
     const updated = await readingService.updateReading(readingId, parsed, userId)
     revalidatePath('/admin/readings')
     return { success: true as const, data: updated }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al actualizar lectura' }
+  } catch {
+    return { success: false as const, error: 'Error al actualizar lectura' }
   }
 }

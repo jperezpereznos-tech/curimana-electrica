@@ -25,8 +25,8 @@ export async function adminSearchCustomerReceiptsAction(query: string) {
 
     const receipts = [...(pendingReceipts || []), ...(partialReceipts || []), ...(overdueReceipts || [])]
     return { success: true as const, data: { customer, receipts } }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al buscar recibos del cliente' }
+  } catch {
+    return { success: false as const, error: 'Error al buscar recibos del cliente' }
   }
 }
 
@@ -40,8 +40,8 @@ export async function voidPaymentAction(paymentId: string) {
     revalidatePath('/admin/receipts')
     revalidatePath('/admin/customers')
     return { success: true as const }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al anular el pago' }
+  } catch {
+    return { success: false as const, error: 'Error al anular el pago' }
   }
 }
 
@@ -52,7 +52,7 @@ export async function getPaymentDetailsAction(paymentId: string) {
     const paymentService = getPaymentService(supabase)
     const data = await paymentService.getPaymentDetails(paymentId)
     return { success: true as const, data }
-  } catch (e) {
-    return { success: false as const, error: e instanceof Error ? e.message : 'Error al obtener detalles del pago' }
+  } catch {
+    return { success: false as const, error: 'Error al obtener detalles del pago' }
   }
 }
