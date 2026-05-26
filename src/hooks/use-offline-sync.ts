@@ -180,7 +180,7 @@ export function useOfflineSync() {
       const periodId = currentPeriod?.id ?? null
 
       if (!periodId) {
-        console.error('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
+		console.warn('Sync aborted: no open billing period found. Readings will stay pending until a period is opened.')
         setSyncStatus('error')
         setLastSyncTime(new Date().toISOString())
         await updateCounter()
