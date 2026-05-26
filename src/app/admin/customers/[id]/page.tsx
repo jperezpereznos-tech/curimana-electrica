@@ -12,6 +12,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { MapPin, Phone, User, CreditCard, Activity } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { CustomerReceiptsTab } from './customer-receipts-tab'
+import { StaggerReveal } from '@/components/stagger-reveal'
 import type { PaymentForCustomer, ReadingWithBillingPeriod, ReceiptForCustomer } from '@/types/views'
 
 export default async function CustomerDetailsPage({
@@ -41,8 +42,8 @@ export default async function CustomerDetailsPage({
   const payments = paymentsResult && '_error' in paymentsResult ? [] : (paymentsResult as PaymentForCustomer[] || [])
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <StaggerReveal>
+    <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
             <User className="h-6 w-6 text-primary" />
@@ -190,6 +191,6 @@ export default async function CustomerDetailsPage({
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </StaggerReveal>
   )
 }

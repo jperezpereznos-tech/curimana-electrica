@@ -111,7 +111,7 @@ function CustomersListInner({ initialCustomers, query, tariffs, sectors }: { ini
           paginated.map((customer) => (
             <TableRow
               key={customer.id}
-              className="cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 transition-colors"
+              className="cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 hover:shadow-sm transition-all duration-200"
               onClick={() => router.push(`/admin/customers/${customer.id}`)}
             >
                   <TableCell className="font-mono font-bold text-primary">

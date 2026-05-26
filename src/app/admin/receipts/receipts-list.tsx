@@ -148,7 +148,7 @@ function ReceiptsListInner({ initialReceipts, periods, currentFilters, municipal
           paginated.map((receipt: ReceiptWithPeriod) => (
             <TableRow
               key={receipt.id}
-              className="cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 transition-colors"
+              className="cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 hover:shadow-sm transition-all duration-200"
               onClick={() => router.push(`/admin/receipts/${receipt.id}`)}
             >
               <TableCell className="font-mono font-bold">{receipt.receipt_number}</TableCell>

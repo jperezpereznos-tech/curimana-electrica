@@ -12,6 +12,7 @@ import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { EmptyState } from '@/components/empty-state'
+import { StaggerReveal } from '@/components/stagger-reveal'
 import type { CustomerWithRelations } from '@/types/views'
 import type { CustomerCache } from '@/lib/db/dexie'
 
@@ -83,6 +84,7 @@ export default function SearchPage() {
   }
 
   return (
+    <StaggerReveal>
     <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Buscar Suministro</h2>
 
@@ -124,7 +126,7 @@ export default function SearchPage() {
               {results.length} resultado(s) encontrado(s)
             </p>
             {results.map((customer) => (
-              <Card key={customer.id} className="hover:border-primary/50 transition-colors">
+              <Card key={customer.id} className="hover:border-primary/50 hover:shadow-sm transition-all duration-200">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -159,5 +161,6 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+    </StaggerReveal>
   )
 }

@@ -9,6 +9,8 @@ import { Wifi, WifiOff, RefreshCcw, Camera, Search, List, MapPin, AlertCircle } 
 import Link from 'next/link'
 import { db } from '@/lib/db/dexie'
 import { getReaderDashboardDataAction } from './actions'
+import { AnimatedNumber } from '@/components/animated-number'
+import { StaggerReveal } from '@/components/stagger-reveal'
 
 
 export default function ReaderDashboard() {
@@ -60,6 +62,7 @@ export default function ReaderDashboard() {
   }, [])
 
   return (
+    <StaggerReveal>
     <div className="flex flex-col gap-4">
       {dashboardError && (
         <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
@@ -83,7 +86,7 @@ export default function ReaderDashboard() {
 {!hasMounted ? (
   <div className="h-12 w-full animate-pulse bg-muted rounded-lg" />
 ) : (
-  <div className={`p-3 rounded-lg flex items-center justify-between ${isOnline ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+    <div className={`p-3 rounded-lg flex items-center justify-between transition-all duration-300 ${isOnline ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
     <div className="flex items-center gap-2 font-medium">
       {isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}
       {isOnline ? 'En línea' : 'Sin conexión'}
@@ -105,7 +108,7 @@ export default function ReaderDashboard() {
       <CardTitle className="text-xs uppercase text-muted-foreground">Lecturas Hoy</CardTitle>
     </CardHeader>
     <CardContent className="p-4 pt-2">
-      <div className="text-2xl font-bold">{syncedCount + localPendingToday} / {activeCustomers}</div>
+        <div className="text-2xl font-bold"><AnimatedNumber value={syncedCount + localPendingToday} duration={600} /> / <AnimatedNumber value={activeCustomers} duration={600} /></div>
     </CardContent>
   </Card>
   <Card>
@@ -113,7 +116,7 @@ export default function ReaderDashboard() {
       <CardTitle className="text-xs uppercase text-muted-foreground">Sincronizadas</CardTitle>
     </CardHeader>
     <CardContent className="p-4 pt-2">
-      <div className="text-2xl font-bold text-success">{syncedCount}</div>
+        <div className="text-2xl font-bold text-success"><AnimatedNumber value={syncedCount} duration={600} /></div>
     </CardContent>
   </Card>
 </div>
@@ -135,5 +138,6 @@ export default function ReaderDashboard() {
         </Card>
       )}
     </div>
+    </StaggerReveal>
   )
 }

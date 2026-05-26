@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCustomerService } from '@/services/customer-service'
 import { ReadingRouteClient } from './reading-route-client'
+import { StaggerReveal } from '@/components/stagger-reveal'
 import type { AssignedSectorItem } from '@/types/views'
 
 interface RouteCustomer {
@@ -54,5 +55,5 @@ export default async function ReadingRoutePage() {
     }
   }
 
-  return <ReadingRouteClient assignedSector={assignedSector} customers={customers} />
+  return <StaggerReveal><ReadingRouteClient assignedSector={assignedSector} customers={customers} /></StaggerReveal>
 }

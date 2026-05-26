@@ -4,6 +4,7 @@ import { getPeriodService } from '@/services/period-service'
 import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { createClient } from '@/lib/supabase/server'
 import { ReceiptsList } from './receipts-list'
+import { StaggerReveal } from '@/components/stagger-reveal'
 import type { ReceiptWithPeriod, PeriodRow } from '@/types/views'
 
 export default async function ReceiptsPage({
@@ -46,26 +47,26 @@ export default async function ReceiptsPage({
   } catch (e) { errorMsg = e instanceof Error ? e.message : String(e) }
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-heading font-bold tracking-tight">Recibos Emitidos</h2>
-          <p className="text-muted-foreground">Consulta y gestion de la facturacion historica.</p>
-        </div>
+    <StaggerReveal>
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h2 className="text-3xl font-heading font-bold tracking-tight">Recibos Emitidos</h2>
+        <p className="text-muted-foreground">Consulta y gestion de la facturacion historica.</p>
       </div>
+    </div>
 
-      {errorMsg && (
-        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
-          Error: {errorMsg}
-        </div>
-      )}
+    {errorMsg && (
+      <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive mb-4">
+        Error: {errorMsg}
+      </div>
+    )}
 
-      <ReceiptsList
-        initialReceipts={receipts || []}
-        periods={periods}
-        currentFilters={params}
-        municipalityConfig={municipalityConfig}
-      />
-    </>
+    <ReceiptsList
+      initialReceipts={receipts || []}
+      periods={periods}
+      currentFilters={params}
+      municipalityConfig={municipalityConfig}
+    />
+    </StaggerReveal>
   )
 }

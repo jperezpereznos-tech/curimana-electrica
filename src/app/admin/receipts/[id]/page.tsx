@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
 import { ReceiptDetailActions } from './receipt-actions'
+import { StaggerReveal } from '@/components/stagger-reveal'
 import dynamic from 'next/dynamic'
 import './receipt-print.css'
 
@@ -113,8 +114,8 @@ export default async function ReceiptDetailsPage({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4 no-print">
+    <StaggerReveal>
+    <div className="flex items-center gap-4 no-print">
         <Button variant="ghost" size="icon" aria-label="Volver a recibos" nativeButton={false} render={<Link href="/admin/receipts"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
           <h2 className="text-3xl font-heading font-bold tracking-tight">Recibo</h2>
@@ -215,8 +216,8 @@ export default async function ReceiptDetailsPage({
       </div>
 
       <div id="receipt-municipal-print" style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-        <ReceiptPrintLayout {...printLayoutProps} />
-      </div>
+    <ReceiptPrintLayout {...printLayoutProps} />
     </div>
+    </StaggerReveal>
   )
 }

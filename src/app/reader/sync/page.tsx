@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
- RefreshCcw, CheckCircle2, AlertTriangle, Database, Upload, Wifi, WifiOff
+  RefreshCcw, CheckCircle2, AlertTriangle, Database, Upload, Wifi, WifiOff
 } from 'lucide-react'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
+import { AnimatedNumber } from '@/components/animated-number'
+import { StaggerReveal } from '@/components/stagger-reveal'
 
 export default function SyncPage() {
   const {
@@ -37,8 +39,9 @@ export default function SyncPage() {
  }).replace(/\u202f/g, ' ')
  }
 
- return (
- <div className="flex flex-col gap-4">
+  return (
+    <StaggerReveal>
+    <div className="flex flex-col gap-4">
  <h2 className="text-xl font-bold">Sincronización</h2>
 
  <Card>
@@ -80,7 +83,7 @@ export default function SyncPage() {
               <Database className="h-5 w-5 text-muni-blue" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{pendingSyncCount}</p>
+                  <p className="text-2xl font-bold"><AnimatedNumber value={pendingSyncCount} duration={400} /></p>
                 <p className="text-xs text-muted-foreground">Pendientes</p>
               </div>
             </div>
@@ -190,7 +193,8 @@ export default function SyncPage() {
  </div>
  </CardContent>
  </Card>
- )}
- </div>
- )
+        )}
+    </div>
+    </StaggerReveal>
+  )
 }

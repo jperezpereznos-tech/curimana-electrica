@@ -15,20 +15,20 @@ const RevenueChartInner = lazy(() =>
         </CardHeader>
         <CardContent className="h-[300px]">
           <mod.ResponsiveContainer width="100%" height="100%">
-            <mod.BarChart data={data}>
-              <mod.CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <mod.XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-              <mod.YAxis
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `S/${value}`}
-              />
-              <mod.Tooltip
-                formatter={(value) => [formatCurrency(Number(value)), 'Recaudado']}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-              />
-              <mod.Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+        <mod.BarChart data={data}>
+          <mod.CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <mod.XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+          <mod.YAxis
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => `S/${value}`}
+          />
+          <mod.Tooltip
+            formatter={(value) => [formatCurrency(Number(value)), 'Recaudado']}
+            contentStyle={{ borderRadius: '6px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          />
+          <mod.Bar dataKey="total" fill="#0a4a3a" radius={[4, 4, 0, 0]} isAnimationActive animationDuration={800} animationEasing="ease-out" />
             </mod.BarChart>
           </mod.ResponsiveContainer>
         </CardContent>
@@ -39,7 +39,7 @@ const RevenueChartInner = lazy(() =>
 
 const SectorConsumptionChartInner = lazy(() =>
   import('recharts').then(mod => {
-    const COLORS = ['#0066cc', '#1a7a3a', '#cc7a00', '#c0c0c0', '#003d7a']
+    const COLORS = ['#0a4a3a', '#2d7a5a', '#e8a020', '#4a7a3a', '#062e24']
     return {
       default: ({ data }: { data: ChartDataEntry[] }) => (
         <Card>
@@ -49,15 +49,18 @@ const SectorConsumptionChartInner = lazy(() =>
           <CardContent className="h-[300px]">
             <mod.ResponsiveContainer width="100%" height="100%">
               <mod.PieChart>
-                <mod.Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
+        <mod.Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          innerRadius={60}
+          outerRadius={80}
+          paddingAngle={5}
+          dataKey="value"
+          isAnimationActive
+          animationDuration={800}
+          animationEasing="ease-out"
+        >
                   {data.map((entry, index) => (
                     <mod.Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
@@ -77,15 +80,15 @@ function ChartSkeleton() {
 }
 
 const accentStyles = {
-  blue: 'border-t-2 border-t-muni-blue bg-muni-blue/[0.03] dark:bg-muni-blue/10',
-  amber: 'border-t-2 border-t-muni-amber bg-muni-amber/[0.03] dark:bg-muni-amber/10',
-  green: 'border-t-2 border-t-muni-green bg-muni-green/[0.03] dark:bg-muni-green/10',
-  red: 'border-t-2 border-t-destructive bg-destructive/[0.03] dark:bg-destructive/10',
+  blue: 'border-t-2 border-t-muni-blue bg-muni-blue-light/50 dark:bg-muni-blue/10',
+  amber: 'border-t-2 border-t-muni-amber bg-muni-amber-light/50 dark:bg-muni-amber/10',
+  green: 'border-t-2 border-t-muni-green bg-muni-green-light/50 dark:bg-muni-green/10',
+  red: 'border-t-2 border-t-destructive bg-destructive/[0.04] dark:bg-destructive/10',
 } as const
 
 const accentIconBg = {
   blue: 'bg-muni-blue/10 text-muni-blue',
-  amber: 'bg-muni-amber/10 text-muni-amber',
+  amber: 'bg-muni-gold/15 text-muni-amber',
   green: 'bg-muni-green/10 text-muni-green',
   red: 'bg-destructive/10 text-destructive',
 } as const

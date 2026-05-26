@@ -87,7 +87,7 @@ export function ReadingRouteClient({ assignedSector, customers }: ReadingRouteCl
           {customers.map((customer, index) => (
             <Card
               key={customer.id}
-              className={`hover:border-primary/50 transition-colors ${
+              className={`hover:border-primary/50 hover:shadow-sm transition-all duration-200 ${
                 customer.last_reading ? 'border-muni-green/30 bg-muni-green/5' : ''
               }`}
             >

@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/empty-state'
+import { StaggerReveal } from '@/components/stagger-reveal'
 
 import { PendingReadingItem } from '@/types/views'
 
@@ -89,6 +90,7 @@ export default function PendingReadingsPage() {
   const totalCount = pendingReadings.length
 
   return (
+    <StaggerReveal>
     <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Lecturas Pendientes</h2>
@@ -190,5 +192,6 @@ export default function PendingReadingsPage() {
     </div>
         )}
       </div>
+    </StaggerReveal>
   )
 }

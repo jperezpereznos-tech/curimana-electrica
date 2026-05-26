@@ -6,58 +6,58 @@ import { Download, X } from 'lucide-react'
 import type { BeforeInstallPromptEvent } from '@/types/views'
 
 export function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showPrompt, setShowPrompt] = useState(false)
+const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+const [showPrompt, setShowPrompt] = useState(false)
 
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setShowPrompt(true)
-    }
+useEffect(() => {
+  const handler = (e: Event) => {
+    e.preventDefault()
+    setDeferredPrompt(e as BeforeInstallPromptEvent)
+    setShowPrompt(true)
+  }
 
-    window.addEventListener('beforeinstallprompt', handler)
+  window.addEventListener('beforeinstallprompt', handler)
 
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
+  return () => window.removeEventListener('beforeinstallprompt', handler)
+}, [])
 
-  const handleInstall = async () => {
-    if (!deferredPrompt) return
-    
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
+const handleInstall = async () => {
+  if (!deferredPrompt) return
 
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null)
-      setShowPrompt(false)
-    }
+  deferredPrompt.prompt()
+  const { outcome } = await deferredPrompt.userChoice
+
+  if (outcome === 'accepted') {
     setDeferredPrompt(null)
     setShowPrompt(false)
   }
+  setDeferredPrompt(null)
+  setShowPrompt(false)
+}
 
-  if (!showPrompt) return null
+if (!showPrompt) return null
 
-  return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-4">
-      <div className="bg-primary text-primary-foreground p-4 rounded-xl shadow-2xl flex items-center justify-between border border-primary-foreground/20">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-lg">
-            <Download className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-bold text-sm">Instalar Curimana Eléctrica</p>
-            <p className="text-xs opacity-90">Acceso rápido y modo offline en tu celular.</p>
-          </div>
+return (
+  <div className="fixed bottom-4 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-4">
+    <div className="bg-muni-blue-deep text-white p-4 rounded-xl shadow-2xl flex items-center justify-between border border-muni-gold/20">
+      <div className="flex items-center gap-3">
+        <div className="bg-muni-gold/20 p-2 rounded-lg">
+          <Download className="h-5 w-5 text-muni-gold" />
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="font-bold hover:bg-white/10" onClick={handleInstall}>
-            INSTALAR
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10" onClick={() => setShowPrompt(false)} aria-label="Cerrar">
-            <X className="h-4 w-4" />
-          </Button>
+        <div>
+          <p className="font-bold text-sm">Instalar Curimana Eléctrica</p>
+          <p className="text-xs opacity-80">Acceso rápido y modo offline en tu celular.</p>
         </div>
       </div>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" className="font-bold hover:bg-muni-canopy/20 text-muni-gold" onClick={handleInstall}>
+          INSTALAR
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muni-canopy/20" onClick={() => setShowPrompt(false)} aria-label="Cerrar">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
-  )
+  </div>
+)
 }
