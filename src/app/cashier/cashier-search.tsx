@@ -205,7 +205,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
   {receipts.map((receipt) => {
     const pending = Math.round((receipt.total_amount - (receipt.paid_amount || 0)) * 100) / 100
     return (
-    <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+    <div key={receipt.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 hover:shadow-sm transition-all duration-200">
       <div className="flex items-center gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -264,7 +264,7 @@ export function CashierSearch({ closureId, municipalityConfig }: { closureId: st
                 const r = p.receipts as Record<string, unknown> | null
                 const period = r?.billing_periods as Record<string, unknown> | null
                 return (
-                  <div key={p.id as string} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div key={p.id as string} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 hover:shadow-sm transition-all duration-200">
                     <div className="flex items-center gap-4">
                       <div>
                         <div className="flex items-center gap-2">

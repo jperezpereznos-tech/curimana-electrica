@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getMunicipalityConfigService } from '@/services/municipality-config-service'
 import { ConfigForm } from './config-form'
+import { StaggerReveal } from '@/components/stagger-reveal'
 
 export default async function ConfigPage() {
   const supabase = await createClient()
@@ -15,11 +16,11 @@ export default async function ConfigPage() {
   }
 
   return (
-    <>
-      <div className="mb-6">
-        <h2 className="text-3xl font-heading font-bold tracking-tight">Configuracion Municipal</h2>
-        <p className="text-muted-foreground">Datos de la municipalidad y parametros de facturacion.</p>
-      </div>
+    <StaggerReveal>
+    <div className="mb-6">
+      <h2 className="text-3xl font-heading font-bold tracking-tight">Configuracion Municipal</h2>
+      <p className="text-muted-foreground">Datos de la municipalidad y parametros de facturacion.</p>
+    </div>
 
     {errorMsg && (
       <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg mb-4">
@@ -27,7 +28,7 @@ export default async function ConfigPage() {
       </div>
     )}
 
-      <ConfigForm config={config} />
-    </>
+    <ConfigForm config={config} />
+    </StaggerReveal>
   )
 }

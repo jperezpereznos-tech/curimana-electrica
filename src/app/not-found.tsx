@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8 bg-muted/20">
       <div className="max-w-md w-full text-center space-y-8">
-        <div className="relative mx-auto">
+        <div className="relative mx-auto animate-in zoom-in-95 duration-500 ease-out fill-mode-both">
           <div className="h-32 w-32 rounded-3xl bg-muni-blue/10 flex items-center justify-center mx-auto">
             <Zap className="h-16 w-16 text-muni-blue" strokeWidth={1.25} />
           </div>
@@ -17,14 +17,14 @@ export default function NotFound() {
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 animate-in fade-in slide-in-from-bottom-3 duration-500 ease-out fill-mode-both" style={{ animationDelay: '200ms' }}>
           <h2 className="text-3xl font-heading font-bold tracking-tight">Página no encontrada</h2>
           <p className="text-muted-foreground">
             La dirección que buscas no existe o fue movida. Verifica la URL e intenta de nuevo.
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out fill-mode-both" style={{ animationDelay: '400ms' }}>
           <Button nativeButton={false} render={<Link href="/"><Home className="h-4 w-4 mr-2" />Ir al inicio</Link>} className="gap-2 bg-muni-blue hover:bg-muni-blue/90" />
           <Button variant="outline" nativeButton={false} render={<Link href="javascript:history.back()"><ArrowLeft className="h-4 w-4 mr-2" />Volver atrás</Link>} className="gap-2" />
         </div>

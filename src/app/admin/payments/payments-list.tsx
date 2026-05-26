@@ -150,7 +150,7 @@ const rows = initialPayments.map((p: PaymentWithDetails) => [
           paginated.map((payment: PaymentWithDetails) => (
             <TableRow
               key={payment.id}
-              className={`cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 transition-colors ${payment.status === 'voided' ? 'opacity-50' : ''}`}
+              className={`cursor-pointer hover:bg-muni-blue/5 dark:hover:bg-muni-blue/10 hover:shadow-sm transition-all duration-200 ${payment.status === 'voided' ? 'opacity-50' : ''}`}
               onClick={() => router.push(`/admin/payments/${payment.id}`)}
             >
               <TableCell className="font-mono text-xs"><span className="text-primary hover:underline">{payment.receipts?.receipt_number || 'N/A'}</span></TableCell>

@@ -87,7 +87,7 @@ export function TopDebtors() {
           debtors.map((debtor, index) => (
             <div
               key={debtor.id}
-              className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 hover:shadow-sm transition-all duration-200"
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium">

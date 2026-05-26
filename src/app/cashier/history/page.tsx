@@ -27,6 +27,8 @@ import {
 import { getPaymentsByCashierAction } from '../actions'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
+import { AnimatedNumber } from '@/components/animated-number'
+import { StaggerReveal } from '@/components/stagger-reveal'
 import type { CashierHistoryPayment } from '@/types/views'
 
 export default function CashierHistoryPage() {
@@ -130,8 +132,8 @@ export default function CashierHistoryPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+    <StaggerReveal>
+    <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Historial de Cobros</h2>
             <p className="text-muted-foreground">
@@ -156,7 +158,7 @@ export default function CashierHistoryPage() {
               <Receipt className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+              <div className="text-2xl font-bold">S/ <AnimatedNumber value={totalAmount} decimals={2} duration={600} /></div>
               <p className="text-xs text-muted-foreground">
                 {filteredPayments.length} pagos registrados
               </p>
@@ -171,8 +173,8 @@ export default function CashierHistoryPage() {
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(filteredPayments.length > 0 ? Math.round(totalAmount / filteredPayments.length * 100) / 100 : 0)}
+      <div className="text-2xl font-bold">
+        S/ <AnimatedNumber value={filteredPayments.length > 0 ? Math.round(totalAmount / filteredPayments.length * 100) / 100 : 0} decimals={2} duration={600} />
               </div>
               <p className="text-xs text-muted-foreground">Monto promedio</p>
             </CardContent>
@@ -310,7 +312,7 @@ export default function CashierHistoryPage() {
               </Button>
             </div>
           </div>
-)}
-      </div>
-    )
-  }
+        )}
+    </StaggerReveal>
+  )
+}

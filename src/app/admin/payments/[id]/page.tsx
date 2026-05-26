@@ -8,6 +8,7 @@ import { ArrowLeft, DollarSign, User, FileText, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
+import { StaggerReveal } from '@/components/stagger-reveal'
 
 export default async function PaymentDetailPage({
   params,
@@ -34,8 +35,8 @@ export default async function PaymentDetailPage({
   const cashier = payment.cashier
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+    <StaggerReveal>
+    <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" aria-label="Volver a pagos" nativeButton={false} render={<Link href="/admin/payments"><ArrowLeft className="h-5 w-5" /></Link>} />
         <div className="flex-1">
           <h2 className="text-3xl font-heading font-bold tracking-tight">Detalle de Pago</h2>
@@ -147,8 +148,8 @@ export default async function PaymentDetailPage({
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
+    </Card>
     </div>
+    </StaggerReveal>
   )
 }

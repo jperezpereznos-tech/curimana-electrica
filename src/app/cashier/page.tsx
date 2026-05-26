@@ -5,6 +5,7 @@ import { CashierSearch } from './cashier-search'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { redirect } from 'next/navigation'
+import { StaggerReveal } from '@/components/stagger-reveal'
 
 export default async function CashierDashboard() {
   const supabase = await createClient()
@@ -21,6 +22,7 @@ export default async function CashierDashboard() {
   ])
 
   return (
+    <StaggerReveal>
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
@@ -43,8 +45,9 @@ export default async function CashierDashboard() {
           <Button nativeButton={false} render={<Link href="/cashier/closure">Abrir caja</Link>} />
         </div>
       ) : (
-        <CashierSearch closureId={activeClosure.id} municipalityConfig={muniConfig} />
-      )}
+    <CashierSearch closureId={activeClosure.id} municipalityConfig={muniConfig} />
+    )}
     </div>
+    </StaggerReveal>
   )
 }
