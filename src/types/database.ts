@@ -304,34 +304,34 @@ export type Database = {
         }
         Relationships: []
       }
-      payments: {
-        Row: {
-          amount: number
-          cash_closure_id: string | null
-          cashier_id: string | null
-          change_amount: number | null
-          created_at: string | null
-          customer_id: string | null
-          id: string
-          method: string | null
-          payment_date: string | null
-          receipt_id: string | null
+payments: {
+      Row: {
+        amount: number
+        cash_closure_id: string | null
+        cashier_id: string | null
+        change_amount: number | null
+        created_at: string | null
+        customer_id: string
+        id: string
+        method: string | null
+        payment_date: string | null
+        receipt_id: string
           received_amount: number | null
           reference: string | null
           status: string | null
           voided_at: string | null
         }
-        Insert: {
-          amount: number
-          cash_closure_id?: string | null
-          cashier_id?: string | null
-          change_amount?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          id?: string
-          method?: string | null
-          payment_date?: string | null
-          receipt_id?: string | null
+      Insert: {
+        amount: number
+        cash_closure_id?: string | null
+        cashier_id?: string | null
+        change_amount?: number | null
+        created_at?: string | null
+        customer_id: string
+        id?: string
+        method?: string | null
+        payment_date?: string | null
+        receipt_id: string
           received_amount?: number | null
           reference?: string | null
           status?: string | null
@@ -429,13 +429,13 @@ export type Database = {
           },
         ]
       }
-      readings: {
-        Row: {
-          billing_period_id: string | null
-          consumption: number | null
-          created_at: string | null
-          current_reading: number
-          customer_id: string | null
+readings: {
+      Row: {
+        billing_period_id: string
+        consumption: number | null
+        created_at: string | null
+        current_reading: number
+        customer_id: string
           id: string
           is_estimated: boolean | null
           is_synced: boolean | null
@@ -447,12 +447,12 @@ export type Database = {
           reading_date: string | null
           sync_id: string | null
         }
-        Insert: {
-          billing_period_id?: string | null
-          consumption?: number | null
-          created_at?: string | null
-          current_reading: number
-          customer_id?: string | null
+      Insert: {
+        billing_period_id: string
+        consumption?: number | null
+        created_at?: string | null
+        current_reading: number
+        customer_id: string
           id?: string
           is_estimated?: boolean | null
           is_synced?: boolean | null
@@ -505,13 +505,13 @@ export type Database = {
           },
         ]
       }
-      receipts: {
-        Row: {
-          billing_period_id: string | null
-          consumption_kwh: number
-          created_at: string | null
-          current_reading: number
-          customer_id: string | null
+receipts: {
+      Row: {
+        billing_period_id: string
+        consumption_kwh: number
+        created_at: string | null
+        current_reading: number
+        customer_id: string
           due_date: string
           energy_amount: number
           fixed_charges: number
@@ -531,12 +531,12 @@ export type Database = {
           total_amount: number
           updated_at: string | null
         }
-        Insert: {
-          billing_period_id?: string | null
-          consumption_kwh: number
-          created_at?: string | null
-          current_reading: number
-          customer_id?: string | null
+      Insert: {
+        billing_period_id: string
+        consumption_kwh: number
+        created_at?: string | null
+        current_reading: number
+        customer_id: string
           due_date: string
           energy_amount: number
           fixed_charges: number
@@ -767,13 +767,21 @@ export type Database = {
         Args: { p_consumption: number; p_tariff_id: string }
         Returns: number
       }
-      close_billing_period: {
-        Args: { p_period_id: string }
-        Returns: {
-          period_id: string
-          success: boolean
-        }[]
-      }
+  close_billing_period: {
+    Args: { p_period_id: string }
+    Returns: {
+      period_id: string
+      success: boolean
+    }[]
+  }
+  close_period_full: {
+    Args: { p_period_id: string; p_receipts: Json }
+    Returns: {
+      generated_count: number
+      skipped_count: number
+      period_closed: boolean
+    }[]
+  }
       current_role: { Args: never; Returns: string }
       generate_period_receipts: {
         Args: { p_period_id: string; p_receipts: Json }
@@ -795,9 +803,8 @@ export type Database = {
     }[]
   }
   get_user_role: { Args: never; Returns: string }
-      get_user_sector_id: { Args: never; Returns: string }
-      is_admin: { Args: never; Returns: boolean }
-      process_payment: {
+  get_user_sector_id: { Args: never; Returns: string }
+  process_payment: {
         Args: {
           p_amount: number
           p_cash_closure_id: string

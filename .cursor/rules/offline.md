@@ -4,7 +4,7 @@ You build offline-first features for the meter_reader role in Curimana Eléctric
 
 ## Critical context
 
-- **PWA is disabled**: `@serwist/next` is commented out in `next.config.mjs` due to Turbopack conflicts. Service worker is NOT generated. Offline logic (Dexie + sync hook) still works.
+- **PWA is enabled**: `@serwist/turbopack` is active in `next.config.mjs` via `withSerwist()` wrapper. Service worker is generated.
 - **Reader workflows MUST work without network** — always check `isOnline` before Supabase calls.
 
 ## Dexie.js schema (`src/lib/db/dexie.ts`)
@@ -13,8 +13,8 @@ Two tables in `CurimanaDB`:
 
 | Table | Primary key | Indexed fields | Purpose |
 |-------|-------------|----------------|---------|
-| `pending_readings` | `++id` (auto-increment) | `customer_id`, `supply_number`, `status` | Readings queued for sync |
-| `customers_cache` | `id` (string) | `supply_number`, `sector` | Cached customer data for offline search |
+| `pending_readings` | `++id` (auto-increment) | `customer_id`, `supply_number`, `status`, `sector_id`, `reading_date` | Readings queued for sync |
+| `customers_cache` | `id` (string) | `supply_number`, `sector`, `sector_id`, `full_name` | Cached customer data for offline search |
 
 ### pending_readings statuses
 
@@ -28,7 +28,7 @@ Two tables in `CurimanaDB`:
 - `retry_count: number` — incremented on each failure
 - `last_attempt_time: number` — epoch ms of last sync attempt
 
-Backoff formula: wait `2^retry_count * 1000ms` before retrying a failed reading.
+Backoff formula: wait `2^retry_count * 30000ms` before retrying a failed reading, capped at 5 minutes (10 attempts max).
 
 ### Meter resets
 
@@ -41,20 +41,22 @@ If `current_reading < previous_reading`:
 
 `useOfflineSync()` returns:
 ```ts
-{ isOnline, pendingSyncCount, syncStatus, lastSyncTime, syncNow }
+{ isOnline, pendingSyncCount, exhaustedSyncCount, syncStatus, lastSyncTime, syncNow, syncCustomerCache, scheduleAutoSync }
 ```
 
-- Auto-syncs every 30 seconds when online
-- On sync: reads `pending` → marks `syncing` → calls `readingService.registerReading()` → deletes on success / marks `failed` on error
-- Photo upload: converts `photo_base64` → `storageService.uploadReadingPhoto()` → attaches `photo_url`
-- Period ID: fetched dynamically via `periodRepository.getCurrentPeriod()`
+- Exponential backoff sync: base delay 30s, doubles on failure, max 300s (5min)
+- On sync: reads `pending`/`failed` → calls `registerReadingAction()` (server action) → deletes on success / marks `failed` on error
+- Period ID: fetched dynamically via `periodService.getCurrentPeriod()`
+- `exhaustedSyncCount`: count of readings that exceeded max retries (5 attempts)
+- `syncCustomerCache`: manually sync customer data to IndexedDB
+- `scheduleAutoSync`: manually trigger auto-sync timer
 
 ## Rules
 
 - Always check `isOnline` (from `useOfflineSync()` or `navigator.onLine`) before any Supabase call in reader pages
 - Write to `pending_readings` first, then sync — never call Supabase directly from reader UI
 - When searching customers offline, query `customers_cache` table, not Supabase
-- `photo_base64` is stored in IndexedDB for offline; uploaded to Supabase Storage only during sync
+- Photos are uploaded during reading registration (online) or omitted offline; no photo_base64 stored in IndexedDB
 - Do not create or reference `tailwind.config.ts`
 - No comments unless explicitly requested
 

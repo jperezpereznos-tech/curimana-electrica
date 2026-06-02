@@ -9,11 +9,20 @@ The middleware file is **`src/proxy.ts`** (NOT `middleware.ts`). The exported fu
 ## Auth flow
 
 1. User submits credentials on `/login`
-2. `proxy.ts` intercepts every request, creates a Supabase server client with cookie access
+2. `proxy.ts` intercepts every request, creates a Supabase server client inline via `createServerClient` from `@supabase/ssr`
 3. Calls `supabase.auth.getUser()` to verify session
 4. Unauthenticated users → redirect to `/login`
 5. Authenticated users on `/login` or `/` → redirect to role dashboard
 6. Protected routes (`/admin/*`, `/cashier/*`, `/reader/*`) → check role via `get_user_role()` RPC
+
+## Role caching (proxy.ts)
+
+Proxy uses HMAC-signed role cookies to avoid calling `get_user_role()` on every request:
+
+- `ROLE_COOKIE` (`x-user-role`): HTTP-only cookie, HMAC-signed, max age 3600s
+- `x-user-role-client`: Same value, non-HTTP-only, consumed by `useAuth()` for instant role hydration
+- Cookie encoding/decoding via `src/lib/auth/constants.ts` (`encodeRoleCookie()`, `decodeRoleCookie()`)
+- `get_user_role()` RPC is called only on cache miss or expiry
 
 ## Role-based access
 
@@ -29,13 +38,12 @@ The middleware file is **`src/proxy.ts`** (NOT `middleware.ts`). The exported fu
 |---------|--------|-------|
 | Browser components | `@/lib/supabase/client` | Singleton, `createBrowserClient<Database>` |
 | Server Components / Route Handlers | `@/lib/supabase/server` | Per-request, async `createClient()`, cookie read/write |
-| Proxy (proxy.ts) | `@/lib/supabase/middleware` | `updateSession(request)` — refreshes session tokens |
-
-**Mistake**: Using the browser client in a Server Component, or the server client in a Client Component. Check the component directive first.
+| Admin operations | `@/lib/supabase/admin` | Service-role key, bypasses RLS |
+| Proxy (proxy.ts) | inline `createServerClient` from `@supabase/ssr` | Cookie-based session refresh per request |
 
 ## RLS (Row Level Security)
 
-- Enabled on ALL 13 tables — see `supabase/schema.sql`
+- Enabled on ALL 15 tables — see `supabase/schema.sql`
 - Policies use `get_user_role()` or `current_role()` to check access
 - Both functions are `SECURITY DEFINER` with `search_path = public`
 - `anon` access is revoked on both functions
@@ -54,7 +62,7 @@ export async function proxy(request: NextRequest) { ... }
 export const config = { matcher: [...] }
 ```
 
-The matcher excludes: `_next/static`, `_next/image`, `favicon.ico`, image extensions, `sw.js`.
+The matcher excludes: `_next/static`, `_next/image`, `favicon.ico`, `api/`, `serwist/`, image extensions, `sw.js`, `manifest.json`.
 
 ## Rules
 

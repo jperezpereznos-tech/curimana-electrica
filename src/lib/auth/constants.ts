@@ -1,10 +1,19 @@
 export const ROLE_COOKIE = 'x-user-role'
+export const ROLE_CLIENT_COOKIE = 'x-user-role-client'
 
 let cachedKey: CryptoKey | null = null
 
 function getHmacKey(): Promise<CryptoKey> {
   if (cachedKey) return Promise.resolve(cachedKey)
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'fallback-secret-key-curimana-electrica'
+  const secret = process.env.ROLE_COOKIE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ROLE_COOKIE_SECRET is required in production')
+    }
+    console.warn('ROLE_COOKIE_SECRET not set — role cookies will be unsigned in development')
+    cachedKey = null as unknown as CryptoKey
+    return Promise.resolve(null as unknown as CryptoKey)
+  }
   const encoder = new TextEncoder()
   return crypto.subtle.importKey(
     'raw',
@@ -35,6 +44,8 @@ function hexToBuffer(hex: string): ArrayBuffer {
 
 export async function encodeRoleCookie(userId: string, role: string): Promise<string> {
   const payload = `${userId}:${role}`
+  const key = await getHmacKey()
+  if (!key) return `${payload}:unsigned:dev`
   const sig = await computeHmac(payload)
   return `${payload}:${sig}`
 }
@@ -54,7 +65,13 @@ export async function decodeRoleCookie(raw: string | undefined, expectedUserId: 
 
   if (cookieUserId !== expectedUserId) return null
 
+  if (cookieSig === 'unsigned:dev') {
+    if (process.env.NODE_ENV === 'production') return null
+    return cookieRole
+  }
+
   const key = await getHmacKey()
+  if (!key) return null
   const encoder = new TextEncoder()
   const valid = await crypto.subtle.verify(
     'HMAC',

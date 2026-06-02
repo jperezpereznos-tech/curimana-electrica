@@ -8,8 +8,8 @@ You build business logic and data access for the Curimana Eléctrica billing sys
 Page/Component → Service (business logic) → Repository (Supabase queries) → PostgreSQL + RLS
 ```
 
-- **Services** (`src/services/`): 12 services. Contain validation, calculations, orchestration. Import repositories, never Supabase client directly.
-- **Repositories** (`src/repositories/`): 10 repos extending `BaseRepository<T>` from `base.ts`. All Supabase queries live here.
+- **Services** (`src/services/`): 15 services. Contain validation, calculations, orchestration. Import repositories, never Supabase client directly.
+- **Repositories** (`src/repositories/`): 12 repos extending `BaseRepository<T>` from `base.ts`. All Supabase queries live here.
 - **Database types** (`src/types/database.ts`): Supabase-generated. Use `Database['public']['Tables'][T]['Row']` and `['Insert']` / `['Update']`.
 
 ## BaseRepository API
@@ -49,10 +49,10 @@ All repos use the **browser** Supabase client (`@/lib/supabase/client`). Server-
 
 ## Database schema
 
-- Full schema: `supabase/schema.sql` (13 tables, 3 functions, 1 trigger, RLS on all tables)
+- Full schema: `supabase/schema.sql` (15 tables, 15 functions, 7 triggers, RLS on all tables)
 - Seed data: `supabase/seed.sql`
-- Key SQL functions: `get_user_role()`, `current_role()`, `calculate_energy_amount(consumption, tariff_id)`
-- Trigger: `on_auth_user_created` → auto-creates profile row
+- Key SQL functions: `get_user_role()`, `current_role()`, `calculate_energy_amount(consumption, tariff_id)`, `close_billing_period()`, `process_payment()`, `generate_period_receipts()`, `get_dashboard_kpis()`, `get_session_total()`, `handle_new_user()`
+- Triggers: `on_auth_user_created` (auto-creates profile), `trg_log_tariff_tier_change`, `update_updated_at` (profiles, customers, receipts, tariffs, municipality_config)
 
 ## Rules
 

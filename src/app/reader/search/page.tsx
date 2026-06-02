@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Search, MapPin, Zap, ChevronRight, WifiOff } from 'lucide-react'
 import { searchReaderCustomersAction, getReaderAssignedSectorIdAction } from '../actions'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
+import { useOnlineStatus } from '@/hooks/use-online-status'
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { EmptyState } from '@/components/empty-state'
@@ -25,6 +26,7 @@ export default function SearchPage() {
   const [searched, setSearched] = useState(false)
   const [assignedSectorId, setAssignedSectorId] = useState<string | null>(null)
   const { syncCustomerCache } = useOfflineSync()
+  const isOnline = useOnlineStatus()
 
   useEffect(() => {
     getReaderAssignedSectorIdAction()
@@ -32,8 +34,8 @@ export default function SearchPage() {
         if (result.success) setAssignedSectorId(result.data ?? null)
       })
       .catch((e) => { console.error('Error fetching assigned sector:', e) })
-    if (navigator.onLine) void syncCustomerCache()
-  }, [syncCustomerCache])
+    if (isOnline) void syncCustomerCache()
+  }, [syncCustomerCache, isOnline])
 
   const filterBySector = (customers: CustomerCache[]): CustomerCache[] => {
     if (!assignedSectorId) return customers
@@ -47,7 +49,7 @@ export default function SearchPage() {
     setLoading(true)
     setSearched(true)
 
-    if (navigator.onLine) {
+    if (isOnline) {
       const result = await searchReaderCustomersAction(searchTerm)
       if (result.success && result.data && result.data.length > 0) {
         setResults(result.data)
@@ -88,7 +90,7 @@ export default function SearchPage() {
     <div className="flex flex-col gap-4">
       <h2 className="text-xl font-bold">Buscar Suministro</h2>
 
-      {!navigator.onLine && (
+      {!isOnline && (
         <div className="flex items-center gap-2 bg-muni-amber/5 text-muni-amber px-3 py-2 rounded-lg text-sm">
           <WifiOff className="h-4 w-4" />
           Modo offline — buscando en caché local

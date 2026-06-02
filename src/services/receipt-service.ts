@@ -1,10 +1,8 @@
 import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { AuditService } from '@/services/audit-service'
-import { calculateEnergyAmount } from '@/lib/billing-utils'
+import { calculateBreakdown, type BillingConcept, type TariffTier } from '@/lib/billing-utils'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
-
-type TariffTier = { min_kwh: number; max_kwh: number | null; price_per_kwh: number }
 
 export class ReceiptService {
   private receiptRepo: ReceiptRepository
@@ -36,34 +34,10 @@ export class ReceiptService {
   calculateBreakdown(
     consumption: number,
     tiers: TariffTier[],
-    fixedConcepts: { name: string; amount: number; type: string }[],
+    fixedConcepts: BillingConcept[],
     previousDebt: number = 0
   ) {
-    const energyAmount = calculateEnergyAmount(consumption, tiers)
-
-    let totalFixed = 0
-    const conceptsBreakdown = fixedConcepts.map(c => {
-      let amount = 0
-      if (c.type === 'fixed') amount = c.amount
-      if (c.type === 'percentage') amount = (Math.round((energyAmount + totalFixed) * 100) / 100 * c.amount) / 100
-      if (c.type === 'per_kwh') amount = consumption * c.amount
-
-      const roundedAmount = Math.round(amount * 100) / 100
-      totalFixed = Math.round((totalFixed + roundedAmount) * 100) / 100
-      return { name: c.name, amount: roundedAmount }
-    })
-
-    const subtotal = Math.round((energyAmount + totalFixed) * 100) / 100
-    const total = Math.round((subtotal + previousDebt) * 100) / 100
-
-    return {
-      energyAmount,
-      conceptsBreakdown,
-      fixedCharges: Math.round(totalFixed * 100) / 100,
-      subtotal,
-      previousDebt,
-      totalAmount: total
-    }
+    return calculateBreakdown(consumption, tiers, fixedConcepts, previousDebt)
   }
 
   async recalculateCustomerDebt(customerId: string): Promise<number> {

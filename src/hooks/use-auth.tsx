@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
+import { ROLE_CLIENT_COOKIE, decodeRoleCookie } from '@/lib/auth/constants'
+import { useOnlineStatus } from '@/hooks/use-online-status'
 import { db } from '@/lib/db/dexie'
 import { toast } from 'sonner'
 
@@ -17,19 +19,12 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const ROLE_CLIENT_COOKIE = 'x-user-role-client'
-
-function getRoleFromCookie(expectedUserId: string): string | null {
+async function getRoleFromCookie(expectedUserId: string): Promise<string | null> {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${ROLE_CLIENT_COOKIE}=([^;]*)`))
   if (!match) return null
   const raw = decodeURIComponent(match[1])
-  const sep = raw.indexOf(':')
-  if (sep === -1) return null
-  const cookieUserId = raw.substring(0, sep)
-  const cookieRole = raw.substring(sep + 1)
-  if (cookieUserId !== expectedUserId) return null
-  return cookieRole
+  return decodeRoleCookie(raw, expectedUserId)
 }
 
 function deleteRoleCookie() {
@@ -46,6 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
   const rpcAttemptedRef = useRef(false)
   const signingOutRef = useRef(false)
+  const isOnline = useOnlineStatus()
+  const isOnlineRef = useRef(isOnline)
+  useEffect(() => { isOnlineRef.current = isOnline }, [isOnline])
 
   const fetchRoleViaRPC = useCallback(async (retries = 3): Promise<string | null> => {
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -88,14 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return
 
       const currentUser = session?.user ?? null
       setUser(currentUser)
 
-  if (currentUser) {
-        const cookieRole = getRoleFromCookie(currentUser.id)
+      if (currentUser) {
+        const cookieRole = await getRoleFromCookie(currentUser.id)
         if (cookieRole) {
           setRole(cookieRole)
           loadingDoneRef.current = true
@@ -127,16 +125,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      if (!mounted) return
-      if (signingOutRef.current && event !== 'SIGNED_OUT') return
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return
+        if (signingOutRef.current && event !== 'SIGNED_OUT') return
 
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
+        const currentUser = session?.user ?? null
+        setUser(currentUser)
 
-      if (currentUser) {
-        const cookieRole = getRoleFromCookie(currentUser.id)
+        if (currentUser) {
+          const cookieRole = await getRoleFromCookie(currentUser.id)
         if (cookieRole) {
           setRole(cookieRole)
           loadingDoneRef.current = true
@@ -184,30 +182,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchRoleViaRPC, supabase.auth])
 
-  const signOut = useCallback(async () => {
-    if (signingOutRef.current) return
-
-    if (typeof window !== 'undefined') {
-      try {
-        const pendingCount = await db.pending_readings
-          .where('status')
-          .anyOf(['pending', 'failed'])
-          .count()
-
-        if (pendingCount > 0) {
-          const confirmed = window.confirm(
-            `Tienes ${pendingCount} lectura(s) pendiente(s) de sincronizar. Si cierras sesión se perderán.\n\nPresiona "Cancelar" para volver e intentar sincronizar, o "Aceptar" para cerrar sesión de todas formas.`
-          )
-          if (!confirmed) return
-        }
-      } catch {
-        // Dexie unavailable — proceed with logout
-      }
-    }
-
+  const performSignOut = useCallback(async () => {
     signingOutRef.current = true
     deleteRoleCookie()
-
     setUser(null)
     setRole(null)
     setProfileError(null)
@@ -237,6 +214,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/login'
   }, [supabase.auth])
 
+  const signOut = useCallback(async () => {
+    if (signingOutRef.current) return
+
+    if (typeof window !== 'undefined') {
+      try {
+        const pendingCount = await db.pending_readings
+          .where('status')
+          .anyOf(['pending', 'failed'])
+          .count()
+
+        if (pendingCount > 0) {
+          const confirmed = window.confirm(
+            `Tienes ${pendingCount} lectura(s) pendiente(s) de sincronizar. Si cierras sesión se perderán.\n\nPresiona "Cancelar" para volver e intentar sincronizar, o "Aceptar" para cerrar sesión de todas formas.`
+          )
+          if (!confirmed) return
+        }
+      } catch {
+        // Dexie unavailable — proceed with logout
+      }
+    }
+
+    await performSignOut()
+  }, [performSignOut])
+
   const syncAndSignOut = useCallback(async () => {
     if (signingOutRef.current) return
 
@@ -247,7 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .anyOf(['pending', 'failed'])
           .count()
 
-        if (pendingCount > 0 && navigator.onLine) {
+        if (pendingCount > 0 && isOnlineRef.current) {
           toast.info(`Sincronizando ${pendingCount} lectura(s) antes de cerrar sesión...`)
           const supa = createClient()
           const { data: sessionData } = await supa.auth.getSession()
@@ -307,36 +308,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    signingOutRef.current = true
-    deleteRoleCookie()
-    setUser(null)
-    setRole(null)
-    setProfileError(null)
-    rpcAttemptedRef.current = false
-
-    try {
-      await supabase.auth.signOut({ scope: 'global' })
-    } catch (e) {
-      console.error('[useAuth] signOut error:', e)
-    }
-
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-    } catch {
-      // Server-side cookie cleanup — best effort
-    }
-
-    if (typeof window !== 'undefined' && 'indexedDB' in window) {
-      try {
-        await indexedDB.deleteDatabase('CurimanaDB')
-      } catch {
-        // IndexedDB cleanup — best effort
-      }
-    }
-
-    signingOutRef.current = false
-    window.location.href = '/login'
-  }, [supabase.auth])
+    await performSignOut()
+  }, [performSignOut])
 
   return (
     <AuthContext.Provider value={{ user, role, isLoading, profileError, signOut, syncAndSignOut }}>

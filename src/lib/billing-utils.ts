@@ -20,6 +20,51 @@ export function calculateEnergyAmount(
   return Math.round(total * 100) / 100
 }
 
+export type BillingConcept = {
+  name: string
+  amount: number
+  type: string
+}
+
+export type TariffTier = {
+  min_kwh: number
+  max_kwh: number | null
+  price_per_kwh: number
+}
+
+export function calculateBreakdown(
+  consumption: number,
+  tiers: TariffTier[],
+  concepts: BillingConcept[],
+  previousDebt: number = 0
+) {
+  const energyAmount = calculateEnergyAmount(consumption, tiers)
+
+  let totalFixed = 0
+  const conceptsBreakdown = concepts.map(c => {
+    let amount = 0
+    if (c.type === 'fixed') amount = c.amount
+    if (c.type === 'percentage') amount = (Math.round((energyAmount + totalFixed) * 100) / 100 * c.amount) / 100
+    if (c.type === 'per_kwh') amount = consumption * c.amount
+
+    const roundedAmount = Math.round(amount * 100) / 100
+    totalFixed = Math.round((totalFixed + roundedAmount) * 100) / 100
+    return { name: c.name, amount: roundedAmount }
+  })
+
+  const subtotal = Math.round((energyAmount + totalFixed) * 100) / 100
+  const total = Math.round((subtotal + previousDebt) * 100) / 100
+
+  return {
+    energyAmount,
+    conceptsBreakdown,
+    fixedCharges: Math.round(totalFixed * 100) / 100,
+    subtotal,
+    previousDebt,
+    totalAmount: total
+  }
+}
+
 export function calculateTotalReceipt(
   consumption: number,
   tiers: { min_kwh: number; max_kwh: number | null; price_per_kwh: number }[],

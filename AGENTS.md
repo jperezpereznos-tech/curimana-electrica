@@ -13,11 +13,21 @@ For focused work, load the relevant agent file from `.cursor/rules/`:
 | `.cursor/rules/offline.md` | Dexie.js, offline sync, PWA, reader workflows |
 | `.cursor/rules/auth.md` | Authentication, proxy.ts, RLS policies, Supabase auth |
 
+For domain-specific best practices, load skills from `.agents/skills/`:
+
+| Skill | When to use |
+|-------|-------------|
+| `next-best-practices` | Next.js patterns, RSC, data fetching, error handling |
+| `vercel-react-best-practices` | React performance, rerenders, bundling |
+| `supabase-postgres-best-practices` | Postgres/RLS optimization |
+| `frontend-design` | UI design quality |
+| `webapp-testing` | Playwright browser testing |
+
 ## Critical Framework Quirks
 
 - **Next.js 16**: The middleware file is `src/proxy.ts` (NOT `middleware.ts`). The exported function is `proxy()` (NOT `middleware()`). Consult `node_modules/next/dist/docs/` before writing proxy/middleware code.
 - **Tailwind v4**: Uses `@import "tailwindcss"` + `@theme inline` in `globals.css`. NO `tailwind.config.ts` — do not create one.
-- **PWA currently disabled**: `@serwist/next` is disabled in `next.config.mjs` due to Turbopack conflicts. Offline/Dexie logic still works, but service worker is not generated. See the TODO in `next.config.mjs`.
+- **PWA**: Enabled via `@serwist/turbopack` in `next.config.mjs` (using `withSerwist()` wrapper). Offline/Dexie logic and service worker are active.
 - **React 19**: New JSX transform (`react-jsx` in tsconfig). No `import React from 'react'` needed.
 
 ## Commands
@@ -44,10 +54,10 @@ npx playwright test # E2E (auto-starts `npm run start`, not dev)
 
 ### Data flow
 
-- **Online**: App Router page/component → `src/services/` (13 services) → `src/repositories/` (12 repos extending `base.ts`) → Supabase PostgreSQL + RLS
-- **Offline (reader role)**: Dexie.js (`src/lib/db/dexie.ts`) ↔ `use-offline-sync.ts` (background sync every 30s, exponential backoff on failure)
+- **Online**: App Router page/component → `src/services/` (15 services) → `src/repositories/` (12 repos extending `base.ts`) → Supabase PostgreSQL + RLS
+- **Offline (reader role)**: Dexie.js (`src/lib/db/dexie.ts`) ↔ `use-offline-sync.ts` (background sync with exponential backoff: base 30s, max 5min)
 
-### Services (13)
+### Services (15)
 
 `audit-service`, `cash-closure-service`, `concept-service`, `customer-service`, `dashboard-service`, `municipality-config-service`, `payment-service`, `pdf-service`, `period-service`, `profile-service`, `reading-service`, `receipt-service`, `sector-service`, `storage-service`, `tariff-service`
 
@@ -69,14 +79,14 @@ Route protection is in `src/proxy.ts` — it calls `get_user_role()` RPC, then r
 
 - **Browser components**: `import { createClient } from '@/lib/supabase/client'` — singleton browser client
 - **Server Components / Route Handlers**: `import { createClient } from '@/lib/supabase/server'` — creates per-request client with cookie handling (async)
-- **Proxy**: `import { updateSession } from '@/lib/supabase/middleware'` — session refresh for proxy.ts
+- **Proxy**: Creates Supabase server client inline via `@supabase/ssr`'s `createServerClient`. Role caching via HMAC-signed cookies (`x-user-role`, `x-user-role-client`) in `src/lib/auth/constants.ts`. Admin client available at `@/lib/supabase/admin` for service-role operations.
 
 ## Key Conventions
 
 - **Path alias**: `@/` → `./src/`
 - **shadcn/ui**: `base-nova` style. Add components via `npx shadcn add <name>`. Import from `@/components/ui/*`.
 - **Icons**: Lucide React only (`lucide-react`)
-- **Municipal brand colors**: `--muni-blue: #0066cc`, `--muni-silver: #c0c0c0` (use Tailwind classes `text-muni-blue`, `bg-muni-silver`)
+- **Municipal brand colors**: Forest green palette with 18+ `--muni-*` CSS variables defined in `globals.css` (muni-blue: `#0a4a3a`, muni-silver: `#9ea7b0`, muni-forest, muni-canopy, muni-moss, muni-bark, muni-parchment, muni-ember, muni-lightning, muni-gold, etc.)
 - **No comments** in code unless explicitly requested
 - **App Router only** — no Pages Router
 - **ESM only** — implicit via Next.js
@@ -88,7 +98,7 @@ Route protection is in `src/proxy.ts` — it calls `get_user_role()` RPC, then r
 - `pending_readings`: `++id, customer_id, supply_number, status, sector_id, reading_date` — statuses: `pending | syncing | failed`. Fields `needs_review`, `retry_count`, `last_attempt_time` track sync failures. Local duplicate detection blocks same `customer_id` + `reading_date === today`.
 - `customers_cache`: `id, supply_number, sector, sector_id, full_name` — `sector` field stores sector name string for offline display (NOT the dropped DB column).
 
-**Critical**: Reader workflows must work without network. Always check online status before Supabase calls. Meter resets (decreasing readings) are handled with zero consumption + `needs_review: true`. Auto-sync runs every 30s with exponential backoff (2x multiplier, 5min cap). `syncAndSignOut()` protects pending readings on logout.
+**Critical**: Reader workflows must work without network. Always check online status before Supabase calls. Meter resets (decreasing readings) are handled with zero consumption + `needs_review: true`. Auto-sync runs every 30s with exponential backoff (2x multiplier, 5min cap). `syncAndSignOut()` syncs pending readings before logout; `signOut()` warns about unsynced readings.
 
 ## Environment
 
@@ -108,7 +118,7 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 
 `audit_logs`, `billing_concepts`, `billing_periods`, `cash_closures`, `customers`, `municipality_config`, `payments`, `profiles`, `readings`, `receipts`, `roles`, `sectors`, `tariff_tier_history`, `tariff_tiers`, `tariffs`
 
-### SQL Functions (17)
+### SQL Functions (15)
 
 | Function | Type | Purpose |
 |----------|------|---------|
@@ -135,7 +145,7 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 - RLS policies split into separate INSERT/UPDATE/DELETE (no redundant `get_user_role()` on SELECT)
 - 7 composite indexes: `idx_receipts_period_status`, `idx_readings_needs_review` (partial), `idx_customers_active_sector_name`, `idx_payments_closure_status`, `idx_receipts_due_date_status` (partial), `idx_payments_created_at`, `billing_periods_year_month_key` (UNIQUE)
 - `get_dashboard_kpis()` RPC replaces 5 sequential HTTP round-trips with 1 DB call
-- `pg_trgm` + 3 GIN indexes for customer name search (`idx_customers_full_name_trgm`, `idx_customers_address_trgm`, `idx_customers_supply_number_trgm`)
+- `pg_trgm` + 2 GIN indexes for customer name search (`idx_customers_full_name_trgm`, `idx_customers_supply_number_trgm`)
 - `idx_billing_periods_is_closed` partial index for `getCurrentPeriod()` filter
 - 20+ CHECK constraints (13 added in Phase 3): `tariff_tiers_price_positive`, `tariff_tiers_min_less_than_max`, `billing_periods_month_valid`, `billing_periods_date_order`, `billing_concepts_amount_non_negative`, `customers_current_debt_non_negative`, `customers_connection_type_check`, `receipts_*_non_negative` (5), `payments_*_non_negative` (2), `cash_closures_total_collected_non_negative`, plus pre-existing constraints on readings, payments, receipts, cash_closures
 - Legacy `customers.sector` column and `idx_customers_sector` dropped — sector info via `sector_id` FK only
@@ -147,7 +157,7 @@ Vitest auto-sets dummy values — no `.env.local` needed for unit tests.
 - `readings` UPDATE policy: WITH CHECK enforces `meter_reader_id = auth.uid()`
 - `process_payment` EXECUTE revoked from public/anon
 
-### Migrations (22)
+### Migrations (23)
 
 Located in `supabase/migrations/`. Most recent: `20260525_security_hardening.sql`. Schema source of truth: `supabase/schema.sql`.
 

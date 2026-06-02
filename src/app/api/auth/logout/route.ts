@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { ROLE_COOKIE } from '@/lib/auth/constants'
-
-const ROLE_CLIENT_COOKIE = 'x-user-role-client'
+import { ROLE_COOKIE, ROLE_CLIENT_COOKIE } from '@/lib/auth/constants'
 
 export async function POST() {
   const supabase = await createClient()

@@ -178,7 +178,7 @@ describe('PeriodService - closePeriod', () => {
 
     const mockCustomers = {
       data: [
-        { id: 'c1', is_active: true, current_debt: 0, tariff_id: 't1', tariffs: { tariff_tiers: [{ min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 }] } },
+        { id: 'c1', is_active: true, current_debt: 0, tariff_id: 't1', supply_number: 'S001', tariffs: { tariff_tiers: [{ min_kwh: 0, max_kwh: 30, price_per_kwh: 0.31 }] } },
       ],
       error: null
     }
@@ -186,6 +186,13 @@ describe('PeriodService - closePeriod', () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'customers') return createAwaitableChain(mockCustomers)
       return createAwaitableChain({ data: null, error: null })
+    })
+
+    mockRpc.mockImplementation((fnName: string) => {
+      if (fnName === 'close_period_full') {
+        return Promise.resolve({ data: [{ generated_count: 1, skipped_count: 0, period_closed: true }], error: null })
+      }
+      return Promise.resolve({ data: null, error: null })
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
@@ -197,20 +204,19 @@ describe('PeriodService - closePeriod', () => {
     const result = await service.closePeriod('p1', 'user1') as any
 
     expect(result.receiptsGenerated).toBe(1)
-    expect(mockRpc).toHaveBeenCalledWith('generate_period_receipts', expect.objectContaining({ p_period_id: 'p1' }))
-    expect(mockRpc).toHaveBeenCalledWith('close_billing_period', { p_period_id: 'p1' })
+    expect(mockRpc).toHaveBeenCalledWith('close_period_full', expect.objectContaining({ p_period_id: 'p1' }))
     expect(AuditService.prototype.log).toHaveBeenCalled()
   })
 
   it('no debería generar recibos para clientes sin lectura', async () => {
     const mockPeriod = { id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' }
     const mockReadings = [
-      { id: 'rd1', customer_id: 'c-other', consumption: 20, reading_date: '2026-04-15' },
+      { id: 'rd1', customer_id: 'c-other', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' },
     ]
 
     const mockCustomers = {
       data: [
-        { id: 'c1', is_active: true, current_debt: 0, tariff_id: 't1', tariffs: { tariff_tiers: [] } },
+        { id: 'c1', is_active: true, current_debt: 0, tariff_id: 't1', supply_number: 'S001', tariffs: { tariff_tiers: [] } },
       ],
       error: null
     }
@@ -221,10 +227,10 @@ describe('PeriodService - closePeriod', () => {
     })
 
     mockRpc.mockImplementation((fnName: string) => {
-      if (fnName === 'generate_period_receipts') {
-        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0 }], error: null })
+      if (fnName === 'close_period_full') {
+        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0, period_closed: true }], error: null })
       }
-      return Promise.resolve({ data: [{ success: true, period_id: 'p1' }], error: null })
+      return Promise.resolve({ data: null, error: null })
     })
 
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue(mockPeriod as any)
@@ -235,10 +241,10 @@ describe('PeriodService - closePeriod', () => {
     const result = await service.closePeriod('p1') as any
 
     expect(result.receiptsGenerated).toBe(0)
-    expect(mockRpc).toHaveBeenCalledWith('generate_period_receipts', expect.objectContaining({ p_period_id: 'p1' }))
+    expect(mockRpc).toHaveBeenCalledWith('close_period_full', expect.objectContaining({ p_period_id: 'p1' }))
   })
 
-  it('debería lanzar error si generate_period_receipts RPC falla', async () => {
+  it('debería lanzar error si close_period_full RPC falla', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
     vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
@@ -248,10 +254,10 @@ describe('PeriodService - closePeriod', () => {
     })
 
     mockRpc.mockImplementation((fnName: string) => {
-      if (fnName === 'generate_period_receipts') {
+      if (fnName === 'close_period_full') {
         return Promise.resolve({ data: null, error: { message: 'RPC failed' } })
       }
-      return Promise.resolve({ data: [{ success: true }], error: null })
+      return Promise.resolve({ data: null, error: null })
     })
 
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
@@ -260,7 +266,7 @@ describe('PeriodService - closePeriod', () => {
     await expect(service.closePeriod('p1')).rejects.toEqual(expect.objectContaining({ message: 'RPC failed' }))
   })
 
-  it('debería lanzar error si close_billing_period RPC falla', async () => {
+  it('debería retornar resultado exitoso cuando close_period_full retorna datos', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
     vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
@@ -270,11 +276,8 @@ describe('PeriodService - closePeriod', () => {
     })
 
     mockRpc.mockImplementation((fnName: string) => {
-      if (fnName === 'generate_period_receipts') {
-        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0 }], error: null })
-      }
-      if (fnName === 'close_billing_period') {
-        return Promise.resolve({ data: null, error: { message: 'Close failed' } })
+      if (fnName === 'close_period_full') {
+        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0, period_closed: true }], error: null })
       }
       return Promise.resolve({ data: null, error: null })
     })
@@ -282,10 +285,12 @@ describe('PeriodService - closePeriod', () => {
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
-    await expect(service.closePeriod('p1')).rejects.toEqual(expect.objectContaining({ message: 'Close failed' }))
+    const result = await service.closePeriod('p1') as any
+    expect(result.period_id).toBe('p1')
+    expect(result.receiptsGenerated).toBe(0)
   })
 
-  it('debería lanzar error si close_billing_period retorna success=false', async () => {
+  it('debería retornar generated_count 0 cuando close_period_full retorna period_closed false', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
     vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
@@ -295,11 +300,8 @@ describe('PeriodService - closePeriod', () => {
     })
 
     mockRpc.mockImplementation((fnName: string) => {
-      if (fnName === 'generate_period_receipts') {
-        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0 }], error: null })
-      }
-      if (fnName === 'close_billing_period') {
-        return Promise.resolve({ data: [{ success: false }], error: null })
+      if (fnName === 'close_period_full') {
+        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0, period_closed: false }], error: null })
       }
       return Promise.resolve({ data: null, error: null })
     })
@@ -307,10 +309,11 @@ describe('PeriodService - closePeriod', () => {
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
-    await expect(service.closePeriod('p1')).rejects.toThrow('El periodo ya está cerrado o no existe')
+    const result = await service.closePeriod('p1') as any
+    expect(result.receiptsGenerated).toBe(0)
   })
 
-  it('debería lanzar error si close_billing_period retorna array vacío', async () => {
+  it('debería manejar close_period_full que retorna data vacía', async () => {
     vi.spyOn(PeriodRepository.prototype, 'getById').mockResolvedValue({ id: 'p1', is_closed: false, start_date: '2026-03-26', end_date: '2026-04-25' } as any)
     vi.spyOn(MunicipalityConfigRepository.prototype, 'getPaymentGraceDays').mockResolvedValue(20)
 
@@ -320,10 +323,7 @@ describe('PeriodService - closePeriod', () => {
     })
 
     mockRpc.mockImplementation((fnName: string) => {
-      if (fnName === 'generate_period_receipts') {
-        return Promise.resolve({ data: [{ generated_count: 0, skipped_count: 0 }], error: null })
-      }
-      if (fnName === 'close_billing_period') {
+      if (fnName === 'close_period_full') {
         return Promise.resolve({ data: [], error: null })
       }
       return Promise.resolve({ data: null, error: null })
@@ -332,7 +332,8 @@ describe('PeriodService - closePeriod', () => {
     vi.spyOn(ReadingRepository.prototype, 'getReadingsByPeriod').mockResolvedValue([{ id: 'rd1', customer_id: 'c1', consumption: 20, previous_reading: 100, current_reading: 120, reading_date: '2026-04-15' }] as any)
     vi.spyOn(ConceptRepository.prototype, 'getAllActive').mockResolvedValue([] as any)
 
-    await expect(service.closePeriod('p1')).rejects.toThrow('El periodo ya está cerrado o no existe')
+    const result = await service.closePeriod('p1') as any
+    expect(result.receiptsGenerated).toBe(0)
   })
 
   it('debería lanzar error si no hay lecturas registradas', async () => {

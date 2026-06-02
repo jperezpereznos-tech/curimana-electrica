@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { ROLE_COOKIE, encodeRoleCookie, decodeRoleCookie } from '@/lib/auth/constants'
+import { ROLE_COOKIE, ROLE_CLIENT_COOKIE, encodeRoleCookie, decodeRoleCookie } from '@/lib/auth/constants'
 
 const ROLE_COOKIE_MAX_AGE = 3600
-const ROLE_CLIENT_COOKIE = 'x-user-role-client'
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()

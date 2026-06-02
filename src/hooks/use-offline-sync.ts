@@ -155,11 +155,11 @@ export function useOfflineSync() {
           .where('id').anyOf(stuckSyncing.map(r => r.id!))
           .modify({ status: 'pending' })
       }
-      if (failedReadings.length > 0) {
-        await db.pending_readings
-          .where('id').anyOf(failedReadings.map(r => r.id!))
-          .modify({ status: 'pending', retry_count: 0 })
-      }
+    if (failedReadings.length > 0) {
+      await db.pending_readings
+        .where('id').anyOf(failedReadings.map(r => r.id!))
+        .modify({ status: 'pending' })
+    }
 
       const [, currentPeriod] = await Promise.all([
         syncCustomerCache(),

@@ -9,6 +9,7 @@ import { Search, MapPin, Circle, AlertTriangle, Loader2, RotateCcw } from 'lucid
 import { db } from '@/lib/db/dexie'
 import Link from 'next/link'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
+import { useOnlineStatus } from '@/hooks/use-online-status'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/empty-state'
 import { StaggerReveal } from '@/components/stagger-reveal'
@@ -24,6 +25,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 
 export default function PendingReadingsPage() {
   const { syncNow } = useOfflineSync()
+  const isOnline = useOnlineStatus()
   const [pendingReadings, setPendingReadings] = useState<PendingReadingItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
@@ -130,7 +132,7 @@ export default function PendingReadingsPage() {
             Cargando lecturas...
           </div>
         ) : filteredReadings.length === 0 ? (
-        <EmptyState message="No hay lecturas pendientes" illustration="readings" description={navigator.onLine ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'} />
+        <EmptyState message="No hay lecturas pendientes" illustration="readings" description={isOnline ? 'Todas las lecturas están sincronizadas con el servidor.' : 'Guarda lecturas en modo offline para verlas aquí.'} />
         ) : (
           <div className="space-y-3">
             {filteredReadings.map((reading) => {

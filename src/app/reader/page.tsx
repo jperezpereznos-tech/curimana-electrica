@@ -36,7 +36,7 @@ export default function ReaderDashboard() {
       .count()
       .then(count => { if (!cancelled) setLocalPendingToday(count) })
 
-    if (navigator.onLine) {
+    if (isOnline) {
       getReaderDashboardDataAction()
         .then(result => {
           if (!cancelled) {
@@ -59,7 +59,7 @@ export default function ReaderDashboard() {
     }
 
     return () => { cancelled = true }
-  }, [])
+  }, [isOnline])
 
   return (
     <StaggerReveal>

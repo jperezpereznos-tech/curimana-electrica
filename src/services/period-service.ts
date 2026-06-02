@@ -5,7 +5,7 @@ import { ReceiptRepository } from '@/repositories/receipt-repository'
 import { ConceptRepository } from '@/repositories/concept-repository'
 import { MunicipalityConfigRepository } from '@/repositories/municipality-config-repository'
 import { AuditService } from '@/services/audit-service'
-import { calculateEnergyAmount, calculateTotalReceipt } from '@/lib/billing-utils'
+import { calculateBreakdown, type BillingConcept } from '@/lib/billing-utils'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 import { format, subMonths, setDate } from 'date-fns'
@@ -177,97 +177,55 @@ export class PeriodService {
         const tariff = customer.tariffs
         const tiers = tariff?.tariff_tiers || []
 
-        let fixedCharges = 0
-        let percentageCharges = 0
-        let fixedSubtotal = 0
+      const sortedTiers = tiers.length > 0
+        ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
+        : []
 
-        for (const concept of activeConcepts) {
-          if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
-            continue
-          }
+      const billingConcepts: BillingConcept[] = activeConcepts
+        .filter(c => !c.applies_to_tariff_id || c.applies_to_tariff_id === customer.tariff_id)
+        .map(c => ({
+          name: c.name,
+          amount: c.amount,
+          type: (c.type === 'per_kwh' ? 'per_kwh' : c.type === 'percentage' ? 'percentage' : 'fixed') as BillingConcept['type'],
+        }))
 
-          if (concept.type === 'fixed') {
-            fixedCharges = Math.round((fixedCharges + concept.amount) * 100) / 100
-          } else if (concept.type === 'per_kwh') {
-            fixedCharges = Math.round((fixedCharges + consumption * concept.amount) * 100) / 100
-          }
-        }
+      const breakdown = calculateBreakdown(consumption, sortedTiers, billingConcepts, customer.current_debt || 0)
 
-        const sortedTiers = tiers.length > 0
-          ? [...tiers].sort((a, b) => a.min_kwh - b.min_kwh)
-          : []
+      const dueDate = new Date()
+      dueDate.setDate(dueDate.getDate() + graceDays)
 
-        fixedSubtotal = Math.round(((sortedTiers.length > 0 ? calculateEnergyAmount(consumption, sortedTiers) : 0) + fixedCharges) * 100) / 100
-
-        for (const concept of activeConcepts) {
-          if (concept.applies_to_tariff_id && concept.applies_to_tariff_id !== customer.tariff_id) {
-            continue
-          }
-
-          if (concept.type === 'percentage') {
-            percentageCharges = Math.round((percentageCharges + (fixedSubtotal * concept.amount) / 100) * 100) / 100
-          }
-        }
-
-        const totalFixedCharges = Math.round((fixedCharges + percentageCharges) * 100) / 100
-        const previousDebt = customer.current_debt || 0
-
-        const receipt = calculateTotalReceipt(consumption, sortedTiers, totalFixedCharges, previousDebt)
-
-        const dueDate = new Date()
-        dueDate.setDate(dueDate.getDate() + graceDays)
-
-        receiptPayloads.push({
-          customer_id: customer.id,
-          reading_id: customerReading.id,
-          previous_reading: customerReading.previous_reading || 0,
-          current_reading: customerReading.current_reading || 0,
-          consumption_kwh: consumption,
-          period_start: period.start_date,
-          period_end: period.end_date,
-          energy_amount: receipt.energy_amount,
-          fixed_charges: receipt.fixed_charges,
-          subtotal: receipt.subtotal,
-          previous_debt: previousDebt,
-          total_amount: receipt.total_amount,
-          issue_date: new Date().toISOString().split('T')[0],
-          due_date: dueDate.toISOString().split('T')[0],
-        })
+      receiptPayloads.push({
+        customer_id: customer.id,
+        reading_id: customerReading.id,
+        previous_reading: customerReading.previous_reading || 0,
+        current_reading: customerReading.current_reading || 0,
+        consumption_kwh: consumption,
+        period_start: period.start_date,
+        period_end: period.end_date,
+        energy_amount: breakdown.energyAmount,
+        fixed_charges: breakdown.fixedCharges,
+        subtotal: breakdown.subtotal,
+        previous_debt: customer.current_debt || 0,
+        total_amount: breakdown.totalAmount,
+        issue_date: new Date().toISOString().split('T')[0],
+        due_date: dueDate.toISOString().split('T')[0],
+      })
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error)
         errors.push(`Cliente ${customer.id}: ${msg}`)
       }
     }
 
-    const { data: rpcResult, error: rpcError } = await this.supabase
-      .rpc('generate_period_receipts', {
-        p_period_id: id,
-        p_receipts: receiptPayloads,
-      })
+  const { data: rpcResult, error: rpcError } = await this.supabase
+    .rpc('close_period_full', {
+      p_period_id: id,
+      p_receipts: receiptPayloads,
+    })
 
-    if (rpcError) throw rpcError
+  if (rpcError) throw rpcError
 
-    const generatedCount = rpcResult?.[0]?.generated_count ?? 0
-    const skippedCount = (rpcResult?.[0]?.skipped_count ?? 0) + skippedCustomers.length
-
-  const { data: closeResult, error: closeError } = await this.supabase
-    .rpc('close_billing_period', { p_period_id: id })
-
-  if (closeError || !closeResult || closeResult.length === 0 || !closeResult[0].success) {
-    try {
-      const { error: rollbackError } = await this.supabase
-        .from('receipts')
-        .delete()
-        .eq('billing_period_id', id)
-      if (rollbackError) {
-        console.error('Rollback failed: could not delete receipts for period', id, rollbackError)
-      }
-    } catch (rollbackErr) {
-      console.error('Rollback exception: could not delete receipts for period', id, rollbackErr)
-    }
-    if (closeError) throw closeError
-    throw new Error('El periodo ya está cerrado o no existe')
-  }
+  const generatedCount = rpcResult?.[0]?.generated_count ?? 0
+  const skippedCount = (rpcResult?.[0]?.skipped_count ?? 0) + skippedCustomers.length
 
     if (userId) {
       this.auditSvc.log({

@@ -27,7 +27,7 @@ const [isLoading, setIsLoading] = useState(false)
 const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
 const [attemptCount, setAttemptCount] = useState(0)
 const [windowStart, setWindowStart] = useState(0)
-const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
 const form = useForm<z.infer<typeof loginSchema>>({
   resolver: zodResolver(loginSchema),
