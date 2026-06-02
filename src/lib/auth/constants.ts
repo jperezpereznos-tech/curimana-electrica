@@ -70,6 +70,10 @@ export async function decodeRoleCookie(raw: string | undefined, expectedUserId: 
     return cookieRole
   }
 
+  if (typeof window !== 'undefined') {
+    return cookieRole
+  }
+
   const key = await getHmacKey()
   if (!key) return null
   const encoder = new TextEncoder()

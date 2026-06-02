@@ -53,7 +53,7 @@ export function useOfflineSync() {
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const syncCustomerCache = useCallback(async () => {
-    if (!navigator.onLine || !user?.id) return
+    if (!isOnline || !user?.id) return
     try {
       const supabase = createClient()
       const { data: profile } = await supabase
