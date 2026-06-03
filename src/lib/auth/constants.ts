@@ -50,28 +50,37 @@ export async function encodeRoleCookie(userId: string, role: string): Promise<st
   return `${payload}:${sig}`
 }
 
-export async function decodeRoleCookie(raw: string | undefined, expectedUserId: string): Promise<string | null> {
+export function parseRoleCookie(raw: string | undefined): { userId: string; role: string; sig: string } | null {
   if (!raw) return null
 
   const firstSep = raw.indexOf(':')
   if (firstSep === -1) return null
-  const cookieUserId = raw.substring(0, firstSep)
+  const userId = raw.substring(0, firstSep)
   const rest = raw.substring(firstSep + 1)
 
   const secondSep = rest.indexOf(':')
   if (secondSep === -1) return null
-  const cookieRole = rest.substring(0, secondSep)
-  const cookieSig = rest.substring(secondSep + 1)
+  const role = rest.substring(0, secondSep)
+  const sig = rest.substring(secondSep + 1)
 
-  if (cookieUserId !== expectedUserId) return null
+  return { userId, role, sig }
+}
 
-  if (cookieSig === 'unsigned:dev') {
+export function decodeRoleCookieClient(raw: string | undefined, expectedUserId: string): string | null {
+  const parsed = parseRoleCookie(raw)
+  if (!parsed) return null
+  if (parsed.userId !== expectedUserId) return null
+  return parsed.role
+}
+
+export async function decodeRoleCookie(raw: string | undefined, expectedUserId: string): Promise<string | null> {
+  const parsed = parseRoleCookie(raw)
+  if (!parsed) return null
+  if (parsed.userId !== expectedUserId) return null
+
+  if (parsed.sig === 'unsigned:dev') {
     if (process.env.NODE_ENV === 'production') return null
-    return cookieRole
-  }
-
-  if (typeof window !== 'undefined') {
-    return cookieRole
+    return parsed.role
   }
 
   const key = await getHmacKey()
@@ -80,10 +89,10 @@ export async function decodeRoleCookie(raw: string | undefined, expectedUserId: 
   const valid = await crypto.subtle.verify(
     'HMAC',
     key,
-    hexToBuffer(cookieSig),
-    encoder.encode(`${cookieUserId}:${cookieRole}`)
+    hexToBuffer(parsed.sig),
+    encoder.encode(`${parsed.userId}:${parsed.role}`)
   )
   if (!valid) return null
 
-  return cookieRole
+  return parsed.role
 }

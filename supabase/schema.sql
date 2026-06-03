@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   igv NUMERIC DEFAULT 0,
   previous_debt NUMERIC DEFAULT 0 CHECK (previous_debt >= 0),
   total_amount NUMERIC NOT NULL CHECK (total_amount >= 0),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'partial', 'overdue', 'cancelled')),
   issue_date DATE DEFAULT CURRENT_DATE,
   due_date DATE NOT NULL,
   paid_amount NUMERIC DEFAULT 0 CHECK (paid_amount >= 0),

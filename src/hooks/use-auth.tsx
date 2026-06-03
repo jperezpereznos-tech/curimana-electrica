@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { type User } from '@supabase/supabase-js'
-import { ROLE_CLIENT_COOKIE, decodeRoleCookie } from '@/lib/auth/constants'
+import { ROLE_CLIENT_COOKIE, decodeRoleCookieClient } from '@/lib/auth/constants'
 import { useOnlineStatus } from '@/hooks/use-online-status'
 import { db } from '@/lib/db/dexie'
 import { toast } from 'sonner'
@@ -19,12 +19,12 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-async function getRoleFromCookie(expectedUserId: string): Promise<string | null> {
+function getRoleFromCookie(expectedUserId: string): string | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${ROLE_CLIENT_COOKIE}=([^;]*)`))
   if (!match) return null
   const raw = decodeURIComponent(match[1])
-  return decodeRoleCookie(raw, expectedUserId)
+  return decodeRoleCookieClient(raw, expectedUserId)
 }
 
 function deleteRoleCookie() {
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser)
 
       if (currentUser) {
-        const cookieRole = await getRoleFromCookie(currentUser.id)
+        const cookieRole = getRoleFromCookie(currentUser.id)
         if (cookieRole) {
           setRole(cookieRole)
           loadingDoneRef.current = true
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
-          const cookieRole = await getRoleFromCookie(currentUser.id)
+          const cookieRole = getRoleFromCookie(currentUser.id)
         if (cookieRole) {
           setRole(cookieRole)
           loadingDoneRef.current = true
@@ -146,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
           }
         } else if (!rpcAttemptedRef.current) {
+            rpcAttemptedRef.current = true
             const userRole = await fetchRoleViaRPC()
             if (mounted) {
               setRole(userRole)

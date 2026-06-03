@@ -80,7 +80,7 @@ export function useOfflineSync() {
   } catch (error) {
     console.error('Error syncing customer cache — offline search may use stale data:', error)
   }
-  }, [user?.id])
+  }, [isOnline, user?.id])
 
   const refreshSession = useCallback(async (): Promise<{ ok: boolean, message?: string }> => {
     try {
@@ -123,10 +123,11 @@ export function useOfflineSync() {
       consecutiveErrorsRef.current = 0
     }
     const delay = getAutoSyncDelay(consecutiveErrorsRef.current)
+    const onlineRef = { current: isOnline }
     autoSyncTimerRef.current = setTimeout(() => {
-      if (navigator.onLine) void syncNowRef.current()
+      if (onlineRef.current) void syncNowRef.current()
     }, delay)
-  }, [getAutoSyncDelay])
+  }, [getAutoSyncDelay, isOnline])
 
   const syncNow = useCallback(async () => {
     if (!isOnline || syncingRef.current) return 0
@@ -299,13 +300,13 @@ export function useOfflineSync() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    const timer = window.setTimeout(() => {
-      void updateCounter()
-      if (navigator.onLine) {
-        void syncCustomerCache()
-        void syncNow()
-      }
-    }, 0)
+  const timer = window.setTimeout(() => {
+    void updateCounter()
+    if (isOnline) {
+      void syncCustomerCache()
+      void syncNow()
+    }
+  }, 0)
 
     return () => {
       window.clearTimeout(timer)
@@ -316,7 +317,7 @@ export function useOfflineSync() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [updateCounter, syncCustomerCache, syncNow, scheduleAutoSync])
+  }, [isOnline, updateCounter, syncCustomerCache, syncNow, scheduleAutoSync])
 
   return {
     isOnline,

@@ -1,0 +1,1 @@
+ALTER TABLE receipts ALTER COLUMN status SET NOT NULL;

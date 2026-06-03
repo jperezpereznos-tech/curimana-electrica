@@ -525,9 +525,9 @@ receipts: {
           previous_debt: number | null
           previous_reading: number
           reading_id: string | null
-          receipt_number: number
-          status: string | null
-          subtotal: number
+  receipt_number: number
+        status: string
+        subtotal: number
           total_amount: number
           updated_at: string | null
         }
@@ -550,9 +550,9 @@ receipts: {
           previous_debt?: number | null
           previous_reading: number
           reading_id?: string | null
-          receipt_number?: number
-          status?: string | null
-          subtotal: number
+  receipt_number?: number
+        status?: string
+        subtotal: number
           total_amount: number
           updated_at?: string | null
         }
@@ -575,9 +575,9 @@ receipts: {
           previous_debt?: number | null
           previous_reading?: number
           reading_id?: string | null
-          receipt_number?: number
-          status?: string | null
-          subtotal?: number
+  receipt_number?: number
+        status?: string
+        subtotal?: number
           total_amount?: number
           updated_at?: string | null
         }
