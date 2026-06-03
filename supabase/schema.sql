@@ -88,11 +88,11 @@ CREATE TABLE IF NOT EXISTS municipality_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   ruc TEXT NOT NULL,
-  om_number TEXT,
+  om_number TEXT DEFAULT 'OM N° 006-2019-MDC',
   address TEXT NOT NULL,
   logo_url TEXT,
-  billing_cut_day INT DEFAULT 25,
-  payment_grace_days INT DEFAULT 15,
+  billing_cut_day INT DEFAULT 26,
+  payment_grace_days INT DEFAULT 20,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS readings (
   is_estimated BOOLEAN DEFAULT false,
   meter_reader_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   sync_id TEXT,
-  is_synced BOOLEAN DEFAULT true,
+  is_synced BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(customer_id, billing_period_id)
 );
@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS payments (
   cash_closure_id UUID REFERENCES cash_closures(id),
   received_amount NUMERIC DEFAULT 0 CHECK (received_amount >= 0),
   change_amount NUMERIC DEFAULT 0 CHECK (change_amount >= 0),
-  payment_date DATE DEFAULT CURRENT_DATE,
+  payment_date TIMESTAMPTZ DEFAULT now(),
   status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'voided')),
   voided_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -896,6 +896,8 @@ CREATE TRIGGER municipality_config_updated_at BEFORE UPDATE ON municipality_conf
 
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 CREATE INDEX IF NOT EXISTS idx_customers_supply_number ON customers(supply_number);
+CREATE INDEX IF NOT EXISTS idx_customers_full_name_trgm ON public.customers USING gin (full_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_customers_supply_number_trgm ON public.customers USING gin (supply_number gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_customers_tariff_id ON customers(tariff_id);
 CREATE INDEX IF NOT EXISTS idx_readings_customer_id ON readings(customer_id);
 CREATE INDEX IF NOT EXISTS idx_readings_period ON readings(billing_period_id);
