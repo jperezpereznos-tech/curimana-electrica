@@ -85,62 +85,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
+    const roleFetchingRef = { current: false }
 
-    const safetyTimeout = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.warn('[useAuth] Safety timeout triggered. Forcing isLoading to false.')
-        setIsLoading(false)
-      }
-    }, 5000)
+    const resolveRole = async (currentUser: User) => {
+      if (roleFetchingRef.current) return
+      roleFetchingRef.current = true
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return
-
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-
-      if (currentUser) {
-        const cookieRole = getRoleFromCookie(currentUser.id)
-        if (cookieRole) {
-          setRole(cookieRole)
-          loadingDoneRef.current = true
-          setIsLoading(false)
-          clearTimeout(safetyTimeout)
-          if (!rpcAttemptedRef.current) {
-            rpcAttemptedRef.current = true
-            fetchRoleViaRPC().then(rpcRole => {
-              if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
-            })
-          }
-        } else if (!rpcAttemptedRef.current) {
-          rpcAttemptedRef.current = true
-          fetchRoleViaRPC().then(userRole => {
-            if (mounted) {
-              setRole(userRole)
-              loadingDoneRef.current = true
-              setIsLoading(false)
-              clearTimeout(safetyTimeout)
-            }
-          })
-        } else {
-          loadingDoneRef.current = true
-          setIsLoading(false)
-          clearTimeout(safetyTimeout)
-        }
-      } else {
-        setRole(null)
-        setProfileError(null)
+      const cookieRole = getRoleFromCookie(currentUser.id)
+      if (cookieRole) {
+        setRole(cookieRole)
         loadingDoneRef.current = true
         setIsLoading(false)
-        clearTimeout(safetyTimeout)
+        fetchRoleViaRPC().then(rpcRole => {
+          if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
+        })
+        return
       }
-    }).catch(err => {
-      console.error('[useAuth] getSession error:', err)
+
+      const userRole = await fetchRoleViaRPC()
       if (mounted) {
+        setRole(userRole)
+        loadingDoneRef.current = true
         setIsLoading(false)
-        clearTimeout(safetyTimeout)
       }
-    })
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -151,42 +119,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
-          const cookieRole = getRoleFromCookie(currentUser.id)
-          if (cookieRole) {
-            setRole(cookieRole)
-            loadingDoneRef.current = true
-            setIsLoading(false)
-            clearTimeout(safetyTimeout)
-            if (!rpcAttemptedRef.current) {
-              rpcAttemptedRef.current = true
-              fetchRoleViaRPC().then(rpcRole => {
-                if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
-              })
-            }
-          } else if (!rpcAttemptedRef.current) {
-            rpcAttemptedRef.current = true
-            const userRole = await fetchRoleViaRPC()
-            if (mounted) {
-              setRole(userRole)
-              loadingDoneRef.current = true
-              setIsLoading(false)
-              clearTimeout(safetyTimeout)
-            }
-          } else {
-            loadingDoneRef.current = true
-            setIsLoading(false)
-            clearTimeout(safetyTimeout)
-          }
+          await resolveRole(currentUser)
         } else {
           setRole(null)
           setProfileError(null)
           loadingDoneRef.current = true
           setIsLoading(false)
-          clearTimeout(safetyTimeout)
         }
 
         if (event === 'SIGNED_OUT') {
           rpcAttemptedRef.current = false
+          roleFetchingRef.current = false
           setUser(null)
           setRole(null)
           signingOutRef.current = false
@@ -197,6 +140,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     )
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
+      if (!session?.user) {
+        setRole(null)
+        setProfileError(null)
+        loadingDoneRef.current = true
+        setIsLoading(false)
+      }
+    }).catch(err => {
+      console.error('[useAuth] getSession error:', err)
+      if (mounted) {
+        setIsLoading(false)
+      }
+    })
 
     return () => {
       mounted = false
