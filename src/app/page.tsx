@@ -45,11 +45,18 @@ export default function Home() {
       Tu usuario no tiene un rol asignado en el sistema. Esto puede ocurrir porque:
     </p>
 
-    <ul className="text-sm text-muni-silver-dark mb-6 list-disc list-inside space-y-1">
-            <li>Es tu primera vez iniciando sesión</li>
-            <li>Tu perfil aún no ha sido configurado por un administrador</li>
-            <li>Hubo un problema al crear tu perfil</li>
-          </ul>
+    {profileError ? (
+      <div className="mb-6 p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded text-sm font-mono break-all">
+        {profileError}
+      </div>
+    ) : (
+      <ul className="text-sm text-muni-silver-dark mb-6 list-disc list-inside space-y-1">
+        <li>Es tu primera vez iniciando sesión</li>
+        <li>Tu perfil aún no ha sido configurado por un administrador</li>
+        <li>Hubo un problema al crear tu perfil</li>
+      </ul>
+    )}
+
 
           <div className="flex flex-col gap-2">
             <Button onClick={() => signOut()} variant="destructive" className="w-full">
