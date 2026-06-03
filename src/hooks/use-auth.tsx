@@ -86,6 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn('[useAuth] Safety timeout triggered. Forcing isLoading to false.')
+        setIsLoading(false)
+      }
+    }, 5000)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return
 
@@ -98,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setRole(cookieRole)
           loadingDoneRef.current = true
           setIsLoading(false)
+          clearTimeout(safetyTimeout)
           if (!rpcAttemptedRef.current) {
             rpcAttemptedRef.current = true
             fetchRoleViaRPC().then(rpcRole => {
@@ -111,17 +119,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setRole(userRole)
               loadingDoneRef.current = true
               setIsLoading(false)
+              clearTimeout(safetyTimeout)
             }
           })
         } else {
           loadingDoneRef.current = true
           setIsLoading(false)
+          clearTimeout(safetyTimeout)
         }
       } else {
         setRole(null)
         setProfileError(null)
         loadingDoneRef.current = true
         setIsLoading(false)
+        clearTimeout(safetyTimeout)
+      }
+    }).catch(err => {
+      console.error('[useAuth] getSession error:', err)
+      if (mounted) {
+        setIsLoading(false)
+        clearTimeout(safetyTimeout)
       }
     })
 
@@ -135,33 +152,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentUser) {
           const cookieRole = getRoleFromCookie(currentUser.id)
-        if (cookieRole) {
-          setRole(cookieRole)
-          loadingDoneRef.current = true
-          setIsLoading(false)
-          if (!rpcAttemptedRef.current) {
-            rpcAttemptedRef.current = true
-            fetchRoleViaRPC().then(rpcRole => {
-              if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
-            })
-          }
-        } else if (!rpcAttemptedRef.current) {
+          if (cookieRole) {
+            setRole(cookieRole)
+            loadingDoneRef.current = true
+            setIsLoading(false)
+            clearTimeout(safetyTimeout)
+            if (!rpcAttemptedRef.current) {
+              rpcAttemptedRef.current = true
+              fetchRoleViaRPC().then(rpcRole => {
+                if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
+              })
+            }
+          } else if (!rpcAttemptedRef.current) {
             rpcAttemptedRef.current = true
             const userRole = await fetchRoleViaRPC()
             if (mounted) {
               setRole(userRole)
               loadingDoneRef.current = true
               setIsLoading(false)
+              clearTimeout(safetyTimeout)
             }
           } else {
             loadingDoneRef.current = true
             setIsLoading(false)
+            clearTimeout(safetyTimeout)
           }
         } else {
           setRole(null)
           setProfileError(null)
           loadingDoneRef.current = true
           setIsLoading(false)
+          clearTimeout(safetyTimeout)
         }
 
         if (event === 'SIGNED_OUT') {
