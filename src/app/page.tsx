@@ -2,24 +2,26 @@
 
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 export default function Home() {
   const { user, role, isLoading, profileError, signOut } = useAuth()
+  const router = useRouter()
   const showError = !isLoading && !!user && !role
 
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        window.location.href = '/login'
+        router.replace('/login')
       } else if (role) {
-        if (role === 'admin') window.location.href = '/admin'
-        else if (role === 'cashier') window.location.href = '/cashier'
-        else if (role === 'meter_reader') window.location.href = '/reader'
+        if (role === 'admin') router.replace('/admin')
+        else if (role === 'cashier') router.replace('/cashier')
+        else if (role === 'meter_reader') router.replace('/reader')
       }
     }
-  }, [user, role, isLoading])
+  }, [user, role, isLoading, router])
 
   if (isLoading) {
     return (
@@ -53,7 +55,7 @@ export default function Home() {
             <Button onClick={() => signOut()} variant="destructive" className="w-full">
               Cerrar Sesión
             </Button>
-            <Button onClick={() => window.location.reload()} variant="outline" className="w-full">
+            <Button onClick={() => router.refresh()} variant="outline" className="w-full">
               Reintentar
             </Button>
           </div>

@@ -64,7 +64,7 @@ export async function proxy(request: NextRequest) {
         return null
       }
       const role = data as string | null
-		if (role && userId) {
+  if (userId && role != null && role !== '') {
 			const encoded = await encodeRoleCookie(userId, role)
         supabaseResponse.cookies.set(ROLE_COOKIE, encoded, {
           path: '/',

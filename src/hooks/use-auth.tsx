@@ -63,10 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return null
         }
 
-        if (data) {
-          setProfileError(null)
-          return data as string
-        }
+          if (data != null) {
+            setProfileError(null)
+            return data as string
+          }
 
         setProfileError('No se encontró un perfil con rol asignado')
         return null
