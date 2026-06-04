@@ -21,10 +21,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function getRoleFromCookie(expectedUserId: string): string | null {
   if (typeof document === 'undefined') return null
-  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${ROLE_CLIENT_COOKIE}=([^;]*)`))
-  if (!match) return null
-  const raw = decodeURIComponent(match[1])
-  return decodeRoleCookieClient(raw, expectedUserId)
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|;\s*)${ROLE_CLIENT_COOKIE}=([^;]*)`))
+    if (!match) return null
+    const raw = decodeURIComponent(match[1])
+    return decodeRoleCookieClient(raw, expectedUserId)
+  } catch {
+    return null
+  }
 }
 
 function deleteRoleCookie() {
@@ -87,31 +91,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
     const roleFetchingRef = { current: false }
 
-    const resolveRole = async (currentUser: User) => {
+    const finishLoading = (userRole: string | null, error: string | null = null) => {
+      if (!mounted) return
+      if (error) setProfileError(error)
+      setRole(userRole)
+      loadingDoneRef.current = true
+      setIsLoading(false)
+    }
+
+    const resolveRole = async (currentUser: User): Promise<void> => {
       if (roleFetchingRef.current) return
       roleFetchingRef.current = true
 
-      const cookieRole = getRoleFromCookie(currentUser.id)
-      if (cookieRole) {
-        setRole(cookieRole)
-        loadingDoneRef.current = true
-        setIsLoading(false)
-        fetchRoleViaRPC().then(rpcRole => {
-          if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
-        })
-        return
-      }
+      try {
+        const cookieRole = getRoleFromCookie(currentUser.id)
+        if (cookieRole) {
+          finishLoading(cookieRole)
+          fetchRoleViaRPC().then(rpcRole => {
+            if (mounted && rpcRole && rpcRole !== cookieRole) setRole(rpcRole)
+          }).catch(() => {})
+          return
+        }
 
-      const userRole = await fetchRoleViaRPC()
-      if (mounted) {
-        setRole(userRole)
-        loadingDoneRef.current = true
-        setIsLoading(false)
+        const userRole = await fetchRoleViaRPC()
+        finishLoading(userRole)
+      } catch (e) {
+        console.error('[useAuth] resolveRole error:', e)
+        finishLoading(null, `Error al resolver rol: ${e instanceof Error ? e.message : String(e)}`)
       }
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!mounted) return
         if (signingOutRef.current && event !== 'SIGNED_OUT') return
 
@@ -119,12 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
 
         if (currentUser) {
-          await resolveRole(currentUser)
+          resolveRole(currentUser).catch(e => {
+            console.error('[useAuth] onAuthStateChange resolveRole rejection:', e)
+            finishLoading(null, `Error inesperado: ${e instanceof Error ? e.message : String(e)}`)
+          })
         } else {
-          setRole(null)
-          setProfileError(null)
-          loadingDoneRef.current = true
-          setIsLoading(false)
+          finishLoading(null)
         }
 
         if (event === 'SIGNED_OUT') {
@@ -134,9 +145,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setRole(null)
           signingOutRef.current = false
           deleteRoleCookie()
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login'
-          }
         }
       }
     )
@@ -144,21 +152,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
       if (!session?.user) {
-        setRole(null)
-        setProfileError(null)
-        loadingDoneRef.current = true
-        setIsLoading(false)
+        finishLoading(null)
+      } else if (!loadingDoneRef.current && !roleFetchingRef.current) {
+        resolveRole(session.user).catch(e => {
+          console.error('[useAuth] getSession resolveRole rejection:', e)
+          finishLoading(null, `Error inesperado: ${e instanceof Error ? e.message : String(e)}`)
+        })
       }
     }).catch(err => {
       console.error('[useAuth] getSession error:', err)
       if (mounted) {
-        setIsLoading(false)
+        finishLoading(null)
       }
     })
+
+    const safetyTimer = setTimeout(() => {
+      if (mounted && !loadingDoneRef.current) {
+        console.error('[useAuth] Safety timeout — forcing loading=false after 5s')
+        finishLoading(null, 'Tiempo de espera agotado al cargar perfil. Intenta recargar la página.')
+      }
+    }, 5000)
 
     return () => {
       mounted = false
       subscription.unsubscribe()
+      clearTimeout(safetyTimer)
     }
   }, [fetchRoleViaRPC, supabase.auth])
 
