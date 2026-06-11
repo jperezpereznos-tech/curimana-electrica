@@ -37,7 +37,10 @@ export async function proxy(request: NextRequest) {
 		if (userError) console.error('[PROXY] getUser error:', userError.message)
 		const userId = userData?.user?.id ?? null
 
-    if (!userId && url.pathname !== '/login') {
+    const PUBLIC_PATHS = ['/login', '/auth/confirm', '/auth/set-password']
+    const isPublicPath = PUBLIC_PATHS.some(p => url.pathname === p || url.pathname.startsWith(p + '/'))
+
+    if (!userId && !isPublicPath) {
       url.pathname = '/login'
       const response = NextResponse.redirect(url)
       supabaseResponse.cookies.getAll().forEach(c => response.cookies.set(c.name, c.value, c))
@@ -46,7 +49,7 @@ export async function proxy(request: NextRequest) {
       return response
     }
 
-    if (!userId && url.pathname === '/login') {
+    if (!userId && isPublicPath) {
       supabaseResponse.cookies.delete(ROLE_COOKIE)
       supabaseResponse.cookies.delete(ROLE_CLIENT_COOKIE)
       return supabaseResponse

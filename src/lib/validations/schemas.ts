@@ -78,6 +78,14 @@ export const inviteUserSchema = z.object({
   sectorId: uuidSchema.nullable().optional(),
 })
 
+export const createUserSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(1).max(200),
+  password: z.string().min(8).max(72),
+  role: roleSchema,
+  sectorId: uuidSchema.nullable().optional(),
+})
+
 export const cancelReceiptSchema = z.object({
   id: uuidSchema,
   reason: z.string().min(1).max(500),

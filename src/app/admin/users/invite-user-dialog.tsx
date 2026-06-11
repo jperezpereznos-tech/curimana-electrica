@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, Eye, EyeOff } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -12,17 +12,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { inviteUserAction } from './actions'
+import { createUserAction } from './actions'
 import type { SectorRow } from '@/types/views'
 
-const inviteSchema = z.object({
+const createSchema = z.object({
   email: z.string().email('Email invalido'),
   full_name: z.string().min(3, 'Nombre requerido'),
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
   role: z.string().min(1, 'Rol requerido'),
   sectorId: z.string().optional(),
 })
 
-type InviteFormValues = z.infer<typeof inviteSchema>
+type CreateFormValues = z.infer<typeof createSchema>
 
 const ROLES = [
   { id: 'meter_reader', label: 'Lecturador' },
@@ -34,21 +35,23 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  const form = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
-    defaultValues: { email: '', full_name: '', role: 'meter_reader', sectorId: '' },
+  const form = useForm<CreateFormValues>({
+    resolver: zodResolver(createSchema),
+    defaultValues: { email: '', full_name: '', password: '', role: 'meter_reader', sectorId: '' },
   })
 
   const watchRole = form.watch('role')
 
-  const onSubmit = async (values: InviteFormValues) => {
+  const onSubmit = async (values: CreateFormValues) => {
     setServerError(null)
     setLoading(true)
     try {
-      const result = await inviteUserAction(
+      const result = await createUserAction(
         values.email,
         values.full_name,
+        values.password,
         values.role,
         values.role === 'meter_reader' && values.sectorId ? values.sectorId : undefined
       )
@@ -59,7 +62,7 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
         form.reset()
       }
     } catch (e: unknown) {
-      setServerError(e instanceof Error ? e.message : 'Error al invitar usuario')
+      setServerError(e instanceof Error ? e.message : 'Error al crear usuario')
     } finally {
       setLoading(false)
     }
@@ -74,9 +77,9 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
       } />
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Invitar Usuario</DialogTitle>
+          <DialogTitle>Crear Usuario</DialogTitle>
           <DialogDescription>
-            Envia una invitacion por correo electronico. El usuario establecera su propia contrasena.
+            Crea un nuevo usuario con acceso al sistema. La contraseña se asigna directamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,6 +103,30 @@ export function InviteUserDialog({ sectors }: { sectors: SectorRow[] }) {
             <Input id="email" type="email" {...form.register('email')} />
             {form.formState.errors.email && (
               <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Mínimo 8 caracteres"
+                className="pr-10"
+                {...form.register('password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {form.formState.errors.password && (
+              <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
             )}
           </div>
 

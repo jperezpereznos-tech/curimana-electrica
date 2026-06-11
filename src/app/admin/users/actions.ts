@@ -4,7 +4,7 @@ import { requireAdminAuth } from '@/lib/auth/server-admin-auth'
 import { getProfileService } from '@/services/profile-service'
 import { getSectorService } from '@/services/sector-service'
 import { revalidatePath } from 'next/cache'
-import { uuidSchema, roleSchema, inviteUserSchema } from '@/lib/validations/schemas'
+import { uuidSchema, roleSchema, inviteUserSchema, createUserSchema } from '@/lib/validations/schemas'
 
 export async function getUsersWithRolesAction() {
   const { supabase } = await requireAdminAuth()
@@ -122,6 +122,68 @@ export async function inviteUserAction(
   }
 }
 
+export async function createUserAction(
+  email: string,
+  fullName: string,
+  password: string,
+  role: string,
+  sectorId?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const parsed = createUserSchema.parse({ email, fullName, password, role, sectorId })
+    const { supabase } = await requireAdminAuth()
+    const profileService = getProfileService(supabase)
+
+    const authResult = await profileService.createUserWithPassword(parsed.email, parsed.password, parsed.fullName)
+    if (!authResult.user) {
+      return { success: false, error: 'No se pudo crear el usuario' }
+    }
+
+    const userId = authResult.user.id
+
+    if (parsed.role !== 'meter_reader') {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          await profileService.updateRole(userId, parsed.role)
+          break
+        } catch {
+          if (attempt === 4) {
+            return { success: false, error: 'Usuario creado pero no se pudo asignar el rol. Asignelo manualmente.' }
+          }
+          await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+        }
+      }
+    }
+
+    if (parsed.sectorId) {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          await profileService.assignSector(userId, parsed.sectorId)
+          break
+        } catch {
+          if (attempt === 4) {
+            return { success: false, error: 'Usuario creado pero no se pudo asignar el sector. Asignelo manualmente.' }
+          }
+          await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+        }
+      }
+    }
+
+    revalidatePath('/admin/users')
+    return { success: true }
+  } catch (error: any) {
+    let errorMessage = 'Error al crear usuario'
+    if (error?.message) {
+      if (error.message.includes('already been registered') || error.message.includes('email_exists')) {
+        errorMessage = 'Ya existe un usuario con este correo electrónico'
+      } else {
+        errorMessage = error.message
+      }
+    }
+    return { success: false, error: errorMessage }
+  }
+}
+
 export async function deleteUserAction(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     uuidSchema.parse(userId)
@@ -139,5 +201,28 @@ export async function deleteUserAction(userId: string): Promise<{ success: boole
     return { success: true }
   } catch {
     return { success: false, error: 'Error al eliminar usuario' }
+  }
+}
+
+export async function resetUserPasswordAction(userId: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    uuidSchema.parse(userId)
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, error: 'La contraseña debe tener al menos 8 caracteres' }
+    }
+    const { supabase, userId: currentUserId } = await requireAdminAuth()
+    if (userId === currentUserId) {
+      return { success: false, error: 'Usa la opción de cambiar tu propia contraseña desde tu perfil' }
+    }
+    const adminClient = (await import('@/lib/supabase/admin')).createAdminClient()
+    const { error } = await adminClient.auth.admin.updateUserById(userId, {
+      password: newPassword,
+      email_confirm: true,
+    })
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/admin/users')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error?.message ?? 'Error al cambiar contraseña' }
   }
 }

@@ -28,8 +28,24 @@ export class ProfileService {
 
   async inviteUser(email: string, _password: string, fullName: string) {
     const adminClient = createAdminClient()
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://curimana-electrica.vercel.app'
     const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name: fullName },
+      redirectTo: `${appUrl}/auth/confirm`,
+    })
+
+    if (error) throw new Error(error.message)
+
+    return { user: data.user ? { id: data.user.id, email: data.user.email } : null }
+  }
+
+  async createUserWithPassword(email: string, password: string, fullName: string) {
+    const adminClient = createAdminClient()
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
     })
 
     if (error) throw new Error(error.message)

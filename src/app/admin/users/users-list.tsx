@@ -10,8 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import dynamic from 'next/dynamic'
 
 const ConfirmDialog = dynamic(() => import('@/components/confirm-dialog').then(m => ({ default: m.ConfirmDialog })))
-import { Shield, MapPin, Trash2 } from 'lucide-react'
-import { updateUserRoleAction, assignSectorToUserAction, deleteUserAction } from './actions'
+import { Shield, MapPin, Trash2, KeyRound } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
+import { updateUserRoleAction, assignSectorToUserAction, deleteUserAction, resetUserPasswordAction } from './actions'
 import type { ProfileWithSector, SectorRow } from '@/types/views'
 
 const ROLES = [
@@ -24,6 +29,9 @@ function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sector
  const [error, setError] = useState<string | null>(null)
  const [deleteTarget, setDeleteTarget] = useState<ProfileWithSector | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState<ProfileWithSector | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
 
   const handleRoleChange = async (userId: string, role: string) => {
     setError(null)
@@ -60,6 +68,25 @@ function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sector
       setError(e instanceof Error ? e.message : 'Error al eliminar usuario')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!passwordTarget) return
+    setSavingPassword(true)
+    setError(null)
+    try {
+      const result = await resetUserPasswordAction(passwordTarget.id, newPassword)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setPasswordTarget(null)
+        setNewPassword('')
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al cambiar contraseña')
+    } finally {
+      setSavingPassword(false)
     }
   }
 
@@ -155,6 +182,16 @@ function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sector
  )}
  </TableCell>
  <TableCell>
+  <div className="flex gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={() => { setPasswordTarget(user); setNewPassword(''); }}
+          aria-label="Establecer contraseña"
+        >
+ <KeyRound className="h-4 w-4" />
+ </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -164,6 +201,7 @@ function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sector
         >
  <Trash2 className="h-4 w-4" />
  </Button>
+  </div>
  </TableCell>
  </TableRow>
  )
@@ -182,6 +220,36 @@ function UsersListInner({ users, sectors }: { users: ProfileWithSector[]; sector
  onConfirm={handleDelete}
  destructive
  />
+
+ <Dialog open={passwordTarget !== null} onOpenChange={(open) => { if (!open) { setPasswordTarget(null); setNewPassword(''); } }}>
+  <DialogContent className="max-w-sm">
+   <DialogHeader>
+    <DialogTitle>Establecer contraseña</DialogTitle>
+    <DialogDescription>
+     Nueva contraseña para {passwordTarget?.full_name || passwordTarget?.email}
+    </DialogDescription>
+   </DialogHeader>
+   <div className="space-y-3 py-2">
+    <div className="space-y-2">
+     <Label htmlFor="new-password">Nueva contraseña</Label>
+     <Input
+      id="new-password"
+      type="text"
+      value={newPassword}
+      onChange={(e) => setNewPassword(e.target.value)}
+      placeholder="Mínimo 8 caracteres"
+      autoComplete="off"
+     />
+    </div>
+   </div>
+   <DialogFooter>
+    <Button variant="outline" onClick={() => { setPasswordTarget(null); setNewPassword(''); }}>Cancelar</Button>
+    <Button onClick={handleResetPassword} disabled={savingPassword || newPassword.length < 8}>
+     {savingPassword ? 'Guardando...' : 'Guardar'}
+    </Button>
+   </DialogFooter>
+  </DialogContent>
+ </Dialog>
  </div>
  )
 }
