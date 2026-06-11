@@ -109,8 +109,16 @@ export async function inviteUserAction(
 
     revalidatePath('/admin/users')
     return { success: true }
-  } catch {
-    return { success: false, error: 'Error al invitar usuario' }
+  } catch (error: any) {
+    let errorMessage = 'Error al invitar usuario'
+    if (error?.message) {
+      if (error.message.includes('A user with this email address has already been registered') || error.message.includes('email_exists')) {
+        errorMessage = 'Ya existe un usuario con este correo electrónico'
+      } else {
+        errorMessage = error.message
+      }
+    }
+    return { success: false, error: errorMessage }
   }
 }
 

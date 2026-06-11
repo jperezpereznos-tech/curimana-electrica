@@ -220,7 +220,7 @@ describe('inviteUserAction', () => {
 
     const result = await inviteUserAction('test@test.com', 'Juan', 'admin')
 
-    expect(result).toEqual({ success: false, error: 'Error al invitar usuario' })
+    expect(result).toEqual({ success: false, error: 'No autenticado' })
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
@@ -239,18 +239,18 @@ describe('deleteUserAction', () => {
   })
 
   it('debería eliminar usuario y revalidar ruta', async () => {
-	mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8200-000000000002' } } })
-	mockDeleteUser.mockResolvedValue(undefined)
+    mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8200-000000000002' } } })
+    mockDeleteUser.mockResolvedValue(undefined)
 
-	const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
+    const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
-	expect(mockDeleteUser).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000001')
-	expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
-	expect(result).toEqual({ success: true })
-    })
+    expect(mockDeleteUser).toHaveBeenCalledWith('00000000-0000-4000-8100-000000000001')
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/admin/users')
+    expect(result).toEqual({ success: true })
+  })
 
-    it('debería rechazar eliminación de propia cuenta', async () => {
-	mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8100-000000000001' } } })
+  it('debería rechazar eliminación de propia cuenta', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8100-000000000001' } } })
 
     const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
@@ -267,8 +267,8 @@ describe('deleteUserAction', () => {
   })
 
   it('debería retornar error si el servicio falla', async () => {
-	mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8200-000000000002' } } })
-	mockDeleteUser.mockRejectedValue(new Error('Not found'))
+    mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8200-000000000002' } } })
+    mockDeleteUser.mockRejectedValue(new Error('Not found'))
 
     const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
@@ -276,8 +276,8 @@ describe('deleteUserAction', () => {
   })
 
   it('debería manejar errores que no son instancias de Error', async () => {
-	mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8200-000000000002' } } })
-	mockDeleteUser.mockRejectedValue('fail')
+    mockGetUser.mockResolvedValue({ data: { user: { id: '00000000-0000-4000-8200-000000000002' } } })
+    mockDeleteUser.mockRejectedValue('fail')
 
     const result = await deleteUserAction('00000000-0000-4000-8100-000000000001')
 
