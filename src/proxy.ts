@@ -64,28 +64,41 @@ export async function proxy(request: NextRequest) {
         return null
       }
       const role = data as string | null
-  if (userId && role != null && role !== '') {
-			const encoded = await encodeRoleCookie(userId, role)
-        supabaseResponse.cookies.set(ROLE_COOKIE, encoded, {
-          path: '/',
-          maxAge: ROLE_COOKIE_MAX_AGE,
-          httpOnly: true,
-          sameSite: 'lax',
-        })
-        supabaseResponse.cookies.set(ROLE_CLIENT_COOKIE, encoded, {
-          path: '/',
-          maxAge: ROLE_COOKIE_MAX_AGE,
-          httpOnly: false,
-          sameSite: 'lax',
-        })
+      if (userId && role != null && role !== '') {
+        try {
+          const encoded = await encodeRoleCookie(userId, role)
+          supabaseResponse.cookies.set(ROLE_COOKIE, encoded, {
+            path: '/',
+            maxAge: ROLE_COOKIE_MAX_AGE,
+            httpOnly: true,
+            sameSite: 'lax',
+          })
+          supabaseResponse.cookies.set(ROLE_CLIENT_COOKIE, encoded, {
+            path: '/',
+            maxAge: ROLE_COOKIE_MAX_AGE,
+            httpOnly: false,
+            sameSite: 'lax',
+          })
+        } catch (e) {
+          console.error('[PROXY] encodeRoleCookie error (role resolved but cookie not cached):', e instanceof Error ? e.message : e)
+        }
       }
       return role
     }
 
 	const getRole = async (): Promise<string | null> => {
-		const cached = await getCachedRole()
-		if (cached) return cached
-		return fetchAndCacheRole()
+		try {
+			const cached = await getCachedRole()
+			if (cached) return cached
+		} catch (e) {
+			console.error('[PROXY] getCachedRole error (falling back to RPC):', e instanceof Error ? e.message : e)
+		}
+		try {
+			return await fetchAndCacheRole()
+		} catch (e) {
+			console.error('[PROXY] fetchAndCacheRole error:', e instanceof Error ? e.message : e)
+			return null
+		}
 	}
 
     if (userId && (url.pathname === '/login' || url.pathname === '/')) {

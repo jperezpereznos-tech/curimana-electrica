@@ -8,9 +8,8 @@ function getHmacKey(): Promise<CryptoKey> {
   const secret = process.env.ROLE_COOKIE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('ROLE_COOKIE_SECRET is required in production')
+      console.error('[AUTH] CRITICAL: ROLE_COOKIE_SECRET (and SUPABASE_SERVICE_ROLE_KEY) not set — role cookie signing/verification disabled. Add ROLE_COOKIE_SECRET to environment variables.')
     }
-    console.warn('ROLE_COOKIE_SECRET not set — role cookies will be unsigned in development')
     cachedKey = null as unknown as CryptoKey
     return Promise.resolve(null as unknown as CryptoKey)
   }
